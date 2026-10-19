@@ -1,0 +1,50 @@
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Pages.TransitionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}">
+
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="12,24,12,12">
+            <TextBlock Text="Community Phone Toolkit" Style="{StaticResource PhoneTextNormalStyle}" />
+            <TextBlock Text="transitions" Style="{StaticResource PhoneTextTitle1Style}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12,0,12,24">
+                <TextBlock
+                    Text="Pick a family, then navigate. The outgoing transition is taken from this page and the incoming transition from the target page, which is why both are set when navigating."
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,12" />
+
+                <phone:ListPicker
+                    x:Name="FamilyPicker"
+                    Header="Transition family"
+                    Margin="0,0,0,12"
+                    SelectionChanged="OnFamilyChanged">
+                    <sys:String>Turnstile</sys:String>
+                    <sys:String>Slide</sys:String>
+                    <sys:String>Rotate</sys:String>
+                    <sys:String>Swivel</sys:String>
+                    <sys:String>Roll</sys:String>
+                    <sys:String>Turnstile feather</sys:String>
+                </phone:ListPicker>
+
+                <TextBlock x:Name="FamilyStatus" Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+                <Button Content="Open target page" Click="OnOpenTarget" Margin="0,0,0,8" />
+                <Button Content="Go back" Click="OnGoBack" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>

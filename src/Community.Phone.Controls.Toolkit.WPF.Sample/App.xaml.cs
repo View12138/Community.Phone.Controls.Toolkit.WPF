@@ -18,7 +18,7 @@ namespace PhoneToolkitSample
             {
                 MainWindow window = new MainWindow();
                 window.Show();
-                window.PhoneFrame.Navigate(new Pages.HomePage());
+                window.PhoneFrame.Navigate(new Pages.MainPage());
             }
             catch (Exception ex)
             {

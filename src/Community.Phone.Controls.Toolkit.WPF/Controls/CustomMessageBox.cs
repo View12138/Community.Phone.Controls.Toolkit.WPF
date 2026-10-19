@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Microsoft.Phone.Controls
 {
@@ -19,6 +20,8 @@ namespace Microsoft.Phone.Controls
         private static CustomMessageBox _currentInstance;
 
         private Window _window;
+        private UIElement _content;
+        private bool _closeRequested;
         private CustomMessageBoxResult _result = CustomMessageBoxResult.None;
         private bool _isDismissing;
 
@@ -170,6 +173,12 @@ namespace Microsoft.Phone.Controls
             _currentInstance = this;
             _result = CustomMessageBoxResult.None;
             _isDismissing = false;
+            _closeRequested = false;
+
+            // The message box is hosted in a projection host so it can swivel
+            // in and out like on Windows Phone.
+            _content = BuildContent();
+            ProjectionHost host = new ProjectionHost { Child = _content };
 
             Window window = new Window
             {
@@ -178,7 +187,7 @@ namespace Microsoft.Phone.Controls
                 ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Background = (Brush)(FindThemeResource("PhoneBackgroundBrush") ?? new SolidColorBrush(Color.FromRgb(31, 31, 31))),
-                Content = BuildContent()
+                Content = host
             };
 
             Window owner = Application.Current == null ? null : Application.Current.MainWindow;
@@ -205,8 +214,44 @@ namespace Microsoft.Phone.Controls
             }
 
             window.Closed += OnWindowClosed;
+            window.ContentRendered += OnWindowContentRendered;
             _window = window;
             window.Show();
+        }
+
+        private void OnWindowContentRendered(object sender, EventArgs e)
+        {
+            Window window = sender as Window;
+            if (window != null)
+            {
+                window.ContentRendered -= OnWindowContentRendered;
+            }
+
+            // Windows Phone swivels the message box in with a backward swivel.
+            ITransition transition = Transitions.Swivel(_content, SwivelTransitionMode.BackwardIn);
+            ProjectionHost host = ProjectionService.GetProjectionHost(_content);
+            if (host != null)
+            {
+                host.Prefer3D = true;
+            }
+
+            transition.Begin();
+        }
+
+        private void CloseWindow()
+        {
+            if (_closeRequested)
+            {
+                return;
+            }
+
+            _closeRequested = true;
+
+            Window window = _window;
+            if (window != null)
+            {
+                window.Close();
+            }
         }
 
         /// <summary>
@@ -238,16 +283,45 @@ namespace Microsoft.Phone.Controls
 
             _isDismissing = true;
             _result = result;
-            _window.Close();
+
+            if (_window == null || _content == null || !_window.IsVisible)
+            {
+                CloseWindow();
+                return;
+            }
+
+            // Swivel out before closing, matching the Windows Phone message
+            // box. The timer is a safety net in case the window stops
+            // rendering (it would never complete the storyboard).
+            ITransition transition = Transitions.Swivel(_content, SwivelTransitionMode.BackwardOut);
+            transition.Completed += delegate
+            {
+                transition.Stop();
+                CloseWindow();
+            };
+            transition.Begin();
+
+            DispatcherTimer timer = new DispatcherTimer(
+                TimeSpan.FromMilliseconds(500),
+                DispatcherPriority.Normal,
+                delegate
+                {
+                    CloseWindow();
+                },
+                _window.Dispatcher);
+            timer.Start();
         }
 
         private void OnWindowClosed(object sender, EventArgs e)
         {
             Window window = _window;
             _window = null;
+            _content = null;
+            _closeRequested = false;
             if (window != null)
             {
                 window.Closed -= OnWindowClosed;
+                window.ContentRendered -= OnWindowContentRendered;
             }
 
             if (ReferenceEquals(_currentInstance, this))

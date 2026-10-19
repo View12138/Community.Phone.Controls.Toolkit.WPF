@@ -153,9 +153,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 ## 验证状态
 
 - Release 构建：0 warnings，0 errors（2026-10-19 重新验证）。
-- 自动化测试：68 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
+- 自动化测试：72 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
 - 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
-- 示例：启动成功；UI 自动化实际打开详情页、返回首页，修改了 Rating 和 ToggleSwitch，打开了 ListPicker 和 ContextMenu，在 PhoneTextBox 中输入文本，未产生启动错误。
+- 示例：启动成功；UI 自动化逐个打开全部示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus）并每次返回示例索引，未产生启动错误。
 - 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。
 
 ## 运行示例
@@ -164,7 +164,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
-示例展示投影、带动画的导航，以及全部已实现控件和效果：带 WP 样式的 WPF 基础控件、`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ListPicker`、`RecurringDaysPicker`、`ExpanderView`、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`PerformanceProgressBar`、`RelativeAnimatingContentControl`、`TiltEffect` 和 `TurnstileFeatherEffect`。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。
+示例结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页 —— `ControlsPage`（带 WP 样式的 WPF 基础控件 + 全部已实现工具包控件）、`ProjectionPage`、`TransitionsPage`（可选任意转场族，包括羽化，并用它导航）、`FeatherPage`、`MenusPage`（ContextMenu、CustomMessageBox、ApplicationBar/SystemTray 状态）。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。
 
 ## 文档
 

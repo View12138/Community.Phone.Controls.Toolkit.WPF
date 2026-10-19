@@ -12,7 +12,7 @@
 | 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
 | ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**证据快照（2026-10-19）：** Release 构建 0 警告 / 0 错误 · Debug 与 Release 均 68/68 测试通过 · `build\verify-package.ps1` 通过 · 示例 UI 自动化冒烟通过。
+**证据快照（2026-10-19 17:24）：** Release 构建 0 警告 / 0 错误 · Debug 与 Release 均 72/72 测试通过 · `build\verify-package.ps1` 通过 · 示例 UI 自动化冒烟通过（含羽化示例往返）。
 
 ---
 
@@ -47,9 +47,9 @@
 
 | 族 | 状态 | 证据 / 说明 |
 |---|---|---|
-| `TransitionFrame`（退场→入场串行、presenter 翻转、交互恢复、失败回退） | ✅ 已验证 | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`、`…_HostsInitialContentInTheOutgoingPresenter`、`…_RapidNavigationDoesNotLeaveTransitionsActive`、`…_FallsBackWhenTransitionFactoryThrows`、`…_PlaysTurnstileTransition` |
-| `TurnstileTransition`（4 模式） | ✅ 已验证 | 上述测试 + 2026-10-19 运行期采样：退场 0→45° 用时 249 ms，入场 −69°→0° 用时 265–592 ms；几何按 999 DIP 解析模型实测 |
-| `TurnstileFeatherTransition` | 🟡 已实现、未验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget` 覆盖动画与清理；原版“页面中心透视原点”**未**复刻（已文档化），且没有视觉对比 |
+| `TransitionFrame`（退场→入场串行、presenter 翻转、交互恢复、失败回退） | ✅ 已验证 | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`、`…_HostsInitialContentInTheOutgoingPresenter`、`…_RapidNavigationDoesNotLeaveTransitionsActive`、`…_FallsBackWhenTransitionFactoryThrows`、`…_PlaysTurnstileTransition`、`…_UsesAnOutTransitionSetJustBeforeNavigating`（示例在导航前设置转场族）、`…_CompletesAFeatheredExitWithoutTargets`（空转场不得冻结新页面） |
+| `TurnstileTransition`（4 模式） | ✅ 已验证 | 上述测试 + 运行期采样：退场 `0→45°`、入场 `−69°→0°`（串行）。几何按 999 DIP 解析模型实测。已做 WP 对齐调优：`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`（`Transitions.cs` 中的单个常量；设为 `0` / `1` 即还原原工具包值）。 |
+| `TurnstileFeatherTransition` | 🟡 已实现、未验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget`、`TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` 覆盖动画、首次布局时的目标收集与清理；没有动画的转场（例如页面没有可羽化元素时的羽化）会正常完成而不冻结（`TransitionFrame_CompletesAFeatheredExitWithoutTargets`）。原版“页面中心透视原点”**未**复刻（已文档化），且无视觉对比。已实测帧率（6 个元素约 64–68 fps）。注意：出站转场属于被离开的页面——想要羽化退场必须由源页声明或动态设置（示例在 `SampleNavigator` 中完成，源页没有可羽化元素时回退为 turnstile 退场）。 |
 | `SlideTransition`（8 模式） | 🟡 已实现、未验证 | 数值已与原 XAML 人工逐条比对（全部 8 个）；仅通过 `ITransition` 测试间接执行；无运行期/视觉实测 |
 | `RotateTransition`（8 模式） | 🟡 已实现、未验证 | 同 Slide（数值已比对，未在运行时观察） |
 | `SwivelTransition`（6 模式） | 🟡 已实现、未验证 | 同 Slide |
@@ -61,7 +61,7 @@
 | 项目 | 状态 | 证据 / 说明 |
 |---|---|---|
 | `TiltEffect` | ✅ 已验证 | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`、`TiltEffect_DoesNotTiltThePageThatHostsTheElement`、`TiltEffect_DoesNotWrapWhenSuppressed`；按压方向已按 XAML 约定做解析验证 |
-| `TurnstileFeatherEffect` | 🟡 已实现、未验证 | 同羽化转场的测试；逐元素宿主已可用，但透视原点与原版不同 |
+| `TurnstileFeatherEffect` | 🟡 已实现、未验证 | 同羽化转场的测试，另加 `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`；目标从页面可视树收集，宿主包装延迟到 dispatcher。逐元素宿主与页面级投影可用，但透视原点与原版不同 |
 | `SlideInEffect` | ⛔ 未实现 | 依赖 Pivot |
 
 ## 5. 控件
@@ -70,12 +70,12 @@
 |---|---|---|
 | `WrapPanel` | ✅ 已验证 | `WrapPanel_WrapsChildrenAndHonorsItemSize` |
 | `ToggleSwitch` + `ToggleSwitchButton` | ✅ 已验证 | `ToggleSwitch_HasTemplateAndDependencyProperties`、`…_AnimatesThumbTranslation`、`…_SwitchButtonDrivesEvents` |
-| `Rating` | ✅ 已验证 | `Rating_CreatesConfiguredNumberOfItems`、`…_MouseClickChangesValue`、`…_ValueChangesRaiseEventAndUpdateItems` |
-| `PhoneTextBox` | ✅ 已验证（行为） | `PhoneTextBox_ShowsHintWhenEmpty`、`…_TemplatePartsAndTwoWayText`、`…_InnerEditorIsVisibleAndReceivesFocus`；水印动画视觉未验证 |
+| `Rating` | ✅ 已验证 | `Rating_CreatesConfiguredNumberOfItems`、`…_MouseClickChangesValue`、`…_ValueChangesRaiseEventAndUpdateItems`、`…_HalfItemIncrementKeepsValueInItemUnits`；半星模式现在以“星”为单位存值（已文档化的偏离：原版会填出两倍于指针位置的数量） |
+| `PhoneTextBox` | ✅ 已验证（行为） | `PhoneTextBox_ShowsHintWhenEmpty`、`…_TemplatePartsAndTwoWayText`、`…_InnerEditorIsVisibleAndReceivesFocus`；占位符起点现在与光标一致（实测 12 px），聚焦或输入法合成期间隐藏；水印动画视觉未验证 |
 | `ListPicker` / `ListPickerItem` | ✅ 已验证（行为） | `ListPicker_SelectionRoundTrips`、`…_PopupSelectsItemAndCloses`、`…_OpenFailsWithoutItems`；弹出层样式未与 WP 对比 |
 | `ExpanderView` | 🟡 已实现、未验证 | `ExpanderView_TogglesAndRaisesEvents` 覆盖行为；高度动画与标题竖线间距属于纯视觉 |
-| `HubTile` / `HubTileService` | 🟡 已实现、未验证 | `HubTile_PropertiesAndGroupFreeze`；翻转时序/视觉未验证 |
-| `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
+| `HubTile` / `HubTileService` | 🟡 已实现、未验证 | `HubTile_PropertiesAndGroupFreeze`；模板已按 WP8 原版重写（滑动表面 + `RotationX` 翻转，探针数值验证 `0→180→0`、185 ms 切换正反面），像素保真度未验证 |
+| `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`；弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel（探针：弹出 `RotationX −45°→0°`，关闭 `0°→42°` 后窗口才关闭） |
 | `ContextMenu` / `ContextMenuService` | ✅ 已验证 | `ContextMenuService_AttachesMenu`、`ContextMenu_OpensAndCloses` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ 已验证（行为） | `DateTimePickers_HaveExpectedDefaultsAndFormatting`、`DateTimePickers_FormatValuesAndRaiseValueChanged`、`RecurringDaysPicker_SummarizesWeekdays`；picker **页面**与 `LoopingSelector` 未移植（改用 WPF 对话框） |
 | `PerformanceProgressBar` | 🟡 已实现、未验证 | 在 `Generic.xaml` 中有样式、示例中有展示；无专门测试，相对动画重写未移植 |
@@ -100,7 +100,7 @@
 | Metro 主题 + WPF 基础控件 WP 样式 | ✅ 存在性已验证 / 🟡（保真度） | `Theme_ContainsMetroResources`；`Generic.xaml` 覆盖 `Button`、`TextBox`、`ComboBox`、`CheckBox`、`RadioButton`、`ListBox`、`ScrollBar`、`ContextMenu`、`ProgressBar`、`ToolTip` 及工具包控件。从未与 WP 做并排像素对比 |
 | 本地化资源 | ✅ 已验证 | 50 种文化 + 中性资源，包内包含卫星程序集；`OffOnConverterUsesLocalizedStrings` |
 | NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`，全新消费工程可构建运行 |
-| 示例应用 | ✅ 已验证（可运行） | UI 自动化冒烟：turnstile 前进/返回与羽化导航正常，Accent 按钮稳定在 644×66 |
+| 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`）。2026-10-19 UI 自动化冒烟：五个示例均可打开并返回；`Accent button` 稳定 644×66 |
 
 ---
 

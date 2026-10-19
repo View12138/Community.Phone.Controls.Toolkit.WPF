@@ -53,8 +53,8 @@
 
 1. **Storyboard 状态**：WPF `Storyboard.GetCurrentState()` 在没有包含时钟时会抛出异常。移植版的 `Transition` 自己跟踪 begun 状态并返回 `Active`/`Stopped`，从而保持已实现场景的 `ITransition` 契约。
 2. **模板部件**：`TransitionFrame` 需要两个名为 `FirstContentPresenter`、`SecondContentPresenter` 的 `ProjectionHost` 部件。使用普通 `ContentPresenter` 的自定义 Frame 模板不会运行转场。
-3. **转场时序**：时长、关键时间、角度和缓动从原始 storyboard 复制，但 WPF 与 Silverlight 缓动实现可能有细微差异。视觉接近，不是逐位一致。
-4. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。
+3. **转场时序**：时长、关键时间、角度和缓动从原始 storyboard 复制，但 WPF 与 Silverlight 缓动实现可能有细微差异。视觉接近，不是逐位一致。**Turnstile 偏差**：为贴近观察到的 WP 8.1 系统动画，`Transitions.cs` 把页面级 turnstile 的旋转轴略微移到左边缘之外（`TurnstileCenterOfRotationX = -0.05`，原工具包为 `0`），并把两个阶段按 `TurnstileDurationScale = 1.2` 缩放（工具包：退场 0.25 s / 入场 0.35 s）。两者都是单个常量；设为 `0` 和 `1` 即可精确还原原工具包的几何与时序。
+4. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；目标在合成 storyboard 时从页面可视树收集（附加属性订阅只负责准备包装，并且延迟到 dispatcher，因此绝不会在布局过程中修改可视树）。无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。页面没有可羽化元素时，羽化转场没有动画可播放，会立即完成而不是阻塞导航。
 5. **TiltEffect**：控件在加载时被包装进 `ProjectionHost`，因此只倾斜该控件本身，且不会在指针按下期间修改视觉树；倾斜关闭时会移除包装。支持鼠标输入（通过隧道的 preview 事件），跳过列表 item 容器。倾斜作用于整个控件，不是单个 item 容器；最大倾斜/回弹行为是近似值。鼠标倾斜在通过已启用容器路由的 mouse-up 时结束；触摸 manipulation 是更完整的输入路径。
 6. **SlideInEffect**：未实现（需要 Pivot）。
 7. **FeatheredTransition**：已实现，但原始 `TurnstileFeatherTransition` 面向 Pivot 内页面内容；移植版将其应用于转场 Frame 的页面宿主。
@@ -62,13 +62,13 @@
 ## 6. 控件
 
 1. **视觉保真度**：控件模板用 WPF 原语近似 Metro 外观。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。部分专用 WPF chrome（例如 WPF `DatePicker` 内的原生日历）和 WP 专用视觉状态仍有差异；功能 API 优先。
-2. **`CustomMessageBox`**：由 WPF `Window` 承载，是独立顶层窗口而不是页内浮层。保留 `Dismiss()` 和结果/事件契约。
+2. **`CustomMessageBox`**：由 WPF `Window` 承载，是独立顶层窗口而不是页内浮层。保留 `Dismiss()` 和结果/事件契约。内容承载在 `ProjectionHost` 中，弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel；由于是独立窗口，Swivel 期间看不到其后的页面。
 3. **`ListPicker`**：普通模式使用 WPF `Popup`，列表项使用 WP 悬停/选中样式；完整模式使用模态 `Window`。不会导航到 `ListPickerPage`，因此 `PickerPageUri`、完整模式页面生命周期和 WP 转场行为未复刻。支持 `SelectedItems` 和 `SelectionMode`。
 4. **`DatePicker`/`TimePicker`**：在模态窗口中使用 WPF `DatePicker`/小时分钟选择器。未复刻 WP 的 looping selector、picker page 转场和日期时间 picker 应用栏。支持 `ValueStringFormat`、`ValueString`、`ValueChanged` 和 `Header`。`ValueStringFormat` 是复合格式字符串（例如 `"{0:yyyy-MM-dd}"`）。
 5. **`ExpanderView`**：高度动画简化；任意嵌套内容的布局可能与 WP 不同。保留原始 `ItemsCanvas`/`ExpanderPanel` 部件名。展开区使用 18 像素内容缩进，避免竖线与文本相贴。
-6. **`HubTile`**：实现了定时器驱动的 hub 循环，但原始 WP 平面投影翻转视觉和精确时序是近似的。支持 `HubTileService` 组冻结/解冻。
-7. **`PhoneTextBox`**：实现了 hint、action icon 和长度指示行为。内部编辑器现在可见，并会从模板控件接收焦点；WP 内置文本选择和输入作用域边界在 WPF 中仍可能不同。
-8. **`Rating`**：项目在代码中生成；半星和零值选择已实现。除触摸 manipulation 外，也支持鼠标点击/拖动选择。保留模板部件名，但自定义模板必须提供预期部件。
+6. **`HubTile`**：模板遵循 WP8 原版 —— 一块高度为瓦片两倍的表面用 `TranslateTransform` 在标题带、图片与背面之间滑动，翻转是真实的 `PlaneProjection.RotationX` 动画（`0→180`、`180→360`），并在表面侧立时切换正反面。两处 WPF 差异：背面用 `ScaleTransform ScaleY=-1` 预镜像（视觉等价于原版 `PlaneProjection RotationX=180`，但更省），翻转期间宿主切到 `Prefer3D`。像素保真度未验证。支持 `HubTileService` 组冻结/解冻。
+7. **`PhoneTextBox`**：实现了 hint、action icon 和长度指示行为。占位符起点与光标一致，并在编辑器获得键盘焦点或输入法合成期间隐藏（合成字符尚未进入 `Text`），因此拼音输入不再残留占位符。内部编辑器可见，并会从模板控件接收焦点；WP 内置文本选择和输入作用域边界在 WPF 中仍可能不同。
+8. **`Rating`**：项目在代码中生成；半星和零值选择已实现。除触摸 manipulation 外，也支持鼠标点击/拖动选择。**偏离**：原工具包在 `AllowHalfItemIncrement` 时把翻倍后的位置数写入 `Value`，导致填充区域是指针位置的两倍；本移植版以“星”为单位存储（`ceil(位置 / 宽度 * 2N) / 2`）。保留模板部件名，但自定义模板必须提供预期部件。
 9. **`ToggleSwitch`**：支持 header、switch foreground、checked/unchecked/indeterminate 和 click。状态变化时滑块和背景使用动画过渡；系统 accent 集成仍是近似。
 10. **`ContextMenu`**：继承 WPF `ContextMenu`；`ContextMenuService.ContextMenu` 是附加属性。保留 `IsZoomEnabled`、`IsFadeEnabled`、`RegionOfInterest` 和 `Owner`，但部分 WP zoom/fade 视觉未复刻。
 11. **`PerformanceProgressBar`**：实现不确定模式，使用简单淡入淡出；原始 WP 性能 workaround 在 WPF 中没有意义。

@@ -217,6 +217,18 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     TurnstileFeatherEffect.SetFeatheringIndex(first, 0);
                     TurnstileFeatherEffect.SetFeatheringIndex(second, 1);
+                    PumpFor(50);
+
+                    // The effect wraps elements when they subscribe, so a
+                    // transition never has to modify the visual tree while it
+                    // is animating.
+                    ProjectionHost firstHost = ProjectionService.GetProjectionHost(first);
+                    ProjectionHost secondHost = ProjectionService.GetProjectionHost(second);
+                    Assert.NotNull(firstHost);
+                    Assert.NotNull(secondHost);
+                    Assert.Same(first, firstHost.Child);
+                    Assert.Same(second, secondHost.Child);
+                    Assert.Null(firstHost.Projection);
 
                     ITransition transition = new TurnstileFeatherTransition
                     {

@@ -10,6 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace Microsoft.Phone.Controls
 {
@@ -37,10 +38,9 @@ namespace Microsoft.Phone.Controls
 
         private static readonly ExponentialEase FeatheringEaseOut = CreateEase(EasingMode.EaseOut);
 
-        private static readonly Dictionary<PhoneApplicationPage, List<WeakReference>> PagesToReferences =
-            new Dictionary<PhoneApplicationPage, List<WeakReference>>();
-
         private static readonly List<TargetState> Targets = new List<TargetState>();
+
+        private static Dispatcher TargetsDispatcher;
 
         private static readonly IList<Type> NonPermittedTypesInternal = new List<Type>
         {
@@ -107,17 +107,25 @@ namespace Microsoft.Phone.Controls
             if ((int)e.NewValue < 0)
             {
                 element.SizeChanged -= OnTargetSizeChanged;
+                element.Loaded -= OnTargetLoaded;
                 element.Unloaded -= OnTargetUnloaded;
-                Unsubscribe(element);
+                Unsubscribe(element, true);
             }
             else
             {
                 element.SizeChanged -= OnTargetSizeChanged;
                 element.SizeChanged += OnTargetSizeChanged;
+                element.Loaded -= OnTargetLoaded;
+                element.Loaded += OnTargetLoaded;
                 element.Unloaded -= OnTargetUnloaded;
                 element.Unloaded += OnTargetUnloaded;
                 Subscribe(element);
             }
+        }
+
+        private static void OnTargetLoaded(object sender, RoutedEventArgs e)
+        {
+            Subscribe((FrameworkElement)sender);
         }
 
         private static void OnTargetSizeChanged(object sender, SizeChangedEventArgs e)
@@ -127,7 +135,21 @@ namespace Microsoft.Phone.Controls
 
         private static void OnTargetUnloaded(object sender, RoutedEventArgs e)
         {
-            Unsubscribe((FrameworkElement)sender);
+            FrameworkElement element = sender as FrameworkElement;
+            if (element == null)
+            {
+                return;
+            }
+
+            // Wrapping the element (done when it subscribes) raises Unloaded.
+            // Removing the reference here would undo the subscription, so a
+            // transition would then find no targets for the page.
+            if (element.Parent is ProjectionHost)
+            {
+                return;
+            }
+
+            Unsubscribe(element, false);
         }
 
         private static void CheckTypePermission(FrameworkElement element)
@@ -142,54 +164,73 @@ namespace Microsoft.Phone.Controls
 
         private static void Subscribe(FrameworkElement element)
         {
-            PhoneApplicationPage page = FindAncestor<PhoneApplicationPage>(element);
-            if (page == null)
+            // Wrap the element up front so a transition never has to modify
+            // the visual tree while it is animating (the wrapper is kept until
+            // the element stops being feathered). The wrap is deferred: this
+            // runs from SizeChanged, and re-parenting inside a layout pass can
+            // make the layout cycle.
+            if (!element.IsLoaded || element.Parent is ProjectionHost)
             {
                 return;
             }
 
-            List<WeakReference> references;
-            if (!PagesToReferences.TryGetValue(page, out references))
-            {
-                references = new List<WeakReference>();
-                PagesToReferences.Add(page, references);
-            }
-
-            references.RemoveAll(r => r.Target == null || ReferenceEquals(r.Target, element));
-            references.Add(new WeakReference(element));
-            references.Sort(CompareReferences);
-        }
-
-        private static void Unsubscribe(FrameworkElement element)
-        {
-            PhoneApplicationPage page = FindAncestor<PhoneApplicationPage>(element);
-            if (page == null)
-            {
-                return;
-            }
-
-            List<WeakReference> references;
-            if (PagesToReferences.TryGetValue(page, out references))
-            {
-                references.RemoveAll(r => r.Target == null || ReferenceEquals(r.Target, element));
-                if (references.Count == 0)
+            element.Dispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(delegate
                 {
-                    PagesToReferences.Remove(page);
-                }
+                    if (element.IsLoaded && !(element.Parent is ProjectionHost))
+                    {
+                        ProjectionService.EnsureProjectionHost(element);
+                    }
+                }));
+        }
+
+        private static void Unsubscribe(FrameworkElement element, bool releaseHost)
+        {
+            if (releaseHost)
+            {
+                ProjectionService.ReleaseProjectionHost(element);
             }
         }
 
-        private static int CompareReferences(WeakReference x, WeakReference y)
+        private static List<FrameworkElement> CollectTargets(DependencyObject root)
         {
-            FrameworkElement first = x.Target as FrameworkElement;
-            FrameworkElement second = y.Target as FrameworkElement;
-            int firstIndex = first == null ? int.MaxValue : GetFeatheringIndex(first);
-            int secondIndex = second == null ? int.MaxValue : GetFeatheringIndex(second);
-            return firstIndex.CompareTo(secondIndex);
+            List<FrameworkElement> elements = new List<FrameworkElement>();
+            CollectTargets(root, elements);
+            return elements;
+        }
+
+        private static void CollectTargets(DependencyObject root, List<FrameworkElement> elements)
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, i);
+                FrameworkElement element = child as FrameworkElement;
+                if (element != null)
+                {
+                    int index = GetFeatheringIndex(element);
+                    if (index >= 0)
+                    {
+                        // Insert in order; the scan is stable, so elements that
+                        // share an index keep their visual tree order.
+                        int insertAt = elements.Count;
+                        while (insertAt > 0 && GetFeatheringIndex(elements[insertAt - 1]) > index)
+                        {
+                            insertAt--;
+                        }
+
+                        elements.Insert(insertAt, element);
+                    }
+                }
+
+                CollectTargets(child, elements);
+            }
         }
 
         internal static void ComposeStoryboard(Storyboard storyboard, TimeSpan? beginTime, TurnstileFeatherTransitionMode mode, UIElement pageElement)
         {
+            DropTargetsFromAnotherDispatcher();
             Cleanup();
 
             PhoneApplicationPage page = pageElement as PhoneApplicationPage;
@@ -198,19 +239,16 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            List<WeakReference> references;
-            if (!PagesToReferences.TryGetValue(page, out references))
-            {
-                return;
-            }
-
-            references.Sort(CompareReferences);
+            // The targets are collected from the page instead of from the
+            // attached property notifications: an incoming page is composed
+            // before it is connected to the visual tree, so the notifications
+            // for its elements have not run yet.
+            List<FrameworkElement> elements = CollectTargets(page);
 
             int counter = 0;
-            foreach (WeakReference reference in references)
+            foreach (FrameworkElement element in elements)
             {
-                FrameworkElement element = reference.Target as FrameworkElement;
-                if (element == null || !IsOnScreen(page, element))
+                if (!IsOnScreen(page, element))
                 {
                     continue;
                 }
@@ -241,6 +279,7 @@ namespace Microsoft.Phone.Controls
                     OriginalOpacity = element.Opacity
                 };
                 Targets.Add(state);
+                TargetsDispatcher = Dispatcher.CurrentDispatcher;
 
                 switch (mode)
                 {
@@ -274,6 +313,8 @@ namespace Microsoft.Phone.Controls
 
         internal static void Cleanup()
         {
+            DropTargetsFromAnotherDispatcher();
+
             foreach (TargetState state in Targets)
             {
                 if (state.Element != null)
@@ -284,16 +325,27 @@ namespace Microsoft.Phone.Controls
 
                 if (state.Host != null)
                 {
+                    // The wrapper is kept so the next transition does not have
+                    // to re-parent the element; it is released by Unsubscribe.
                     state.Host.Prefer3D = false;
-
-                    if (state.Element != null)
-                    {
-                        ProjectionService.ReleaseProjectionHost(state.Element);
-                    }
                 }
             }
 
             Targets.Clear();
+        }
+
+        private static void DropTargetsFromAnotherDispatcher()
+        {
+            if (Targets.Count == 0 || ReferenceEquals(TargetsDispatcher, Dispatcher.CurrentDispatcher))
+            {
+                return;
+            }
+
+            // Each UI thread has its own visual tree. Targets left over from a
+            // previous dispatcher (a closed window or a test that ran on its
+            // own thread) must not be touched from this one.
+            Targets.Clear();
+            TargetsDispatcher = null;
         }
 
         private static ExponentialEase CreateEase(EasingMode mode)
@@ -384,23 +436,6 @@ namespace Microsoft.Phone.Controls
             {
                 return false;
             }
-        }
-
-        private static T FindAncestor<T>(DependencyObject element) where T : DependencyObject
-        {
-            DependencyObject current = element;
-            while (current != null)
-            {
-                T match = current as T;
-                if (match != null)
-                {
-                    return match;
-                }
-
-                current = VisualTreeHelper.GetParent(current);
-            }
-
-            return null;
         }
 
         private sealed class TargetState

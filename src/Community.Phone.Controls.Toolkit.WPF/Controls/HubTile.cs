@@ -7,6 +7,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace Microsoft.Phone.Controls
@@ -14,18 +15,22 @@ namespace Microsoft.Phone.Controls
     /// <summary>
     /// Represents an animated Metro-style hub tile.
     /// </summary>
-    [TemplateVisualState(Name = "Expanded", GroupName = "ImageState")]
-    [TemplateVisualState(Name = "Semiexpanded", GroupName = "ImageState")]
-    [TemplateVisualState(Name = "Collapsed", GroupName = "ImageState")]
-    [TemplateVisualState(Name = "Flipped", GroupName = "ImageState")]
+    [TemplateVisualState(Name = "Expanded", GroupName = "ImageStates")]
+    [TemplateVisualState(Name = "Semiexpanded", GroupName = "ImageStates")]
+    [TemplateVisualState(Name = "Collapsed", GroupName = "ImageStates")]
+    [TemplateVisualState(Name = "Flipped", GroupName = "ImageStates")]
     public class HubTile : Control
     {
         private bool _canDrop;
         private bool _canFlip;
         private DispatcherTimer _timer;
+        private DispatcherTimer _projectionTimer;
+        private bool _wasFlipped;
         private int _step;
         private TextBlock _notificationBlock;
         private TextBlock _messageBlock;
+        private ProjectionHost _viewport;
+        private TranslateTransform _titleTransform;
 
         /// <summary>
         /// Identifies the <see cref="Source"/> property.
@@ -179,6 +184,8 @@ namespace Microsoft.Phone.Controls
             base.OnApplyTemplate();
             _notificationBlock = GetTemplateChild("NotificationBlock") as TextBlock;
             _messageBlock = GetTemplateChild("MessageBlock") as TextBlock;
+            _viewport = GetTemplateChild("Viewport") as ProjectionHost;
+            _titleTransform = GetTemplateChild("TitleTransform") as TranslateTransform;
             UpdateBackContentVisibility();
             UpdateVisualState(false);
         }
@@ -341,7 +348,122 @@ namespace Microsoft.Phone.Controls
 
         private void UpdateVisualState(bool useTransitions)
         {
-            VisualStateManager.GoToState(this, State.ToString(), useTransitions);
+            // Small tiles only ever show the image, they do not animate.
+            string state = Size == TileSize.Small ? ImageState.Expanded.ToString() : State.ToString();
+
+            PrepareProjection(useTransitions);
+            VisualStateManager.GoToState(this, state, useTransitions);
+            UpdateTitlePosition(useTransitions);
+            _wasFlipped = State == ImageState.Flipped;
+        }
+
+        /// <summary>
+        /// Slides the title band, the image and the back panel as one surface.
+        /// </summary>
+        /// <remarks>
+        /// The title band and the content are two halves of a surface that is
+        /// twice the height of the tile, so moving it is a cheap translation
+        /// instead of a scale (a scale would re-rasterize the image on every
+        /// frame and make the animation stutter).
+        /// </remarks>
+        private void UpdateTitlePosition(bool useTransitions)
+        {
+            if (_titleTransform == null)
+            {
+                return;
+            }
+
+            double height = GetTileHeight();
+            if (height <= 0)
+            {
+                return;
+            }
+
+            double target;
+            switch (Size == TileSize.Small ? ImageState.Expanded : State)
+            {
+                case ImageState.Collapsed:
+                    target = 0;
+                    break;
+                case ImageState.Semiexpanded:
+                    target = -0.4566 * height;
+                    break;
+                default:
+                    target = -height;
+                    break;
+            }
+
+            if (!useTransitions)
+            {
+                _titleTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                _titleTransform.Y = target;
+                return;
+            }
+
+            CubicEase ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            ease.Freeze();
+            _titleTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                new DoubleAnimation(target, TimeSpan.FromMilliseconds(850))
+                {
+                    EasingFunction = ease,
+                    FillBehavior = FillBehavior.HoldEnd
+                });
+        }
+
+        private double GetTileHeight()
+        {
+            if (ActualHeight > 0)
+            {
+                return ActualHeight;
+            }
+
+            switch (Size)
+            {
+                case TileSize.Small: return 99;
+                case TileSize.Medium: return 210;
+                case TileSize.Large: return 210;
+                default: return 173;
+            }
+        }
+
+        private void PrepareProjection(bool useTransitions)
+        {
+            if (_viewport == null)
+            {
+                return;
+            }
+
+            bool flipping = State == ImageState.Flipped || (_wasFlipped && useTransitions);
+            if (!flipping)
+            {
+                _viewport.Prefer3D = false;
+                return;
+            }
+
+            // The flip rotates the tile in 3D. Switching the host to its 3D
+            // render path before the animation starts avoids a hitch on the
+            // first animated frame.
+            _viewport.Prefer3D = true;
+
+            if (_projectionTimer == null)
+            {
+                _projectionTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(900) };
+                _projectionTimer.Tick += OnProjectionTimerTick;
+            }
+
+            _projectionTimer.Stop();
+            _projectionTimer.Start();
+        }
+
+        private void OnProjectionTimerTick(object sender, EventArgs e)
+        {
+            _projectionTimer.Stop();
+
+            if (_viewport != null && State != ImageState.Flipped)
+            {
+                _viewport.Prefer3D = false;
+            }
         }
     }
 

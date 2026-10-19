@@ -18,6 +18,29 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     internal static class Transitions
     {
+        /// <summary>
+        /// Horizontal center of rotation of the page-level turnstile.
+        /// </summary>
+        /// <remarks>
+        /// The original toolkit rotates exactly around the left edge
+        /// (<c>0</c>). The WP 8.1 system animation pivots slightly outside the
+        /// screen edge, so the port uses a small negative offset to match the
+        /// observed motion. Set this to <c>0</c> to restore the original
+        /// toolkit geometry exactly.
+        /// </remarks>
+        private const double TurnstileCenterOfRotationX = -0.05;
+
+        /// <summary>
+        /// Duration multiplier applied to the turnstile phases.
+        /// </summary>
+        /// <remarks>
+        /// The original storyboards run 0.25 s (exit) and 0.35 s (entry). The
+        /// WP 8.1 system animation is a little slower than that, so both phases
+        /// are scaled by this factor. Set this to <c>1</c> to restore the
+        /// original timing exactly.
+        /// </remarks>
+        private const double TurnstileDurationScale = 1.2;
+
         public static ITransition Roll(UIElement element)
         {
             if (element == null)
@@ -208,26 +231,26 @@ namespace Microsoft.Phone.Controls
                 throw new ArgumentOutOfRangeException("mode");
             }
 
-            PlaneProjection projection = EnsurePlaneProjection(element, 0.0, 0.5);
+            PlaneProjection projection = EnsurePlaneProjection(element, TurnstileCenterOfRotationX, 0.5);
             Storyboard storyboard = new Storyboard();
             switch (mode)
             {
                 case TurnstileTransitionMode.ForwardIn:
-                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, -80.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
-                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01, 1.0, null) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, -80.0, null), KeyFrame(0.35 * TurnstileDurationScale, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01 * TurnstileDurationScale, 1.0, null) });
                     AddVisibility(storyboard, element);
                     break;
                 case TurnstileTransitionMode.ForwardOut:
-                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 50.0, Ease(EasingMode.EaseIn, 6)) });
-                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25 * TurnstileDurationScale, 50.0, Ease(EasingMode.EaseIn, 6)) });
+                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24 * TurnstileDurationScale, 1.0, null), KeyFrame(0.25 * TurnstileDurationScale, 0.0, null) });
                     break;
                 case TurnstileTransitionMode.BackwardIn:
-                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 50.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
-                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01, 1.0, null) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 50.0, null), KeyFrame(0.35 * TurnstileDurationScale, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01 * TurnstileDurationScale, 1.0, null) });
                     break;
                 case TurnstileTransitionMode.BackwardOut:
-                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -80.0, Ease(EasingMode.EaseIn, 6)) });
-                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25 * TurnstileDurationScale, -80.0, Ease(EasingMode.EaseIn, 6)) });
+                    AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24 * TurnstileDurationScale, 1.0, null), KeyFrame(0.25 * TurnstileDurationScale, 0.0, null) });
                     break;
             }
 
@@ -246,7 +269,7 @@ namespace Microsoft.Phone.Controls
                 throw new ArgumentOutOfRangeException("mode");
             }
 
-            PlaneProjection projection = EnsurePlaneProjection(element, 0.0, 0.5);
+            PlaneProjection projection = EnsurePlaneProjection(element, TurnstileCenterOfRotationX, 0.5);
             Storyboard storyboard = new Storyboard();
             return new FeatheredTransition(element, storyboard, mode, beginTime);
         }

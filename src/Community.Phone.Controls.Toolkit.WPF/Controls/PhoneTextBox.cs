@@ -35,6 +35,7 @@ namespace Microsoft.Phone.Controls
         private Brush _foregroundBrushEdit;
         private ContentControl _hintContent;
         private Border _hintBorder;
+        private bool _isComposing;
         private TextBlock _lengthIndicator;
         private bool _ignorePropertyChange;
         private bool _ignoreFocus;
@@ -44,6 +45,16 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         public PhoneTextBox()
         {
+            // The IME starts a composition before it commits text, so the hint
+            // is hidden from the composition events rather than from Text.
+            AddHandler(
+                TextCompositionManager.PreviewTextInputStartEvent,
+                new TextCompositionEventHandler(OnCompositionStarted),
+                true);
+            AddHandler(
+                TextCompositionManager.PreviewTextInputUpdateEvent,
+                new TextCompositionEventHandler(OnCompositionUpdated),
+                true);
         }
 
         static PhoneTextBox()
@@ -186,8 +197,47 @@ namespace Microsoft.Phone.Controls
         /// <inheritdoc />
         protected override void OnLostFocus(RoutedEventArgs e)
         {
+            _isComposing = false;
             UpdateHintVisibility();
             base.OnLostFocus(e);
+        }
+
+        /// <inheritdoc />
+        protected override void OnPreviewTextInput(TextCompositionEventArgs e)
+        {
+            base.OnPreviewTextInput(e);
+
+            // The IME committed the composition; the hint follows Text again.
+            if (_isComposing)
+            {
+                _isComposing = false;
+                UpdateHintVisibility();
+            }
+        }
+
+        private void OnCompositionStarted(object sender, TextCompositionEventArgs e)
+        {
+            UpdateCompositionState(e.TextComposition);
+        }
+
+        private void OnCompositionUpdated(object sender, TextCompositionEventArgs e)
+        {
+            UpdateCompositionState(e.TextComposition);
+        }
+
+        private void UpdateCompositionState(TextComposition composition)
+        {
+            // An IME (for example Pinyin) keeps the composed characters out of
+            // Text until they are committed, so the hint has to disappear as
+            // soon as a composition starts.
+            bool isComposing = composition != null && !string.IsNullOrEmpty(composition.CompositionText);
+            if (_isComposing == isComposing)
+            {
+                return;
+            }
+
+            _isComposing = isComposing;
+            UpdateHintVisibility();
         }
 
         /// <inheritdoc />
@@ -291,7 +341,13 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            if (string.IsNullOrEmpty(Text))
+            // The hint is a placeholder: it is only shown while the user is
+            // not typing. Keyboard focus or an IME composition (the composed
+            // characters are not in Text yet) hides it.
+            bool isEditing = _isComposing
+                || (_textBox != null ? _textBox.IsKeyboardFocusWithin : IsKeyboardFocusWithin);
+
+            if (string.IsNullOrEmpty(Text) && !isEditing)
             {
                 ActualHintVisibility = Visibility.Visible;
                 if (_foregroundBrushInactive != null)

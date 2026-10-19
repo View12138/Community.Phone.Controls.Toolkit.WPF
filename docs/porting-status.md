@@ -12,7 +12,7 @@ English · [中文](zh-CN/porting-status.md)
 | 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
 | ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
 
-**Evidence snapshot (2026-10-19):** Release build 0 warnings / 0 errors · 68/68 tests pass (Debug and Release) · `build/verify-package.ps1` passes · sample UI-automation smoke passes.
+**Evidence snapshot (2026-10-19 17:24):** Release build 0 warnings / 0 errors · 72/72 tests pass (Debug and Release) · `build/verify-package.ps1` passes · sample UI-automation smoke passes (including the feathering sample round trip).
 
 ---
 
@@ -47,9 +47,9 @@ English · [中文](zh-CN/porting-status.md)
 
 | Family | Status | Evidence / notes |
 |---|---|---|
-| `TransitionFrame` (sequential exit→entry, presenter flip, interactivity restore, failure fallback) | ✅ Verified | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`, `…_HostsInitialContentInTheOutgoingPresenter`, `…_RapidNavigationDoesNotLeaveTransitionsActive`, `…_FallsBackWhenTransitionFactoryThrows`, `…_PlaysTurnstileTransition` |
-| `TurnstileTransition` (4 modes) | ✅ Verified | Tests above + runtime trace 2026-10-19: exit 0→45° in 249 ms, entry −69°→0° in 265–592 ms; geometry measured against the analytic 999-DIP model |
-| `TurnstileFeatherTransition` | 🟡 Implemented / unverified | `TurnstileFeatherEffect_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget` cover animation and cleanup; the original's page-centered perspective origin is **not** reproduced (documented deviation) and no visual comparison exists |
+| `TransitionFrame` (sequential exit→entry, presenter flip, interactivity restore, failure fallback) | ✅ Verified | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`, `…_HostsInitialContentInTheOutgoingPresenter`, `…_RapidNavigationDoesNotLeaveTransitionsActive`, `…_FallsBackWhenTransitionFactoryThrows`, `…_PlaysTurnstileTransition`, `…_UsesAnOutTransitionSetJustBeforeNavigating` (the sample sets the family at navigation time), `…_CompletesAFeatheredExitWithoutTargets` (an empty transition must not freeze the incoming page) |
+| `TurnstileTransition` (4 modes) | ✅ Verified | Tests above + runtime trace: exit `0→45°` then entry `−69°→0°` (sequential). Geometry measured against the analytic 999-DIP model. WP-parity tuning applied: `TurnstileCenterOfRotationX = -0.05` and `TurnstileDurationScale = 1.2` (single constants in `Transitions.cs`; `0` / `1` restore the original toolkit values). |
+| `TurnstileFeatherTransition` | 🟡 Implemented / unverified | `TurnstileFeatherEffect_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget`, `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` cover animation, target collection on first layout and cleanup; a transition without animations (for example feathering on a page without feathered elements) completes instead of freezing the frame (`TransitionFrame_CompletesAFeatheredExitWithoutTargets`). The original's page-centered perspective origin is **not** reproduced (documented deviation) and no visual comparison exists. Frame pacing measured (6 items ≈ 64–68 fps). Note: the outgoing transition belongs to the page being left — a feathered exit requires the source page to declare or set it (the sample does this in `SampleNavigator`, and falls back to a turnstile exit when the page has no feathered elements). |
 | `SlideTransition` (8 modes) | 🟡 Implemented / unverified | Storyboard values compared manually with the original XAML (all 8); behaviour exercised only indirectly through `ITransition` tests; no runtime/visual measurement |
 | `RotateTransition` (8 modes) | 🟡 Implemented / unverified | Same as Slide (values verified against the original XAML; not observed at runtime) |
 | `SwivelTransition` (6 modes) | 🟡 Implemented / unverified | Same as Slide |
@@ -61,7 +61,7 @@ English · [中文](zh-CN/porting-status.md)
 | Item | Status | Evidence / notes |
 |---|---|---|
 | `TiltEffect` | ✅ Verified | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`, `TiltEffect_DoesNotTiltThePageThatHostsTheElement`, `TiltEffect_DoesNotWrapWhenSuppressed`; press direction cross-checked analytically against XAML conventions |
-| `TurnstileFeatherEffect` | 🟡 Implemented / unverified | Same tests as feather transition; per-item hosts work, perspective origin differs from the original |
+| `TurnstileFeatherEffect` | 🟡 Implemented / unverified | Same tests as the feather transition (`…_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget`) plus `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`; targets are collected from the page's visual tree and the host wrap is deferred to the dispatcher. Per-item hosts and page-level projection work; perspective origin differs from the original |
 | `SlideInEffect` | ⛔ Not implemented | Requires Pivot |
 
 ## 5. Controls
@@ -70,12 +70,12 @@ English · [中文](zh-CN/porting-status.md)
 |---|---|---|
 | `WrapPanel` | ✅ Verified | `WrapPanel_WrapsChildrenAndHonorsItemSize` |
 | `ToggleSwitch` + `ToggleSwitchButton` | ✅ Verified | `ToggleSwitch_HasTemplateAndDependencyProperties`, `…_AnimatesThumbTranslation`, `…_SwitchButtonDrivesEvents` |
-| `Rating` | ✅ Verified | `Rating_CreatesConfiguredNumberOfItems`, `…_MouseClickChangesValue`, `…_ValueChangesRaiseEventAndUpdateItems` |
-| `PhoneTextBox` | ✅ Verified (behaviour) | `PhoneTextBox_ShowsHintWhenEmpty`, `…_TemplatePartsAndTwoWayText`, `…_InnerEditorIsVisibleAndReceivesFocus`. Hint animation visuals unverified |
+| `Rating` | ✅ Verified | `Rating_CreatesConfiguredNumberOfItems`, `…_MouseClickChangesValue`, `…_ValueChangesRaiseEventAndUpdateItems`, `…_HalfItemIncrementKeepsValueInItemUnits`. Half increments now store the value in item units (documented deviation: the toolkit filled twice as many items as the pointer indicated) |
+| `PhoneTextBox` | ✅ Verified (behaviour) | `PhoneTextBox_ShowsHintWhenEmpty`, `…_TemplatePartsAndTwoWayText`, `…_InnerEditorIsVisibleAndReceivesFocus`. The hint now starts where the caret does (measured: 12 px) and is hidden while focused or during an IME composition; hint animation visuals unverified |
 | `ListPicker` / `ListPickerItem` | ✅ Verified (behaviour) | `ListPicker_SelectionRoundTrips`, `…_PopupSelectsItemAndCloses`, `…_OpenFailsWithoutItems`. Popup styling vs WP not compared |
 | `ExpanderView` | 🟡 Implemented / unverified | `ExpanderView_TogglesAndRaisesEvents` covers behaviour; height animation and the header rule's spacing are visual-only |
-| `HubTile` / `HubTileService` | 🟡 Implemented / unverified | `HubTile_PropertiesAndGroupFreeze`; flip timing/visuals unverified |
-| `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
+| `HubTile` / `HubTileService` | 🟡 Implemented / unverified | `HubTile_PropertiesAndGroupFreeze`; the template now follows the WP8 original (sliding surface + `RotationX` flip, verified numerically with a probe: `0→180→0`, panels swapped at 185 ms), pixel fidelity unverified |
+| `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`; the dialog swivels in (`BackwardIn`) and out (`BackwardOut`) with the real projection pipeline (probe: `RotationX −45°→0°` on show, `0°→42°` on dismiss before the window closes) |
 | `ContextMenu` / `ContextMenuService` | ✅ Verified | `ContextMenuService_AttachesMenu`, `ContextMenu_OpensAndCloses` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ Verified (behaviour) | `DateTimePickers_HaveExpectedDefaultsAndFormatting`, `DateTimePickers_FormatValuesAndRaiseValueChanged`, `RecurringDaysPicker_SummarizesWeekdays`. Picker *pages* and `LoopingSelector` are not ported (WPF dialogs are used) |
 | `PerformanceProgressBar` | 🟡 Implemented / unverified | Styled in `Generic.xaml`, shown in the sample; no dedicated test, relative animation rewriting not ported |
@@ -100,7 +100,7 @@ English · [中文](zh-CN/porting-status.md)
 | Metro theme + WP base-control styles | ✅ Verified (presence) / 🟡 (fidelity) | `Theme_ContainsMetroResources`; `Generic.xaml` styles `Button`, `TextBox`, `ComboBox`, `CheckBox`, `RadioButton`, `ListBox`, `ScrollBar`, `ContextMenu`, `ProgressBar`, `ToolTip` and the toolkit controls. Pixel parity with WP was never compared side by side |
 | Localization resources | ✅ Verified | 50 cultures + neutral, satellites in the package; `OffOnConverterUsesLocalizedStrings` |
 | NuGet package | ✅ Verified | `build\verify-package.ps1`: `Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`, fresh consumer builds and runs |
-| Sample application | ✅ Verified (runs) | UI-automation smoke: turnstile forward/back and feather navigation, accent button stable at 644×66 |
+| Sample application | ✅ Verified (runs) | Mirrors the original `PhoneToolkitSample8` layout: `MainPage` lists samples and each sample is its own page (`ControlsPage`, `ProjectionPage`, `TransitionsPage`, `TransitionTargetPage`, `FeatherPage`, `MenusPage`). UI-automation smoke 2026-10-19: all five samples open and return; `Accent button` stable at 644×66 |
 
 ---
 

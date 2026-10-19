@@ -28,15 +28,20 @@
 
 - `TransitionFrame` template parts are `ProjectionHost` instances named `FirstContentPresenter` / `SecondContentPresenter` — not `ContentPresenter`.
 - Exit transition completes **before** the entry transition starts; the old presenter is prepared (`IsHitTestVisible = false`, `Prefer3D = true`) before `Begin()` and interactivity is restored on completion. In the non-cancelled exit path the discarded presenter is completed with `null` (original behavior).
-- Turnstile hinges at the left edge (`CenterOfRotationX = 0`, `CenterOfRotationY = 0.5`); forward-out `0→50°`, forward-in `−80→0°`. Storyboard values are normative.
+- Turnstile hinges near the left edge (`TurnstileCenterOfRotationX = -0.05`, `CenterOfRotationY = 0.5`); forward-out `0→50°`, forward-in `−80→0°`, phases scaled by `TurnstileDurationScale = 1.2`. Those two constants in `Transitions.cs` are the **only** sanctioned deviation from the original toolkit (`0` and `1` restore it exactly); do not change the storyboard numbers themselves.
+- A page's **outgoing** transition is read from the page being left. Anything that shows a specific exit must declare it on that page or set it before navigating (the sample does this in `SampleNavigator`).
 - `TiltEffect` wraps a tiltable control when it loads and unwraps it when tilt is disabled; never mutate the visual tree while a pointer is pressed.
+- `TurnstileFeatherEffect` collects its targets from the page's **visual tree** when the storyboard is composed (the attached-property subscriptions only prepare the `ProjectionHost` wrappers, deferred to the dispatcher after `Loaded`/`SizeChanged`). Never re-parent content while a transition is animating or inside a layout pass.
+- Every transition must complete. A storyboard with no animations (e.g. feathering a page without feathered elements) completes on the next dispatcher pass — otherwise the frame waits forever and the incoming page stays non-interactive.
+- The incoming page is composed before it is connected to the visual tree: `TransitionFrame` forces `_newContentPresenter.UpdateLayout()` before composing so effects that need real geometry find their targets.
+- Controls follow the original WP8 templates where one exists: `HubTile` slides a two-tile-high surface with `TranslateTransform` and flips with a real `PlaneProjection.RotationX` (`0→180→360`, front/back swapped while edge-on, `Prefer3D` for the flip); `Rating` stores `Value` in item units even with `AllowHalfItemIncrement`; `PhoneTextBox` places the hint at the caret offset and hides it while focused or composing.
 
 ## Engineering rules
 
 - Build: `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` must stay at **0 warnings / 0 errors**.
 - Tests: xUnit, WPF tests run through `StaTest.Run`. Run the whole suite: `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` (currently 68 tests, all passing). Every bug fix gets a regression test that fails before the fix.
 - Package: `build\verify-package.ps1` packs `Release`, then restores/builds/runs a fresh consumer from the local feed. Re-run it after public API or behavior changes.
-- Sample: `src/Community.Phone.Controls.Toolkit.WPF.Sample` is the manual/visual verification surface. When a behavior changes, the sample must still demonstrate it and still start cleanly.
+- Sample: `src/Community.Phone.Controls.Toolkit.WPF.Sample` is the manual/visual verification surface. It mirrors the original `PhoneToolkitSample8`: `MainPage` lists the samples, each sample is its own page, and `SampleNavigator` sets both transitions explicitly. When a behavior changes, the sample must still demonstrate it and still start cleanly.
 - Docs are bilingual: English in `docs/en/`, Chinese in `docs/zh-CN/`; root-level docs use the `_zh-CN` suffix. Update **both** languages in the same change.
 - `Themes/Generic.xaml` is the single theme source. Do not hand-edit generated resource designer files or the original WP project under `repo-other`.
 - Keep the library dependency-free; add a package only with a concrete, documented need.

@@ -518,6 +518,165 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void TransitionFrame_CompletesAFeatheredExitWithoutTargets()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                // A feathered exit on a page without feathered elements has
+                // nothing to animate. It still has to complete, otherwise the
+                // incoming page never becomes interactive.
+                TransitionService.SetNavigationOutTransition(first, new NavigationOutTransition
+                {
+                    Forward = new TurnstileFeatherTransition { Mode = TurnstileFeatherTransitionMode.ForwardOut }
+                });
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+                    frame.Navigate(first);
+                    PumpFor(60);
+
+                    frame.Navigate(second);
+                    PumpFor(500);
+
+                    Assert.Same(second, frame.Content);
+                    ProjectionHost presenter = ProjectionService.GetProjectionHost(second);
+                    Assert.NotNull(presenter);
+                    Assert.True(second.IsHitTestVisible, "The incoming page should become interactive.");
+                    Assert.True(presenter.IsHitTestVisible, "The presenter should be interactive again.");
+                    Assert.False(presenter.Prefer3D, "The presenter should return to the 2D render path.");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_AnimatesFeatheredEntryOnFirstLayout()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+
+                PhoneApplicationPage second = new PhoneApplicationPage();
+                StackPanel panel = new StackPanel();
+                Border[] elements = new Border[3];
+                for (int i = 0; i < elements.Length; i++)
+                {
+                    elements[i] = new Border { Height = 40, Background = Brushes.Blue, Margin = new Thickness(8) };
+
+                    // Mirrors XAML: the index is set before the element is
+                    // connected to the page, so the effect has not subscribed
+                    // yet when the incoming transition is composed.
+                    TurnstileFeatherEffect.SetFeatheringIndex(elements[i], i);
+                    panel.Children.Add(elements[i]);
+                }
+
+                second.Content = panel;
+                TransitionService.SetNavigationInTransition(second, new NavigationInTransition
+                {
+                    Forward = new TurnstileFeatherTransition { Mode = TurnstileFeatherTransitionMode.ForwardIn }
+                });
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+                    frame.Navigate(first);
+                    PumpFor(60);
+
+                    frame.Navigate(second);
+                    PumpFor(120);
+
+                    bool animated = false;
+                    foreach (Border element in elements)
+                    {
+                        PlaneProjection projection = ProjectionService.GetProjection(element) as PlaneProjection;
+                        if (projection != null && !projection.IsIdentity)
+                        {
+                            animated = true;
+                        }
+                    }
+
+                    Assert.True(animated, "The feathered elements should be animated on the first layout of the page.");
+                }
+                finally
+                {
+                    foreach (Border element in elements)
+                    {
+                        TurnstileFeatherEffect.SetFeatheringIndex(element, -1);
+                    }
+
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_UsesAnOutTransitionSetJustBeforeNavigating()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+                    frame.Navigate(first);
+                    PumpFor(60);
+
+                    // The sample picks the transition family at navigation time
+                    // instead of declaring it in XAML.
+                    TransitionService.SetNavigationOutTransition(first, new NavigationOutTransition
+                    {
+                        Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardOut }
+                    });
+
+                    frame.Navigate(second);
+                    PumpFor(40);
+
+                    ProjectionHost outgoing = ProjectionService.GetProjectionHost(first);
+                    Assert.NotNull(outgoing);
+                    Assert.True(outgoing.Prefer3D, "The selected exit transition should run on the outgoing page.");
+
+                    PlaneProjection projection = ProjectionService.GetProjection(first) as PlaneProjection;
+                    Assert.NotNull(projection);
+                    Assert.True(
+                        projection.RotationY > 0,
+                        "The turnstile exit should rotate the outgoing page; RotationY=" + projection.RotationY);
+
+                    PumpFor(600);
+                    Assert.Same(second, frame.Content);
+                    Assert.True(second.IsHitTestVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void TurnstileTransition_ReportsStateAndRestoresProjection()
         {
             StaTest.Run(() =>

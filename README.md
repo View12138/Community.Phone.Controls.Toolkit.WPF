@@ -153,9 +153,9 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 ## Verification status
 
 - Release build: 0 warnings, 0 errors (re-verified 2026-10-19).
-- Automated tests: 68 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
+- Automated tests: 72 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
 - Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls and theme resources.
-- Sample: launched successfully; UI automation opened the detail page, returned to the home page, changed the rating and ToggleSwitch, opened the ListPicker and ContextMenu, typed into PhoneTextBox, and produced no startup error.
+- Sample: launched successfully; UI automation opened every sample (Controls, Projection, Transitions → target page → back, Feathering, Menus) and returned to the sample index each time, with no startup error.
 - Per-module status and evidence: [docs/porting-status.md](docs/porting-status.md). Latest handoff: [docs/handoff.md](docs/handoff.md).
 
 ## Run the sample
@@ -164,7 +164,7 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
-The sample demonstrates projection and animated navigation alongside all implemented controls and effects: WPF base controls with WP styles, `WrapPanel`, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ListPicker`, `RecurringDaysPicker`, `ExpanderView`, `HubTile`, `ContextMenu`, `CustomMessageBox`, `DatePicker`, `TimePicker`, `PerformanceProgressBar`, `RelativeAnimatingContentControl`, `TiltEffect`, and `TurnstileFeatherEffect`. Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`.
+The sample mirrors the original `PhoneToolkitSample8` structure: a `MainPage` lists the samples and each one is its own page — `ControlsPage` (WPF base controls with WP styles plus all implemented toolkit controls), `ProjectionPage`, `TransitionsPage` (pick any transition family, including feathering, and navigate with it), `FeatherPage`, and `MenusPage` (ContextMenu, CustomMessageBox, ApplicationBar/SystemTray state). Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`.
 
 ## Documentation
 

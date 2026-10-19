@@ -415,7 +415,22 @@ namespace Microsoft.Phone.Controls
             }
 
             double position = Orientation == Orientation.Horizontal ? location.X : location.Y;
-            double newValue = Math.Ceiling(position / size * numberOfPositions);
+
+            // Subtracting a tiny amount keeps a click that lands exactly on an
+            // item boundary on that item instead of the next one, which would
+            // otherwise happen because of floating point noise.
+            double newValue = Math.Ceiling((position / size * numberOfPositions) - 1e-9);
+            if (AllowHalfItemIncrement)
+            {
+                // The number of positions doubles to make half items
+                // selectable, but Value stays in item units: the clipping mask
+                // and the drag helper both scale it by RatingItemCount, so a
+                // value in positions would fill twice as many items as the
+                // pointer indicates.
+                newValue /= 2;
+                numberOfPositions = RatingItemCount;
+            }
+
             newValue = Math.Max(0, Math.Min(numberOfPositions, newValue));
 
             if (!AllowSelectingZero && newValue <= 0)

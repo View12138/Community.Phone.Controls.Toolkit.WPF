@@ -115,11 +115,15 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 
 ### 4.5 效果集成
 
-`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在效果期间逐个包装被羽化元素。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
+`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在被羽化元素订阅时完成包装（清空 feathering index 时解包），因此转场动画期间不会重新挂载内容。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
+
+由于**出站转场取自被离开的页面**，想要特定退场动画的页面必须自己声明（或在导航前动态设置）。示例在 `SampleNavigator` 中采用后者，使进入和离开羽化示例都使用 feather 族。
 
 ### 4.6 渲染路径切换
 
 投影为 identity 时 Host 走 2D 路径，否则走 `Viewport3D` 路径。两条路径的**几何完全一致**（identity 投影与 2D 布局的偏差在 0.01 px 以内），但文本栅格化方式不同（ClearType 与 3D 纹理的灰度抗锯齿）。`ProjectionHost.Prefer3D` 让 Host 在投影仍是 identity 时就保持 3D 路径，因此 `TransitionFrame`、`TiltEffect`、`TurnstileFeatherEffect` 在**准备动画时**就切换渲染路径，而不是等到动画首帧。转场的 presenter 不再使用 `BitmapCache`：3D 管线本身就会栅格化内容，额外的 1x 缓存只会让它变糊。
+
+开发机实测帧率（`CompositionTarget.Rendering`，480×800 内容）：2D 基线约 150 fps、整页投影约 92–96 fps、6 个独立羽化元素约 64–68 fps，2D→3D 切换只花一帧（约 6 ms）。把羽化目标在**订阅时**提前包装可以把这部分开销移出转场过程，因为动画期间重新挂载元素会让每个目标触发一次完整布局。
 
 ## 5. 导航子系统
 
@@ -174,7 +178,9 @@ WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保
 
 ### `TurnstileFeatherEffect`
 
-保留 `FeatheringIndex`、`NonPermittedTypes` 和原有交错时间常数。目标按 `PhoneApplicationPage` 注册。`TurnstileFeatherTransition` 开始时，为每个在屏幕内的目标确保 `ProjectionHost`，赋予中心 `CenterOfRotationX = -0.2` 的 `PlaneProjection`，并按原 40–50 ms 交错组合 RotationY/透明度动画。无法包装的目标（item 容器、content presenter）会跳过。清理时恢复透明度、移除投影并释放包装。
+保留 `FeatheringIndex`、`NonPermittedTypes` 和原有交错时间常数。合成 storyboard 时，目标从页面的**可视树**收集（`CollectTargets`，按 index 稳定排序）—— 因为进场页面在接入可视树之前就被合成，此时附加属性的通知尚未运行；`TransitionFrame` 会在合成前对进场 presenter 强制执行一次布局，使目标具有真实几何。附加属性订阅只负责准备包装，并且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（在布局过程中包装会引发布局循环）；包装触发的 `Unloaded` 不会取消订阅。`TurnstileFeatherTransition` 开始时，为每个在屏幕内的目标确保 `ProjectionHost`，赋予中心 `CenterOfRotationX = -0.2` 的 `PlaneProjection`，并按原 40–50 ms 交错组合 RotationY/透明度动画。无法包装的目标（item 容器、content presenter）会跳过。清理时恢复透明度、移除投影并释放包装。
+
+如果转场最终没有任何动画（例如对没有可羽化元素的页面做羽化），它会在下一个 dispatcher 周期立即完成，而不是阻塞 Frame —— 否则新页面会永远不可交互。
 
 `SlideInEffect` 未实现，因为它依赖 WP `Pivot`/`PivotItem` 及其选择/manipulation 生命周期。文档中明确标记为不支持。
 

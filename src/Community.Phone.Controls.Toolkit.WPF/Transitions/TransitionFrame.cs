@@ -339,6 +339,15 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
+            if (_newContentPresenter != null && _newContentPresenter.Child != null)
+            {
+                // Transitions that collect their targets from the visual tree
+                // (feathering) need the incoming page to be measured first.
+                // The page is only connected to the presenter on a now
+                // deferred layout pass, so force it before composing.
+                _newContentPresenter.UpdateLayout();
+            }
+
             EnsureStoppedTransition(newTransition);
             newTransition.Completed += delegate
             {

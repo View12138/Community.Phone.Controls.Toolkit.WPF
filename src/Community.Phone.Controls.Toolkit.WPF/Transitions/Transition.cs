@@ -7,6 +7,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace Microsoft.Phone.Controls
 {
@@ -91,10 +92,27 @@ namespace Microsoft.Phone.Controls
                 Stop();
             }
 
-            Save();
             _begun = true;
             _completed = false;
             _restored = false;
+
+            if (Storyboard.Children.Count == 0)
+            {
+                // A transition can legitimately end up without animations, for
+                // example a feathered transition on a page that has no
+                // feathered elements. An empty storyboard never raises
+                // Completed, so the frame would wait forever for the
+                // transition to finish and the new page would stay
+                // non-interactive. Complete it on the next dispatcher pass so
+                // the asynchronous contract matches a real animation.
+                _started = false;
+                _element.Dispatcher.BeginInvoke(
+                    DispatcherPriority.Normal,
+                    new Action(CompleteWithoutAnimation));
+                return;
+            }
+
+            Save();
             _started = true;
 
             FrameworkElement containingObject = _element as FrameworkElement;
@@ -109,6 +127,24 @@ namespace Microsoft.Phone.Controls
             else
             {
                 Storyboard.Begin();
+            }
+        }
+
+        private void CompleteWithoutAnimation()
+        {
+            if (!_begun)
+            {
+                return;
+            }
+
+            _completed = true;
+            _begun = false;
+            _restored = true;
+
+            EventHandler handler = Completed;
+            if (handler != null)
+            {
+                handler(this, EventArgs.Empty);
             }
         }
 

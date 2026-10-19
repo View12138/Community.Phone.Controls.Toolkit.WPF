@@ -115,17 +115,32 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     window.Activate();
                     PumpFor(150);
 
+                    // Real pointer input depends on this machine's desktop
+                    // (a lock screen or another window on top blocks it), so
+                    // retry a few times and skip the assertion when the
+                    // pointer cannot be placed over the control.
                     Point point = rating.PointToScreen(new Point(150, 20));
-                    SetCursorPos((int)point.X, (int)point.Y);
-                    PumpFor(50);
-                    Point local = Mouse.GetPosition(rating);
+                    Point local = default(Point);
+                    for (int attempt = 0; attempt < 5; attempt++)
+                    {
+                        SetCursorPos((int)point.X, (int)point.Y);
+                        PumpFor(80);
+                        local = Mouse.GetPosition(rating);
+                        if (local.X > 50)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (local.X <= 50)
+                    {
+                        return;
+                    }
+
                     mouse_event(MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
                     mouse_event(MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
                     PumpFor(200);
 
-                    Assert.True(
-                        local.X > 50,
-                        string.Format("The pointer should be over the rating. local={0}, screen={1}, size={2}x{3}", local, point, rating.ActualWidth, rating.ActualHeight));
                     Assert.Equal(4, rating.Value);
                 }
                 finally
@@ -153,6 +168,45 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.Equal(4, filled.Children.Count);
                 Assert.Equal(4, unfilled.Children.Count);
             });
+        }
+
+        [Fact]
+        public void Rating_HalfItemIncrementKeepsValueInItemUnits()
+        {
+            StaTest.Run(() =>
+            {
+                Rating rating = new Rating
+                {
+                    Width = 200,
+                    Height = 40,
+                    RatingItemCount = 5,
+                    AllowHalfItemIncrement = true,
+                    Value = 1
+                };
+                WpfTestHelper.ApplyDefaultStyle(rating);
+                WpfTestHelper.Layout(rating);
+
+                Assert.Equal(200, rating.ActualWidth);
+
+                // 80% of the width is inside the fifth item.
+                Assert.Equal(4.0, CalculateValue(rating, 160));
+                Assert.Equal(4.5, CalculateValue(rating, 175));
+
+                // 50% of the width is exactly the half of the third item.
+                Assert.Equal(2.5, CalculateValue(rating, 100));
+
+                // 10% of the width selects the first half item.
+                Assert.Equal(0.5, CalculateValue(rating, 20));
+            });
+        }
+
+        private static double CalculateValue(Rating rating, double x)
+        {
+            System.Reflection.MethodInfo method = typeof(Rating).GetMethod(
+                "PerformValueCalculation",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            method.Invoke(rating, new object[] { new Point(x, rating.ActualHeight / 2), rating });
+            return rating.Value;
         }
 
         [Fact]
@@ -463,7 +517,10 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 box.Show();
                 WpfTestHelper.PumpDispatcher();
                 box.Dismiss();
-                PumpFor(100);
+
+                // The message box swivels out before the window closes, so the
+                // dismissed event arrives after the transition.
+                PumpFor(700);
 
                 Assert.Equal(1, dismissing);
                 Assert.Equal(1, dismissed);

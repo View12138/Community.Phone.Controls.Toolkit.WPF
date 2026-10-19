@@ -1,0 +1,32 @@
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Pages.TransitionTargetPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}">
+
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <StackPanel Margin="12,24,12,12">
+            <TextBlock
+                Text="target page"
+                Style="{StaticResource PhoneTextTitle1Style}"
+                phone:TurnstileFeatherEffect.FeatheringIndex="1" />
+            <TextBlock
+                x:Name="TransitionStatus"
+                Text="A transition brought you here."
+                Style="{StaticResource PhoneTextNormalStyle}"
+                TextWrapping="Wrap"
+                Margin="0,12,0,12"
+                phone:TurnstileFeatherEffect.FeatheringIndex="2" />
+            <TextBlock
+                Text="The feathering indices let the turnstile feather family animate these elements individually."
+                Style="{StaticResource PhoneTextSubtleStyle}"
+                TextWrapping="Wrap"
+                Margin="0,0,0,24"
+                phone:TurnstileFeatherEffect.FeatheringIndex="3" />
+            <Button Content="Go back" Click="OnGoBack" />
+        </StackPanel>
+    </Grid>
+</phone:PhoneApplicationPage>

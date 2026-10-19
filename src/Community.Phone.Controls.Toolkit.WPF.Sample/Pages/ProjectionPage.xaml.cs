@@ -7,19 +7,19 @@ using Microsoft.Phone.Controls;
 
 namespace PhoneToolkitSample.Pages
 {
-    public partial class HomePage : PhoneApplicationPage
+    public partial class ProjectionPage : PhoneApplicationPage
     {
-        private readonly DispatcherTimer _projectionStatusTimer;
+        private readonly DispatcherTimer _statusTimer;
 
-        public HomePage()
+        public ProjectionPage()
         {
             InitializeComponent();
 
-            _projectionStatusTimer = new DispatcherTimer
+            _statusTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(100)
             };
-            _projectionStatusTimer.Tick += OnProjectionStatusTick;
+            _statusTimer.Tick += OnStatusTick;
 
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
@@ -38,21 +38,21 @@ namespace PhoneToolkitSample.Pages
             };
 
             DemoProjection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
-            UpdateProjectionStatus();
-            _projectionStatusTimer.Start();
+            UpdateStatus();
+            _statusTimer.Start();
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _projectionStatusTimer.Stop();
+            _statusTimer.Stop();
         }
 
-        private void OnProjectionStatusTick(object sender, EventArgs e)
+        private void OnStatusTick(object sender, EventArgs e)
         {
-            UpdateProjectionStatus();
+            UpdateStatus();
         }
 
-        private void UpdateProjectionStatus()
+        private void UpdateStatus()
         {
             if (ProjectionStatus != null)
             {
@@ -62,16 +62,6 @@ namespace PhoneToolkitSample.Pages
                     DemoProjection.RotationX,
                     DemoProjection.RotationY);
             }
-        }
-
-        private void OnOpenDetail(object sender, RoutedEventArgs e)
-        {
-            NavigationService.Navigate(new DetailPage());
-        }
-
-        private void OnOpenFeatherPage(object sender, RoutedEventArgs e)
-        {
-            NavigationService.Navigate(new FeatherPage());
         }
 
         private void OnAnimateProjection(object sender, RoutedEventArgs e)
@@ -87,39 +77,12 @@ namespace PhoneToolkitSample.Pages
             DemoProjection.BeginAnimation(PlaneProjection.RotationXProperty, animation);
         }
 
-        private void OnRatingValueChanged(object sender, EventArgs e)
+        private void OnGoBack(object sender, RoutedEventArgs e)
         {
-            if (RatingStatus != null)
+            if (Frame != null)
             {
-                RatingStatus.Text = string.Format(CultureInfo.CurrentCulture, "Rating: {0:F1}", DemoRating.Value);
+                Frame.GoBack();
             }
-        }
-
-        private void OnContextMenuCopy(object sender, RoutedEventArgs e)
-        {
-            MessageBox.Show("ContextMenu item clicked.", "ContextMenu");
-        }
-
-        private void OnShowMessage(object sender, RoutedEventArgs e)
-        {
-            CustomMessageBox messageBox = new CustomMessageBox
-            {
-                Title = "CustomMessageBox",
-                Caption = "Metro dialog",
-                Message = "This dialog is part of the WPF toolkit port.",
-                LeftButtonContent = "cancel",
-                RightButtonContent = "ok"
-            };
-
-            messageBox.Dismissed += (s, args) =>
-            {
-                if (args.Result == CustomMessageBoxResult.RightButton)
-                {
-                    MessageBox.Show("The right button was selected.", "CustomMessageBox");
-                }
-            };
-
-            messageBox.Show();
         }
     }
 }

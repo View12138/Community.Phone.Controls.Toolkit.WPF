@@ -30,23 +30,40 @@
     </phone:TransitionService.NavigationOutTransition>
 
     <Grid Background="{StaticResource PhoneBackgroundBrush}">
-        <StackPanel Margin="12,24,12,12">
-            <TextBlock
-                Text="Feather page"
-                Style="{StaticResource PhoneTextTitle1Style}"
-                phone:TurnstileFeatherEffect.FeatheringIndex="1" />
-            <TextBlock
-                Text="TurnstileFeatherEffect animates these text blocks in a staggered sequence."
-                Style="{StaticResource PhoneTextNormalStyle}"
-                TextWrapping="Wrap"
-                Margin="0,12,0,12"
-                phone:TurnstileFeatherEffect.FeatheringIndex="2" />
-            <TextBlock
-                Text="Each element has its own feathering index."
-                Style="{StaticResource PhoneTextSubtleStyle}"
-                Margin="0,0,0,24"
-                phone:TurnstileFeatherEffect.FeatheringIndex="3" />
-            <Button Content="Go back" Click="OnGoBack" />
-        </StackPanel>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12,24,12,12">
+                <TextBlock
+                    Text="feathering"
+                    Style="{StaticResource PhoneTextTitle1Style}"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="1" />
+                <TextBlock
+                    Text="TurnstileFeatherEffect animates each element in a staggered sequence instead of rotating the whole page at once."
+                    Style="{StaticResource PhoneTextNormalStyle}"
+                    TextWrapping="Wrap"
+                    Margin="0,12,0,12"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="2" />
+                <TextBlock
+                    Text="Element three"
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    Margin="0,0,0,10"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="3" />
+                <TextBlock
+                    Text="Element four"
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    Margin="0,0,0,10"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="4" />
+                <TextBlock
+                    Text="Element five"
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    Margin="0,0,0,10"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="5" />
+                <TextBlock
+                    Text="Element six"
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    Margin="0,0,0,24"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="6" />
+                <Button Content="Go back" Click="OnGoBack" />
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </phone:PhoneApplicationPage>

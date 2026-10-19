@@ -1,0 +1,46 @@
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Pages.ProjectionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}">
+
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="12,24,12,12">
+            <TextBlock Text="Community Phone Toolkit" Style="{StaticResource PhoneTextNormalStyle}" />
+            <TextBlock Text="projection" Style="{StaticResource PhoneTextTitle1Style}" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="12,0,12,24">
+                <phone:ProjectionHost x:Name="ProjectionDemo" Height="180" Margin="0,8,0,16">
+                    <Border Background="{StaticResource PhoneAccentBrush}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="PlaneProjection" Foreground="White" FontSize="24" HorizontalAlignment="Center" />
+                            <TextBlock Text="real Viewport2DVisual3D" Foreground="White" FontSize="14" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <phone:ProjectionHost.Projection>
+                        <phone:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
+                    </phone:ProjectionHost.Projection>
+                </phone:ProjectionHost>
+
+                <TextBlock
+                    Text="The projection rotates continuously; the button animates RotationX. XAML uses a fixed 999 DIP perspective depth, so the whole plane stays 1:1 until it is rotated."
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    TextWrapping="Wrap" />
+                <TextBlock x:Name="ProjectionStatus" Text="RotationX 0°, RotationY 0°" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,12" />
+
+                <Button Content="Animate projection" Click="OnAnimateProjection" Margin="0,0,0,8" />
+                <Button Content="Go back" Click="OnGoBack" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</phone:PhoneApplicationPage>

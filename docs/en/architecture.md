@@ -116,11 +116,15 @@ The original `<Grid.Projection>` form is **not** source-compatible; migration re
 
 ### 4.5 Effects integration
 
-`ProjectionService.EnsureProjectionHost` can wrap a direct child of a `Panel` in a `ProjectionHost`, copying layout properties (size, margin, alignment, grid row/column, z-index, dock, canvas position) to the host. Only a host that **directly contains** the element is reused: pages are hosted by the transition frame’s presenters, so reusing an ancestor host would project the whole page instead of the element. `TiltEffect` wraps a tiltable control when it loads (and unwraps it when tilt is disabled) so the visual tree is never modified while a pointer is pressed; `TurnstileFeatherEffect` wraps each feathered element while the effect runs. `ListBoxItem` and `ContentPresenter` targets are deliberately skipped because replacing item containers breaks item generation/virtualization.
+`ProjectionService.EnsureProjectionHost` can wrap a direct child of a `Panel` in a `ProjectionHost`, copying layout properties (size, margin, alignment, grid row/column, z-index, dock, canvas position) to the host. Only a host that **directly contains** the element is reused: pages are hosted by the transition frame’s presenters, so reusing an ancestor host would project the whole page instead of the element. `TiltEffect` wraps a tiltable control when it loads (and unwraps it when tilt is disabled) so the visual tree is never modified while a pointer is pressed; `TurnstileFeatherEffect` wraps a feathered element when it subscribes (and unwraps it when the feathering index is cleared), so a transition never re-parents content while it is animating. `ListBoxItem` and `ContentPresenter` targets are deliberately skipped because replacing item containers breaks item generation/virtualization.
+
+Because the outgoing transition is read from the page being left, a page that wants a specific exit must declare it (or set it before navigating). The sample does the latter in `SampleNavigator` so that entering *and* leaving the feathering sample uses the feather family.
 
 ### 4.6 Render path switching
 
 A host renders through the 2D path while its projection is the identity and through the `Viewport3D` path otherwise. Both paths are geometrically identical — an identity projection matches the 2D layout to within 0.01 px — but they rasterize text differently (ClearType versus grayscale anti-aliasing of the 3D texture). `ProjectionHost.Prefer3D` keeps the 3D path active while the projection is still the identity, so `TransitionFrame`, `TiltEffect`, and `TurnstileFeatherEffect` switch the render path while they prepare the animation instead of on its first frame. Transition presenters do not apply a `BitmapCache`: the 3D pipeline already rasterizes the content, and an extra 1x cache only softened it.
+
+Measured frame pacing on the development machine (`CompositionTarget.Rendering`, 480×800 content): 2D baseline ~150 fps, a projected page ~92–96 fps, six independently projected feather items ~64–68 fps, and the 2D→3D switch costs a single ~6 ms frame. Wrapping a feather target up front (at subscribe time) keeps that cost out of the transition, because re-parenting elements while the animation runs forces a full layout pass per target.
 
 ## 5. Navigation subsystem
 
@@ -171,7 +175,9 @@ Preserves `IsTiltEnabled`, `SuppressTilt`, `TiltableItems`, `UseLogarithmicEase`
 
 ### `TurnstileFeatherEffect`
 
-Preserves `FeatheringIndex`, `NonPermittedTypes`, and the staggered timing constants. Targets are registered per `PhoneApplicationPage`. When a `TurnstileFeatherTransition` begins, the effect ensures a `ProjectionHost` for each on-screen target, assigns a `PlaneProjection` with `CenterOfRotationX = -0.2`, and composes RotationY/opacity animations with the original 40–50 ms stagger. Targets that cannot be wrapped (item containers, content presenters) are skipped. Cleanup restores opacity, removes the projection, and releases the wrapper.
+Preserves `FeatheringIndex`, `NonPermittedTypes`, and the staggered timing constants. Targets are collected from the page's **visual tree** when the storyboard is composed (`CollectTargets`, stable order by index), because an incoming page is composed before it is connected to the visual tree and the attached-property notifications have not run at that point; `TransitionFrame` forces a layout pass on the incoming presenter before composing so the targets have real geometry. The attached property subscriptions only prepare the wrappers, on the dispatcher after `Loaded`/`SizeChanged` (wrapping inside a layout pass can start a layout cycle), and a wrapper-induced `Unloaded` does not cancel the subscription. When a `TurnstileFeatherTransition` begins, the effect ensures a `ProjectionHost` for each on-screen target, assigns a `PlaneProjection` with `CenterOfRotationX = -0.2`, and composes RotationY/opacity animations with the original 40–50 ms stagger. Targets that cannot be wrapped (item containers, content presenters) are skipped. Cleanup restores opacity, removes the projection, and releases the wrapper.
+
+A transition whose storyboard ends up empty (for example feathering a page that has no feathered elements) completes on the next dispatcher pass instead of blocking the frame — otherwise the incoming page would stay non-interactive forever.
 
 `SlideInEffect` is not implemented because it depends on the WP `Pivot`/`PivotItem` controls and their selection/manipulation lifecycle. It is documented as unsupported.
 
