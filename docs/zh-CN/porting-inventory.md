@@ -3,6 +3,8 @@
 本文是 `D:\repos\repo-other\WindowsPhoneToolkit` 归档 Windows Phone Toolkit 的 Phase 0 审计中文版。审计通过阅读解决方案、工程文件、共享源码、WP7/WP8 专用源码、XAML 主题、本地化资源和示例完成；不是仅根据 README 或文件名推断。
 
 > 说明：类型名、命名空间、属性名和 API 签名保持英文，以便与源码一致。完整逐类型公共成员附录保留在英文版 [porting-inventory.md](../en/porting-inventory.md)；本文覆盖功能清单、模块状态、依赖关系、XAML 用法和验证结果。
+>
+> **状态说明（后补）**：本文是原版工具包的历史证据与审计时的状态假设，**不**代表本移植版的当前状态。当前按模块的验证状态（已验证 / 已实现未验证 / 未实现）见 [porting-status.md](porting-status.md)；已确认的设计决策见 [architecture.md](architecture.md)；最近一次交接见 [handoff.md](handoff.md)。
 
 ## 仓库审计摘要
 
@@ -105,6 +107,8 @@
 | `TransitionFrame.TransitionFailed` / `TransitionFailedEventArgs` | 报告转场工厂/动画失败和回退 | 新的诊断面，原始没有。 |
 | `PhoneApplicationFrame.Navigate(PhoneApplicationPage, IDictionary<string,string>)` | 不通过 URI 传递页面参数 | 新的 WPF 友好重载；原始使用平台导航 URI。 |
 
+当前逐模块的验证级别（已验证 / 已实现未验证 / 未实现）记录在 [porting-status.md](porting-status.md)。上表描述的是移植范围，不是证据级别。
+
 ## 依赖关系
 
 ```text
@@ -173,7 +177,7 @@ Localization
 | 证据 | 结果 |
 |---|---|
 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | 0 warnings，0 errors |
-| `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release --no-build` | 57 passed，0 failed |
+| `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release --no-build` | 68 passed，0 failed（投影/转场保真修复后重新验证；逐模块证据见 [porting-status.md](porting-status.md)） |
 | `build\verify-package.ps1` | 打包成功；隔离缓存的 fresh consumer 零警告构建并运行成功 |
 | 示例启动 | 进程 5 秒后仍存活；无 `%TEMP%\community-phone-toolkit-sample-error.txt` |
 | 示例 UI 自动化 | 打开详情页、确认加载、返回首页，无启动错误 |

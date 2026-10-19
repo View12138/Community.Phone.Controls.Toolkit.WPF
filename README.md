@@ -152,10 +152,11 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 
 ## Verification status
 
-- Release build: 0 warnings, 0 errors.
-- Automated tests: 65 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, entry/exit Turnstile storyboards, feathered transitions, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
+- Release build: 0 warnings, 0 errors (re-verified 2026-10-19).
+- Automated tests: 68 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
 - Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls and theme resources.
 - Sample: launched successfully; UI automation opened the detail page, returned to the home page, changed the rating and ToggleSwitch, opened the ListPicker and ContextMenu, typed into PhoneTextBox, and produced no startup error.
+- Per-module status and evidence: [docs/porting-status.md](docs/porting-status.md). Latest handoff: [docs/handoff.md](docs/handoff.md).
 
 ## Run the sample
 
@@ -169,6 +170,8 @@ The sample demonstrates projection and animated navigation alongside all impleme
 
 English documentation lives under `docs/en/`; Chinese documentation lives under `docs/zh-CN/`.
 
+- [Handoff — start here in a new session](docs/handoff.md) (latest verified state, uncommitted work, next steps)
+- [Porting status](docs/porting-status.md) (verified / implemented-unverified / not implemented, per module)
 - [Original feature audit](docs/en/porting-inventory.md)
 - [Architecture](docs/en/architecture.md)
 - [API compatibility matrix](docs/en/api-compatibility.md)

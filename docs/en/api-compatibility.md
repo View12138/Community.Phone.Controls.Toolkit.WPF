@@ -41,7 +41,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 
 | Original type | Port | Level | XAML change | Behavior difference |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; place inside `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; 57.6° perspective; Silverlight pixel semantics approximated. |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; place inside `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; XAML's fixed 999 DIP perspective depth; rotation, center, and offset signs match XAML. |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | Same | Matrix normalized 0..1; converted to pixel space. |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` works on containers | Plain controls are wrapped on demand; `PreviewMouseDown/Move/Up` support means a container can tilt a child button without consuming its click; list item containers are skipped. |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | Requires wrappable targets; skipped item containers/content presenters. |
@@ -147,7 +147,7 @@ The original storyboards were converted to code, but the durations, key times, a
 
 ## Compatibility caveats by feature
 
-1. **Projection and 3D** — real 3D rendering and animation are implemented, but the XAML form requires a wrapper. Perspective is a 57.6° camera approximation; Silverlight’s internal projection matrix is not publicly specified.
+1. **Projection and 3D** — real 3D rendering and animation are implemented, but the XAML form requires a wrapper. The camera reproduces XAML's fixed 999 DIP perspective depth, so scale and foreshortening match WP; only effects that rely on the perspective origin moving outside the element bounds differ (see known limitations).
 2. **Transitions** — timing, angles and modes match the original storyboards. Storyboard state is tracked by the port because WPF’s `GetCurrentState()` requires a controllable containing object.
 3. **Navigation** — WPF `Frame`/`Page` behavior and journal are retained, but WP page lifecycle is raised by the port’s frame; `PhoneApplicationService` idle-detection policy has no WPF system equivalent.
 4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped (item containers/content presenters) are skipped.

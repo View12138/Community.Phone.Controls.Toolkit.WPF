@@ -72,22 +72,39 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
-        public void PlaneProjection_RotationYPushesRightEdgeInDepth()
+        public void PlaneProjection_RotationYMatchesTheXamlDepthDirection()
         {
             StaTest.Run(() =>
             {
-                PlaneProjection projection = new PlaneProjection
+                Size size = new Size(200, 100);
+
+                // XAML semantics: a positive RotationY brings the right edge
+                // towards the viewer (+Z), a negative value pushes it away.
+                // The WP turnstile depends on this: the incoming page starts
+                // at -80 as a foreshortened sliver while the outgoing page
+                // swings out towards the viewer at +50.
+                PlaneProjection entry = new PlaneProjection
                 {
                     CenterOfRotationX = 0,
                     RotationY = -80
                 };
+                PlaneProjection exit = new PlaneProjection
+                {
+                    CenterOfRotationX = 0,
+                    RotationY = 50
+                };
 
-                Matrix3D matrix = projection.ToMatrix3D(new Size(200, 100));
-                Point3D left = matrix.Transform(new Point3D(-100, 0, 0));
-                Point3D right = matrix.Transform(new Point3D(100, 0, 0));
+                Matrix3D entryMatrix = entry.ToMatrix3D(size);
+                Matrix3D exitMatrix = exit.ToMatrix3D(size);
 
-                Assert.True(Math.Abs(right.Z) > 100, "The rotated edge should move in depth.");
-                Assert.True(Math.Abs(right.Z) > Math.Abs(left.Z), "The pivot edge should stay fixed in depth.");
+                Point3D recedingEdge = entryMatrix.Transform(new Point3D(100, 0, 0));
+                Point3D approachingEdge = exitMatrix.Transform(new Point3D(100, 0, 0));
+                Point3D pivotEdge = entryMatrix.Transform(new Point3D(-100, 0, 0));
+
+                Assert.True(Math.Abs(recedingEdge.Z) > 100, "The rotated edge should move in depth.");
+                Assert.True(recedingEdge.Z < 0, "A negative RotationY must push the free edge away from the viewer; Z=" + recedingEdge.Z);
+                Assert.True(approachingEdge.Z > 0, "A positive RotationY must bring the free edge towards the viewer; Z=" + approachingEdge.Z);
+                Assert.Equal(0, pivotEdge.Z, 6);
             });
         }
 
@@ -137,7 +154,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.Equal(-100, leftEdge.X, 6);
                 Assert.Equal(0, leftEdge.Z, 6);
                 Assert.Equal(-100, rightEdge.X, 6);
-                Assert.Equal(-200, rightEdge.Z, 6);
+                Assert.Equal(200, rightEdge.Z, 6);
 
                 PlaneProjection rightPivot = new PlaneProjection
                 {
@@ -165,7 +182,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 };
                 Point3D localPoint = local.ToMatrix3D(size).Transform(new Point3D(0, 0, 0));
                 Assert.Equal(0, localPoint.X, 6);
-                Assert.Equal(-10, localPoint.Z, 6);
+                Assert.Equal(10, localPoint.Z, 6);
 
                 PlaneProjection global = new PlaneProjection
                 {
@@ -521,6 +538,87 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot()
+        {
+            StaTest.Run(() =>
+            {
+                // A tall slot exposes a camera that derives its field of view
+                // from the wrong axis: the projected page then shrinks to
+                // width * (width / height) and snaps back when the transition
+                // finishes.
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 200,
+                    Height = 400,
+                    Child = new Border { Background = Brushes.Red, Width = 200, Height = 400 },
+                    Projection = new PlaneProjection { RotationX = 4 }
+                };
+
+                host.Measure(new Size(200, 400));
+                host.Arrange(new Rect(0, 0, 200, 400));
+                host.UpdateLayout();
+
+                Assert.True(host.IsRenderingIn3D);
+
+                RenderTargetBitmap bitmap = Render(host);
+                Assert.InRange(GetWidestRowSpan(bitmap), 199, 200);
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_AppliesTheXamlPerspectiveDepth()
+        {
+            StaTest.Run(() =>
+            {
+                // A 480x800 page hinged at its left edge and rotated -80
+                // degrees, which is the first frame of the WP turnstile entry
+                // transition. The XAML perspective depth is 999 DIP, so the
+                // free edge sits 480 * sin(80) = 472.7 DIP behind the hinge and
+                // is scaled by 999 / (999 + 472.7) = 0.6788.
+                const double Width = 480;
+                const double Height = 800;
+                const double Depth = 999;
+                double radians = 80 * Math.PI / 180;
+                double scale = Depth / (Depth + (Width * Math.Sin(radians)));
+
+                // The perspective divide happens about the middle of the
+                // host, not about the hinge, so the shifted rotation origin
+                // participates in the projection.
+                double freeEdgeX = (Width / 2) + (((Width * Math.Cos(radians)) - (Width / 2)) * scale);
+                double freeEdgeHeight = Height * scale;
+
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = Width,
+                    Height = Height,
+                    Child = new Border { Background = Brushes.Red, Width = Width, Height = Height },
+                    Projection = new PlaneProjection
+                    {
+                        CenterOfRotationX = 0,
+                        CenterOfRotationY = 0.5,
+                        RotationY = -80
+                    }
+                };
+
+                host.Measure(new Size(Width, Height));
+                host.Arrange(new Rect(0, 0, Width, Height));
+                host.UpdateLayout();
+
+                Assert.True(host.IsRenderingIn3D);
+
+                RenderTargetBitmap bitmap = Render(host);
+                int rightmost = GetRightmostOccupiedColumn(bitmap);
+
+                Assert.InRange(GetColumnExtent(bitmap, 0, 2), 796, 800);
+                Assert.InRange(rightmost, (int)freeEdgeX - 3, (int)freeEdgeX + 3);
+                Assert.InRange(
+                    GetColumnExtent(bitmap, rightmost, rightmost),
+                    (int)freeEdgeHeight - 6,
+                    (int)freeEdgeHeight + 6);
+            });
+        }
+
+        [Fact]
         public void ProjectionHost_PreservesTextureOrientation()
         {
             StaTest.Run(() =>
@@ -619,6 +717,92 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 WpfTestHelper.PumpDispatcher();
                 System.Threading.Thread.Sleep(15);
             }
+        }
+
+        private static int GetRightmostOccupiedColumn(RenderTargetBitmap bitmap)
+        {
+            int stride = bitmap.PixelWidth * 4;
+            byte[] pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            for (int x = bitmap.PixelWidth - 1; x >= 0; x--)
+            {
+                for (int y = 0; y < bitmap.PixelHeight; y++)
+                {
+                    if (pixels[(y * stride) + (x * 4) + 3] != 0)
+                    {
+                        return x;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        private static int GetColumnExtent(RenderTargetBitmap bitmap, int fromX, int toX)
+        {
+            int stride = bitmap.PixelWidth * 4;
+            byte[] pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            int extent = 0;
+            for (int x = Math.Max(0, fromX); x <= Math.Min(bitmap.PixelWidth - 1, toX); x++)
+            {
+                int top = -1;
+                int bottom = -1;
+                for (int y = 0; y < bitmap.PixelHeight; y++)
+                {
+                    if (pixels[(y * stride) + (x * 4) + 3] != 0)
+                    {
+                        if (top < 0)
+                        {
+                            top = y;
+                        }
+
+                        bottom = y;
+                    }
+                }
+
+                if (top >= 0)
+                {
+                    extent = Math.Max(extent, bottom - top + 1);
+                }
+            }
+
+            return extent;
+        }
+
+        private static int GetWidestRowSpan(RenderTargetBitmap bitmap)
+        {
+            int stride = bitmap.PixelWidth * 4;
+            byte[] pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            int widest = 0;
+            for (int y = 0; y < bitmap.PixelHeight; y++)
+            {
+                int left = -1;
+                int right = -1;
+                for (int x = 0; x < bitmap.PixelWidth; x++)
+                {
+                    if (pixels[(y * stride) + (x * 4) + 3] != 0)
+                    {
+                        if (left < 0)
+                        {
+                            left = x;
+                        }
+
+                        right = x;
+                    }
+                }
+
+                if (left >= 0)
+                {
+                    widest = Math.Max(widest, right - left + 1);
+                }
+            }
+
+            return widest;
         }
 
         private static int CountPixels(RenderTargetBitmap bitmap)

@@ -75,7 +75,9 @@ texture coords:    (0,0), (1,0), (1,1), (0,1)
 triangles:         0,2,1 and 0,3,2
 ```
 
-A `PerspectiveCamera` is placed at `(0, 0, distance)` with `distance = viewportHeight / (2 * tan(fov/2))`, `fov = 57.6°` by default. This makes an identity projection map 1:1 at the center plane and keeps the perspective proportional to the host size.
+A `PerspectiveCamera` is placed at `(0, 0, depth)` with `depth = PerspectiveDepth`, which defaults to `999` DIP. The field of view is derived from the viewport **width**: `fov = 2 * atan(viewportWidth / (2 * depth))`. WPF's `PerspectiveCamera.FieldOfView` is horizontal and derives the vertical field of view from the viewport aspect ratio, so a width-based field of view keeps an identity projection exactly 1:1 with the layout slot. Deriving the field of view from the height instead shrinks every projected element by the aspect ratio (a 480x800 page rendered at 288x480 during every 3D transition and snapped back to full size when the transition finished).
+
+The 999 DIP depth is XAML's fixed `PlaneProjection` perspective (WinUI's `PlaneProjection` uses `M34 = -1/999` about the element center), so the effective scale of a point at depth `z` is `999 / (999 - z)` independent of element size. This matches WP's perspective instead of a size-proportional camera approximation.
 
 `PlaneProjection.ToMatrix3D` uses the row-vector convention:
 
@@ -84,9 +86,11 @@ p' = (((p - center) + localOffset) * R) + center + globalOffset
 R = Rz * Ry * Rx    (rotations in degrees)
 center = ((CenterOfRotationX - 0.5) * width, (0.5 - CenterOfRotationY) * height, CenterOfRotationZ)
 Y offsets are negated because WPF 3D uses +Y up and screen coordinates use +Y down.
+RotationY is negated because XAML's positive RotationY brings the right edge towards
+the viewer, while a positive rotation around WPF's +Y axis moves it away.
 ```
 
-The matrix is assigned to `Viewport2DVisual3D.Transform`. Camera clipping, back-face behavior, and hit testing are handled by WPF’s 3D pipeline. The host recomputes geometry, camera distance, and transform on size/projection changes.
+The matrix is assigned to `Viewport2DVisual3D.Transform`. Camera clipping, back-face behavior, and hit testing are handled by WPF’s 3D pipeline. The host recomputes the geometry, the camera field of view, and the transform when the size or the projection changes.
 
 ### 4.4 XAML compatibility boundary
 
@@ -112,7 +116,11 @@ The original `<Grid.Projection>` form is **not** source-compatible; migration re
 
 ### 4.5 Effects integration
 
-`ProjectionService.EnsureProjectionHost` can temporarily wrap a direct child of a `Panel` in a `ProjectionHost`, copying layout properties (size, margin, alignment, grid row/column, z-index, dock, canvas position) to the host. This is used by `TiltEffect` and `TurnstileFeatherEffect`. `ListBoxItem` and `ContentPresenter` targets are deliberately skipped because replacing item containers breaks item generation/virtualization. The wrapper is released after the effect.
+`ProjectionService.EnsureProjectionHost` can wrap a direct child of a `Panel` in a `ProjectionHost`, copying layout properties (size, margin, alignment, grid row/column, z-index, dock, canvas position) to the host. Only a host that **directly contains** the element is reused: pages are hosted by the transition frame’s presenters, so reusing an ancestor host would project the whole page instead of the element. `TiltEffect` wraps a tiltable control when it loads (and unwraps it when tilt is disabled) so the visual tree is never modified while a pointer is pressed; `TurnstileFeatherEffect` wraps each feathered element while the effect runs. `ListBoxItem` and `ContentPresenter` targets are deliberately skipped because replacing item containers breaks item generation/virtualization.
+
+### 4.6 Render path switching
+
+A host renders through the 2D path while its projection is the identity and through the `Viewport3D` path otherwise. Both paths are geometrically identical — an identity projection matches the 2D layout to within 0.01 px — but they rasterize text differently (ClearType versus grayscale anti-aliasing of the 3D texture). `ProjectionHost.Prefer3D` keeps the 3D path active while the projection is still the identity, so `TransitionFrame`, `TiltEffect`, and `TurnstileFeatherEffect` switch the render path while they prepare the animation instead of on its first frame. Transition presenters do not apply a `BitmapCache`: the 3D pipeline already rasterizes the content, and an extra 1x cache only softened it.
 
 ## 5. Navigation subsystem
 

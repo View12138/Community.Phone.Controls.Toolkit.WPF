@@ -482,18 +482,33 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     frame.ApplyTemplate();
                     window.UpdateLayout();
                     frame.Navigate(page);
-                    PumpFor(100);
+                    PumpFor(20);
 
                     Assert.Same(page, frame.Content);
+                    ProjectionHost presenter = ProjectionService.GetProjectionHost(page);
+                    Assert.NotNull(presenter);
+
+                    // The 3D render path has to be active before the first
+                    // animated frame, otherwise the transition starts by
+                    // switching how the page is rasterized.
+                    Assert.True(presenter.Prefer3D, "The presenter should be prepared for 3D during navigation.");
+                    Assert.True(presenter.IsRenderingIn3D, "The presenter should render through the 3D pipeline from the start.");
+
+                    PumpFor(90);
+
                     PlaneProjection projection = ProjectionService.GetProjection(page) as PlaneProjection;
                     Assert.NotNull(projection);
                     Assert.True(
                         projection.RotationY < 0 && projection.RotationY > -80,
                         "The entry transition should have started rotating the page; RotationY=" + projection.RotationY);
+                    Assert.True(presenter.Prefer3D);
+                    Assert.True(presenter.IsRenderingIn3D);
 
                     PumpFor(800);
                     Assert.Null(ProjectionService.GetProjection(page));
                     Assert.True(page.IsHitTestVisible);
+                    Assert.False(presenter.Prefer3D, "The presenter should return to the 2D render path when it is idle.");
+                    Assert.False(presenter.IsRenderingIn3D);
                 }
                 finally
                 {

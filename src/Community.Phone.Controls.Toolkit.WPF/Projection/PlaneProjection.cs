@@ -227,7 +227,13 @@ namespace Microsoft.Phone.Controls
             Vector3D localOffset = new Vector3D(LocalOffsetX, -LocalOffsetY, LocalOffsetZ);
             Vector3D globalOffset = new Vector3D(GlobalOffsetX, -GlobalOffsetY, GlobalOffsetZ);
 
-            Matrix3D rotation = ProjectionMath.CreateRotationMatrix(RotationX, RotationY, RotationZ);
+            // XAML's RotationY brings the element's right edge towards the
+            // viewer for positive values. A positive rotation around WPF's 3D
+            // Y axis moves that edge away from the viewer, so the angle is
+            // negated here to keep the XAML direction. RotationX and RotationZ
+            // already match because the element space is flipped vertically
+            // when it is mapped onto the 3D quad.
+            Matrix3D rotation = ProjectionMath.CreateRotationMatrix(RotationX, -RotationY, RotationZ);
 
             // Row-vector convention: p' = (((p - center) + localOffset) * R) + center + globalOffset.
             Matrix3D result = Matrix3D.Identity;

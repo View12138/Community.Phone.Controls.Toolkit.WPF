@@ -161,7 +161,11 @@ namespace Microsoft.Phone.Controls
                 throw new ArgumentNullException("element");
             }
 
-            ProjectionHost existing = GetProjectionHost(element);
+            // Only a host that directly contains the element can project it.
+            // Falling back to the nearest ancestor host would apply an
+            // element effect (tilt, feathering) to the whole page, because
+            // pages are hosted by the transition frame's presenters.
+            ProjectionHost existing = FindDirectHost(element);
             if (existing != null)
             {
                 return existing;
@@ -252,6 +256,29 @@ namespace Microsoft.Phone.Controls
             info.Host = host;
             HostInfos.Add(element, info);
             return host;
+        }
+
+        private static ProjectionHost FindDirectHost(FrameworkElement element)
+        {
+            HostInfo info;
+            if (HostInfos.TryGetValue(element, out info))
+            {
+                return info.Host;
+            }
+
+            DependencyObject parent = element.Parent;
+            if (parent == null)
+            {
+                parent = VisualTreeHelper.GetParent(element);
+            }
+
+            ProjectionHost host = parent as ProjectionHost;
+            if (host != null && ReferenceEquals(host.Child, element))
+            {
+                return host;
+            }
+
+            return null;
         }
 
         /// <summary>

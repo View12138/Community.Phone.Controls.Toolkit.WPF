@@ -46,14 +46,32 @@ namespace Microsoft.Phone.Controls
                 new PropertyMetadata(null, OnProjectionChanged));
 
         /// <summary>
-        /// Identifies the <see cref="FieldOfView"/> property.
+        /// Identifies the <see cref="PerspectiveDepth"/> property.
         /// </summary>
-        public static readonly DependencyProperty FieldOfViewProperty =
+        public static readonly DependencyProperty PerspectiveDepthProperty =
             DependencyProperty.Register(
-                "FieldOfView",
+                "PerspectiveDepth",
                 typeof(double),
                 typeof(ProjectionHost),
-                new PropertyMetadata(57.6, OnFieldOfViewChanged));
+                new PropertyMetadata(DefaultPerspectiveDepth, OnPerspectiveDepthChanged));
+
+        /// <summary>
+        /// Identifies the <see cref="Prefer3D"/> property.
+        /// </summary>
+        public static readonly DependencyProperty Prefer3DProperty =
+            DependencyProperty.Register(
+                "Prefer3D",
+                typeof(bool),
+                typeof(ProjectionHost),
+                new PropertyMetadata(false, OnPrefer3DChanged));
+
+        /// <summary>
+        /// The perspective depth used by the XAML <c>PlaneProjection</c>
+        /// implementation. The value is a fixed camera distance in device
+        /// independent pixels rather than a field of view, which is why the
+        /// perspective stays consistent for every element size.
+        /// </summary>
+        private const double DefaultPerspectiveDepth = 999.0;
 
         private const double NearPlaneDistance = 0.1;
         private const double FarPlaneDistance = 1000000.0;
@@ -74,7 +92,6 @@ namespace Microsoft.Phone.Controls
             _mesh = new MeshGeometry3D();
             _camera = new PerspectiveCamera
             {
-                FieldOfView = FieldOfView,
                 NearPlaneDistance = NearPlaneDistance,
                 FarPlaneDistance = FarPlaneDistance,
                 UpDirection = new Vector3D(0, 1, 0),
@@ -122,12 +139,31 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Gets or sets the perspective camera field of view, in degrees.
+        /// Gets or sets the distance, in device independent pixels, between the
+        /// viewer and the unprojected plane. Smaller values produce a stronger
+        /// perspective.
         /// </summary>
-        public double FieldOfView
+        public double PerspectiveDepth
         {
-            get { return (double)GetValue(FieldOfViewProperty); }
-            set { SetValue(FieldOfViewProperty, value); }
+            get { return (double)GetValue(PerspectiveDepthProperty); }
+            set { SetValue(PerspectiveDepthProperty, value); }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the content is rendered
+        /// through the 3D pipeline even while the projection is the identity.
+        /// </summary>
+        /// <remarks>
+        /// Switching between the 2D and the 3D render path restyles the
+        /// content (the 3D path rasterizes it, so ClearType is replaced by
+        /// grayscale anti-aliasing). Transitions set this before the first
+        /// animated frame so that the whole animation is rendered by a single
+        /// path instead of changing appearance on its first frame.
+        /// </remarks>
+        public bool Prefer3D
+        {
+            get { return (bool)GetValue(Prefer3DProperty); }
+            set { SetValue(Prefer3DProperty, value); }
         }
 
         /// <summary>
@@ -302,10 +338,25 @@ namespace Microsoft.Phone.Controls
             UpdateScene(RenderSize);
         }
 
-        private static void OnFieldOfViewChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnPerspectiveDepthChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             ProjectionHost host = (ProjectionHost)d;
-            host._camera.FieldOfView = Math.Max(1.0, Math.Min(179.0, (double)e.NewValue));
+            host.UpdateScene(host.RenderSize);
+        }
+
+        private static void OnPrefer3DChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ProjectionHost host = (ProjectionHost)d;
+
+            if (host.ShouldUse3D())
+            {
+                host.Ensure3D();
+            }
+            else
+            {
+                host.Ensure2D();
+            }
+
             host.UpdateScene(host.RenderSize);
         }
 
@@ -335,8 +386,18 @@ namespace Microsoft.Phone.Controls
 
         private bool ShouldUse3D()
         {
+            if (Child == null)
+            {
+                return false;
+            }
+
+            if (Prefer3D)
+            {
+                return true;
+            }
+
             Projection projection = Projection;
-            return Child != null && projection != null && !projection.IsIdentity;
+            return projection != null && !projection.IsIdentity;
         }
 
         private void Ensure3D()
@@ -452,16 +513,19 @@ namespace Microsoft.Phone.Controls
 
         private void UpdateCamera(Size hostSize, Size contentSize)
         {
-            double viewportHeight = hostSize.Height > 0 ? hostSize.Height : contentSize.Height;
-            double fovRadians = Math.Max(1.0, Math.Min(179.0, FieldOfView)) * Math.PI / 180.0;
-            double distance = viewportHeight / (2.0 * Math.Tan(fovRadians / 2.0));
+            double viewportWidth = hostSize.Width > 0 ? hostSize.Width : contentSize.Width;
+            double depth = Math.Max(1.0, PerspectiveDepth);
 
-            if (distance <= NearPlaneDistance)
-            {
-                distance = NearPlaneDistance * 2.0;
-            }
-
-            _camera.Position = new Point3D(0, 0, distance);
+            // WPF's PerspectiveCamera field of view is horizontal, and the
+            // vertical field of view is derived from the viewport aspect
+            // ratio. Deriving the field of view from the viewport width keeps
+            // the unprojected plane exactly one-to-one with the layout slot,
+            // which is what the XAML PlaneProjection (fixed perspective depth)
+            // does. Using the height here scales every projected element down
+            // by the aspect ratio.
+            double fieldOfView = 2.0 * Math.Atan(viewportWidth / (2.0 * depth)) * 180.0 / Math.PI;
+            _camera.FieldOfView = Math.Max(1.0, Math.Min(179.0, fieldOfView));
+            _camera.Position = new Point3D(0, 0, depth);
         }
 
         private void UpdateTransform(Size contentSize)

@@ -42,7 +42,7 @@
 
 | 原始类型 | 移植 | 级别 | XAML 修改 | 行为差异 |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；放入 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；57.6° 透视；近似 Silverlight 像素语义。 |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；放入 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。 |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | 同上 | 矩阵归一化 0..1，转换为像素空间。 |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` 可用于容器 | 普通控件按需包装；使用 `PreviewMouseDown/Move/Up`，容器可倾斜子按钮而不吞按钮点击；跳过列表 item 容器。 |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标必须可包装；跳过 item 容器/content presenter。 |
@@ -147,7 +147,7 @@
 
 ## 按功能的兼容注意事项
 
-1. **投影与 3D**：真实 3D 渲染和动画已实现，但 XAML 需要包装。透视使用 57.6° 相机近似；Silverlight 内部投影矩阵没有公开规范。
+1. **投影与 3D**：真实 3D 渲染和动画已实现，但 XAML 需要包装。相机复现了 XAML 固定的 999 DIP 透视深度，因此缩放与透视收缩与 WP 一致；只有依赖“透视原点移出元素边界”的效果存在差异（见已知限制）。
 2. **转场**：时序、角度和模式与原始 storyboard 一致。由于 WPF `GetCurrentState()` 需要可控宿主，移植版自行跟踪 storyboard 状态。
 3. **导航**：保留 WPF `Frame`/`Page` 和 journal 行为，但 WP 页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 检测策略没有 WPF 系统等价物。
 4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线；无法包装的 item 容器/content presenter 会被跳过。

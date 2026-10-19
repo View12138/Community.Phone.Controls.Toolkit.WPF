@@ -56,6 +56,65 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void TiltEffect_DoesNotTiltThePageThatHostsTheElement()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationPage page = new PhoneApplicationPage();
+                StackPanel panel = new StackPanel { Margin = new Thickness(12) };
+                Button button = new Button { Content = "Accent button", Width = 200, Height = 60 };
+                panel.Children.Add(button);
+                page.Content = panel;
+                TiltEffect.SetIsTiltEnabled(button, true);
+
+                TransitionFrame frame = new TransitionFrame { Width = 480, Height = 800 };
+                Window window = new Window { Width = 520, Height = 860, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Content = page;
+                    PumpFor(400);
+
+                    ProjectionHost pageHost = ProjectionService.GetProjectionHost(page);
+                    Assert.NotNull(pageHost);
+                    Assert.Null(pageHost.Projection);
+
+                    button.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+                    {
+                        RoutedEvent = Mouse.PreviewMouseDownEvent
+                    });
+                    PumpFor(80);
+
+                    PlaneProjection projection = ProjectionService.GetProjection(button) as PlaneProjection;
+                    Assert.NotNull(projection);
+                    Assert.False(projection.IsIdentity);
+
+                    ProjectionHost buttonHost = ProjectionService.GetProjectionHost(button);
+                    Assert.NotNull(buttonHost);
+                    Assert.NotSame(pageHost, buttonHost);
+                    Assert.Same(button, buttonHost.Child);
+                    Assert.Same(projection, buttonHost.Projection);
+                    Assert.Null(pageHost.Projection);
+
+                    button.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+                    {
+                        RoutedEvent = Mouse.PreviewMouseUpEvent
+                    });
+                    PumpFor(1200);
+
+                    Assert.Null(ProjectionService.GetProjection(button));
+                    Assert.Null(buttonHost.Projection);
+                    Assert.Null(pageHost.Projection);
+                }
+                finally
+                {
+                    TiltEffect.SetIsTiltEnabled(button, false);
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void TurnstileFeatherEffect_AnimatesFeatheredElements()
         {
             StaTest.Run(() =>

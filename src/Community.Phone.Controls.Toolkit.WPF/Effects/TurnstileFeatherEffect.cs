@@ -221,6 +221,10 @@ namespace Microsoft.Phone.Controls
                     continue;
                 }
 
+                // Prepare the 3D render path up front so the feathering does
+                // not change the element's rasterization on its first frame.
+                host.Prefer3D = true;
+
                 PlaneProjection projection = new PlaneProjection
                 {
                     CenterOfRotationX = FeatheringCenterOfRotationX,
@@ -278,9 +282,14 @@ namespace Microsoft.Phone.Controls
                     ProjectionService.SetProjection(state.Element, null);
                 }
 
-                if (state.Host != null && state.Element != null)
+                if (state.Host != null)
                 {
-                    ProjectionService.ReleaseProjectionHost(state.Element);
+                    state.Host.Prefer3D = false;
+
+                    if (state.Element != null)
+                    {
+                        ProjectionService.ReleaseProjectionHost(state.Element);
+                    }
                 }
             }
 

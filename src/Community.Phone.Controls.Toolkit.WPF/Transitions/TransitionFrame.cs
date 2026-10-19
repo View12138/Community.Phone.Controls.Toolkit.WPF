@@ -22,8 +22,6 @@ namespace Microsoft.Phone.Controls
         private const string FirstTemplatePartName = "FirstContentPresenter";
         private const string SecondTemplatePartName = "SecondContentPresenter";
 
-        internal static readonly CacheMode BitmapCacheMode = CreateBitmapCache();
-
         private ProjectionHost _firstContentPresenter;
         private ProjectionHost _secondContentPresenter;
         private ProjectionHost _newContentPresenter;
@@ -62,13 +60,6 @@ namespace Microsoft.Phone.Controls
         /// started. The frame falls back to an untransitioned navigation.
         /// </summary>
         public event EventHandler<TransitionFailedEventArgs> TransitionFailed;
-
-        private static CacheMode CreateBitmapCache()
-        {
-            BitmapCache cache = new BitmapCache();
-            cache.Freeze();
-            return cache;
-        }
 
         private void FlipPresenters()
         {
@@ -199,12 +190,23 @@ namespace Microsoft.Phone.Controls
 
             if (_navigationStopped)
             {
+                // Restore the old content presenter's interactivity if the
+                // navigation is cancelled. The presenter is reused, so it has
+                // to become interactive again.
                 CompleteTransition(_storedNavigationOutTransition, _oldContentPresenter, _storedOldTransition);
                 _navigationStopped = false;
             }
             else
             {
-                CompleteTransition(_storedNavigationOutTransition, _oldContentPresenter, _storedOldTransition);
+                // The old presenter is discarded here, so the original does
+                // not restore its interactivity. Only return it to the 2D
+                // render path so it is crisp again when it is reused.
+                CompleteTransition(_storedNavigationOutTransition, null, _storedOldTransition);
+
+                if (_oldContentPresenter != null)
+                {
+                    _oldContentPresenter.Prefer3D = false;
+                }
             }
 
             if (_storedOldTransition != null)
@@ -400,15 +402,16 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter, bool applyBitmapCache = true)
+        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter)
         {
             if (presenter != null)
             {
-                if (applyBitmapCache)
-                {
-                    presenter.CacheMode = BitmapCacheMode;
-                }
-
+                // The host already rasterizes the content for the 3D pipeline,
+                // so an extra bitmap cache would only soften it. Prefer3D
+                // switches the render path now instead of on the first
+                // animated frame, which kept the first frame of every
+                // transition from matching the static page.
+                presenter.Prefer3D = true;
                 presenter.IsHitTestVisible = false;
             }
         }
@@ -417,6 +420,7 @@ namespace Microsoft.Phone.Controls
         {
             if (presenter != null)
             {
+                presenter.Prefer3D = false;
                 presenter.CacheMode = null;
 
                 if (presenter.Opacity != 1)

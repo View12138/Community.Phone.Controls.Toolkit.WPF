@@ -31,11 +31,9 @@ namespace Microsoft.Phone.Controls
         private static readonly TimeSpan TiltReturnAnimationDelay = TimeSpan.FromMilliseconds(200);
         private static readonly TimeSpan TiltReturnAnimationDuration = TimeSpan.FromMilliseconds(100);
 
-        private static readonly Dictionary<FrameworkElement, CacheMode> OriginalCacheModes =
-            new Dictionary<FrameworkElement, CacheMode>();
-
         private static FrameworkElement _currentTiltElement;
         private static ProjectionHost _currentHost;
+        private static GeneralTransform _containerToHost;
         private static PlaneProjection _currentProjection;
         private static bool _wrappedByTilt;
         private static Point _currentTiltElementCenter;
@@ -158,6 +156,13 @@ namespace Microsoft.Phone.Controls
                 element.PreviewMouseMove += OnMouseMove;
                 element.PreviewMouseUp += OnMouseLeftButtonUp;
                 element.LostMouseCapture += OnLostMouseCapture;
+                element.Loaded -= OnTiltElementLoaded;
+                element.Loaded += OnTiltElementLoaded;
+
+                if (element.IsLoaded)
+                {
+                    EnsureTiltHost(element);
+                }
             }
             else
             {
@@ -168,7 +173,43 @@ namespace Microsoft.Phone.Controls
                 element.PreviewMouseMove -= OnMouseMove;
                 element.PreviewMouseUp -= OnMouseLeftButtonUp;
                 element.LostMouseCapture -= OnLostMouseCapture;
+                element.Loaded -= OnTiltElementLoaded;
+                ProjectionService.ReleaseProjectionHost(element);
             }
+        }
+
+        private static void OnTiltElementLoaded(object sender, RoutedEventArgs e)
+        {
+            EnsureTiltHost(sender as FrameworkElement);
+        }
+
+        /// <summary>
+        /// Wraps an element that is itself tiltable in a projection host as
+        /// soon as it is loaded. Doing it up front keeps the visual tree
+        /// untouched while a pointer is pressed, which would otherwise
+        /// interrupt the pressed control's input state.
+        /// </summary>
+        private static void EnsureTiltHost(FrameworkElement element)
+        {
+            if (element == null || element is ProjectionHost || IsSuppressed(element) || !IsTiltable(element))
+            {
+                return;
+            }
+
+            ProjectionService.EnsureProjectionHost(element);
+        }
+
+        private static bool IsTiltable(FrameworkElement element)
+        {
+            foreach (Type type in TiltableItems)
+            {
+                if (type.IsAssignableFrom(element.GetType()))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void OnManipulationStarted(object sender, ManipulationStartedEventArgs e)
@@ -274,8 +315,14 @@ namespace Microsoft.Phone.Controls
             bool wrapped = false;
             if (host == null)
             {
-                host = ProjectionService.EnsureProjectionHost(tiltable);
-                wrapped = host != null;
+                host = ProjectionService.GetProjectionHost(tiltable);
+                if (host == null || !ReferenceEquals(host.Child, tiltable))
+                {
+                    // Only a host that directly contains the element can tilt
+                    // it; an ancestor host would tilt the whole page.
+                    host = ProjectionService.EnsureProjectionHost(tiltable);
+                    wrapped = host != null;
+                }
             }
 
             if (host == null || host.Projection != null)
@@ -319,18 +366,30 @@ namespace Microsoft.Phone.Controls
             _wrappedByTilt = wrapped;
             _currentTiltElement = tiltable;
             _currentProjection = new PlaneProjection();
-            OriginalCacheModes[host] = host.CacheMode;
-            host.CacheMode = new BitmapCache();
-            ProjectionService.SetProjection(tiltable, _currentProjection);
 
             try
             {
-                Point elementPoint = container.TransformToVisual(host).Transform(point);
+                // The transform has to be captured while the element is still
+                // rendered in 2D: a 3D hosted element has no 2D transform to
+                // its host, and the pointer position is needed for every
+                // update of the tilt.
+                _containerToHost = container.TransformToVisual(host);
+                Point elementPoint = _containerToHost.Transform(point);
                 _currentTiltElementCenter = new Point(host.ActualWidth / 2, host.ActualHeight / 2);
+
+                // Switch the render path before the first tilted frame so the
+                // animation does not change appearance one frame in.
+                host.Prefer3D = true;
+                ProjectionService.SetProjection(tiltable, _currentProjection);
+
                 PrepareTiltReturnStoryboard(host);
                 ApplyTiltEffect(elementPoint, _currentTiltElementCenter);
             }
             catch (ArgumentException)
+            {
+                StopTiltReturnStoryboardAndCleanup();
+            }
+            catch (InvalidOperationException)
             {
                 StopTiltReturnStoryboardAndCleanup();
             }
@@ -393,7 +452,11 @@ namespace Microsoft.Phone.Controls
 
             try
             {
-                Point elementPoint = container.TransformToVisual(_currentHost).Transform(point);
+                // The element is rendered in 3D while the tilt runs, so the
+                // mapping captured when the tilt started is used instead of
+                // recomputing it from the (now 3D hosted) element.
+                GeneralTransform transform = _containerToHost ?? container.TransformToVisual(_currentHost);
+                Point elementPoint = transform.Transform(point);
                 if (!new Rect(0, 0, _currentHost.ActualWidth, _currentHost.ActualHeight).Contains(elementPoint))
                 {
                     PauseTiltEffect();
@@ -404,6 +467,9 @@ namespace Microsoft.Phone.Controls
                 }
             }
             catch (ArgumentException)
+            {
+            }
+            catch (InvalidOperationException)
             {
             }
         }
@@ -511,18 +577,8 @@ namespace Microsoft.Phone.Controls
 
             if (_currentHost != null)
             {
-                CacheMode originalCacheMode;
-                if (OriginalCacheModes.TryGetValue(_currentHost, out originalCacheMode))
-                {
-                    _currentHost.CacheMode = originalCacheMode;
-                    OriginalCacheModes.Remove(_currentHost);
-                }
-                else
-                {
-                    _currentHost.CacheMode = null;
-                }
-
                 _currentHost.Projection = null;
+                _currentHost.Prefer3D = false;
             }
 
             if (_currentTiltElement != null)
@@ -536,6 +592,7 @@ namespace Microsoft.Phone.Controls
             }
 
             _currentHost = null;
+            _containerToHost = null;
             _currentTiltElement = null;
             _currentProjection = null;
             _wrappedByTilt = false;

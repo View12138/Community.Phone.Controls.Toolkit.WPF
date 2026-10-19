@@ -152,10 +152,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 
 ## 验证状态
 
-- Release 构建：0 warnings，0 errors。
-- 自动化测试：65 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、Turnstile 进入/退出 storyboard、feather 转场、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
+- Release 构建：0 warnings，0 errors（2026-10-19 重新验证）。
+- 自动化测试：68 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
 - 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
 - 示例：启动成功；UI 自动化实际打开详情页、返回首页，修改了 Rating 和 ToggleSwitch，打开了 ListPicker 和 ContextMenu，在 PhoneTextBox 中输入文本，未产生启动错误。
+- 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。
 
 ## 运行示例
 
@@ -169,6 +170,8 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 
 英文文档位于 `docs/en/`，中文文档位于 `docs/zh-CN/`。
 
+- [交接文档 —— 新会话从这里开始](docs/zh-CN/handoff.md)（最新已验证状态、未提交修改、下一步）
+- [移植状态](docs/zh-CN/porting-status.md)（按模块：已验证 / 已实现未验证 / 未实现）
 - [原始功能审计](docs/zh-CN/porting-inventory.md)
 - [架构设计](docs/zh-CN/architecture.md)
 - [API 兼容矩阵](docs/zh-CN/api-compatibility.md)

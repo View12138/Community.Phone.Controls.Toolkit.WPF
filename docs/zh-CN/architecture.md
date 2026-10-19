@@ -74,7 +74,9 @@ texture coords:    (0,0), (1,0), (1,1), (0,1)
 triangles:         0,2,1 and 0,3,2
 ```
 
-`PerspectiveCamera` 位于 `(0, 0, distance)`，`distance = viewportHeight / (2 * tan(fov/2))`，默认 `fov = 57.6°`。这样 identity 投影在中心平面上近似 1:1，且透视随 Host 尺寸成比例。
+`PerspectiveCamera` 位于 `(0, 0, depth)`，`depth = PerspectiveDepth`，默认 `999` DIP。视场角由视口**宽度**推导：`fov = 2 * atan(viewportWidth / (2 * depth))`。WPF 的 `PerspectiveCamera.FieldOfView` 是水平视场角，垂直视场角由视口宽高比推导，因此按宽度推导可以保证 identity 投影与布局槽位严格 1:1。若按高度推导，每个 3D 转场中的元素都会按宽高比缩小（480x800 的页面被渲染成 288x480），转场结束时再跳回全尺寸。
+
+999 DIP 的深度是 XAML `PlaneProjection` 的固定透视（WinUI 的 `PlaneProjection` 以元素中心为基准使用 `M34 = -1/999`），因此深度 `z` 处一点的实际缩放恒为 `999 / (999 - z)`，与元素尺寸无关。这比“随尺寸成比例的相机近似”更接近 WP 的真实透视。
 
 `PlaneProjection.ToMatrix3D` 使用行向量约定：
 
@@ -83,9 +85,11 @@ p' = (((p - center) + localOffset) * R) + center + globalOffset
 R = Rz * Ry * Rx    （角度制）
 center = ((CenterOfRotationX - 0.5) * width, (0.5 - CenterOfRotationY) * height, CenterOfRotationZ)
 Y 偏移取反，因为 WPF 3D 使用 +Y 向上，而屏幕坐标使用 +Y 向下。
+RotationY 取反，因为 XAML 中正的 RotationY 会让右边缘靠近观察者，
+而在 WPF 的 +Y 轴上正向旋转会让右边缘远离观察者。
 ```
 
-矩阵赋给 `Viewport2DVisual3D.Transform`。裁剪、背面和命中测试由 WPF 3D 管线处理。Host 在尺寸或投影变化时重新计算几何、相机距离和变换。
+矩阵赋给 `Viewport2DVisual3D.Transform`。裁剪、背面和命中测试由 WPF 3D 管线处理。Host 在尺寸或投影变化时重新计算几何、相机视场角和变换。
 
 ### 4.4 XAML 兼容边界
 
@@ -111,7 +115,11 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 
 ### 4.5 效果集成
 
-`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素临时包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。`TiltEffect` 和 `TurnstileFeatherEffect` 使用该能力。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。效果结束后释放包装。
+`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在效果期间逐个包装被羽化元素。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
+
+### 4.6 渲染路径切换
+
+投影为 identity 时 Host 走 2D 路径，否则走 `Viewport3D` 路径。两条路径的**几何完全一致**（identity 投影与 2D 布局的偏差在 0.01 px 以内），但文本栅格化方式不同（ClearType 与 3D 纹理的灰度抗锯齿）。`ProjectionHost.Prefer3D` 让 Host 在投影仍是 identity 时就保持 3D 路径，因此 `TransitionFrame`、`TiltEffect`、`TurnstileFeatherEffect` 在**准备动画时**就切换渲染路径，而不是等到动画首帧。转场的 presenter 不再使用 `BitmapCache`：3D 管线本身就会栅格化内容，额外的 1x 缓存只会让它变糊。
 
 ## 5. 导航子系统
 

@@ -1,5 +1,8 @@
 # Porting inventory
 This document is the Phase 0 audit of the archived Windows Phone Toolkit at `D:\repos\repo-other\WindowsPhoneToolkit`. It was produced by reading the solution, project files, shared source, WP7/WP8 specific source, XAML themes, localization resources, and samples. It records the actual public types found in source; it is not based on the README alone.
+
+> **Status note (added later).** This is historical evidence about the original toolkit and the status assumed at audit time. It is **not** the current state of this port. Current per-module status (verified / implemented-unverified / not implemented) lives in [porting-status.md](../porting-status.md); confirmed design decisions in [architecture.md](architecture.md); the latest session handoff in [handoff.md](../handoff.md).
+
 ## Repository audit summary
 | Item | Result |
 |---|---|
@@ -196,6 +199,8 @@ These types do not exist with the same namespace in the original toolkit; they a
 | Localization | `Microsoft.Phone.Controls.Toolkit.Localization` | ControlResources and 51 culture resources | Implemented (resources copied and embedded) |
 | Common helpers | `Common\*` (25 files) | CultureInfoExtensions, LengthConverter, RoutedPropertyChangingEventArgs, TimeTypeConverter, WeakReferenceHelper, extensions, visual state helpers | Partially ported (CultureInfoExtensions, RoutedPropertyChangingEventArgs, WeakReferenceHelper); other helpers are internal or not ported |
 
+Current per-module verification level — verified, implemented-but-unverified, or not implemented — is tracked in [porting-status.md](../porting-status.md). The table above describes the port's scope, not its evidence level.
+
 ## Dependency graph (original)
 ```text
 PhoneToolkit.sln
@@ -217,7 +222,7 @@ Internal dependency clusters: `Transitions` depends on `Effects` (feathering), `
 - `UIElement.Projection` and `PlaneProjection` do not exist in WPF. The port supplies `Microsoft.Phone.Controls.Projection`, `PlaneProjection`, `Matrix3DProjection`, `ProjectionService`, and `ProjectionHost`. WPF XAML cannot add a property to `System.Windows.Controls.Grid`; wrappers are required for in-place projection.
 - WP `PhoneApplicationFrame`, `PhoneApplicationPage`, `PhoneApplicationService`, `SystemTray`, and `ApplicationBar` are platform types, not toolkit types. The port supplies compatible WPF types in `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell`.
 - WP `Manipulation*`/`Gesture*` APIs and `Application.Current.RootVisual` differ from WPF. Gesture-based components are not ported.
-- WP `BitmapCache`, `VisualStateManager`, and Storyboards exist in WPF but their property paths differ; transition storyboards were converted to code so they can target the compatible `PlaneProjection` directly.
+- WP `BitmapCache`, `VisualStateManager`, and Storyboards exist in WPF but their property paths differ; transition storyboards were converted to code so they can target the compatible `PlaneProjection` directly. The port deliberately does **not** apply a `BitmapCache` to transition/effect hosts: the 3D pipeline already rasterizes the content and the extra 1× cache measurably softened it (see [architecture.md](architecture.md) §4.6).
 
 ## Original theme and resources
 - The WP8 `Generic.xaml` defines implicit styles for 25 control types and uses 40+ WP platform resource keys. It also defines storyboards and templates for `Rating`, `ListPicker`, `DatePicker`, `TimePicker`, `AutoCompleteBox`, `ContextMenu`, `MenuItem`, `Separator`, `ToggleSwitch`, `PhoneTextBox`, `ExpanderView`, `HubTile`, `CustomMessageBox`, `TransitionFrame`, `LongListMultiSelector`, `Pushpin`, and `UserLocationMarker`.
@@ -1428,7 +1433,7 @@ Verified against the current working tree on 2026-10-19:
 | Evidence | Result |
 |---|---|
 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | 0 warnings, 0 errors |
-| `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release --no-build` | 57 passed, 0 failed |
+| `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release --no-build` | 68 passed, 0 failed (re-verified after the projection/transition fidelity fixes; per-module evidence in [porting-status.md](../porting-status.md)) |
 | `build\verify-package.ps1` | Package packed; fresh isolated consumer restored/built with 0 warnings and ran successfully |
 | Sample process startup | Window remained alive after 5 s; no `%TEMP%\community-phone-toolkit-sample-error.txt` |
 | Sample UI automation | Opened the detail page, verified the detail page loaded, returned to the home page, no startup error |

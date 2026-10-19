@@ -41,12 +41,12 @@
 ## 4. 投影与 3D
 
 1. **XAML 面**：WPF `UIElement` 没有 `Projection` 属性，也不能给密封框架类型添加属性元素。移植版提供 `ProjectionHost` 和 `ProjectionService`；原始 `<Grid.Projection>` 必须重写。
-2. **透视近似**：3D 相机使用 57.6° 视场近似 Silverlight 透视。Silverlight 精确投影矩阵没有公开规范，因此不保证与 WP 像素级一致。旋转、旋转中心和偏移已实现并测试；极端透视值可能有差异。
+2. **投影透视**：相机复现了 XAML 固定的 999 DIP 透视深度以及旋转/偏移的正负，因此投影缩放与透视收缩与 WP 一致。剩余差异是 `TurnstileFeatherEffect`：原版会把每个被羽化元素的透视原点平移到页面的垂直中心（`GlobalOffsetY` 加一个补偿用的 RenderTransform）。`ProjectionHost` 的尺寸等于被包裹元素的尺寸，并且会裁剪 3D 内容，因此本移植版让每个元素围绕自身的垂直中心旋转。旋转角度、错峰延迟和透明度时序与原版完全一致。
 3. **`Matrix3DProjection`**：矩阵按 0..1 归一化坐标解释，再转换为像素空间。复杂矩阵应做视觉验证；并非所有 Silverlight 矩阵约定都有测试。
-4. **包装限制**：`ProjectionService` 可包装 Panel 直接子元素和部分 content control。它有意不包装 `ListBoxItem` 或 `ContentPresenter`，因为替换这些元素会破坏 item 生成和模板化。需要逐 item 投影的效果会跳过这类目标。
+4. **包装限制**：`ProjectionService` 可包装 Panel 直接子元素和部分 content control。它有意不包装 `ListBoxItem` 或 `ContentPresenter`，因为替换这些元素会破坏 item 生成和模板化。需要逐 item 投影的效果会跳过这类目标。元素级效果始终使用**直接包含该元素**的宿主：复用祖先宿主会把整页一起投影，因为页面本身是由转场 Frame 的 presenter 承载的。
 5. **布局**：Host 同时 measure/arrange 2D 子元素和隐藏的 3D viewport。期望尺寸取子元素的期望尺寸；投影固定尺寸内容时建议给 Host 设置显式 `Width`/`Height`。
 6. **命中测试**：已验证 Host 和内容。嵌套 Host 和变换后的内容可能改变命中坐标，应用交互需自行验证。
-7. **文本清晰度**：`Viewport2DVisual3D` 使用 WPF 3D 纹理渲染，文本在大角度旋转时可能不如 2D WPF 文本清晰，也没有自动位图缓存质量调优。
+7. **文本清晰度**：`Viewport2DVisual3D` 把内容作为纹理渲染，因此元素处于投影状态时 ClearType 子像素渲染会变成灰度抗锯齿。几何保持 1:1（identity 投影与 2D 布局的偏差在 0.01 px 以内）；转场在准备阶段设置 `ProjectionHost.Prefer3D`，让渲染路径切换发生在首帧之前而不是首帧上。不再使用位图缓存：WPF 3D 管线本身就会栅格化内容，额外的 `BitmapCache` 只会让它变糊。
 8. **软件渲染**：没有硬件加速时 3D 会回退到软件渲染，性能和视觉质量可能下降；这是 WPF/平台限制。
 
 ## 5. 转场与效果
@@ -55,7 +55,7 @@
 2. **模板部件**：`TransitionFrame` 需要两个名为 `FirstContentPresenter`、`SecondContentPresenter` 的 `ProjectionHost` 部件。使用普通 `ContentPresenter` 的自定义 Frame 模板不会运行转场。
 3. **转场时序**：时长、关键时间、角度和缓动从原始 storyboard 复制，但 WPF 与 Silverlight 缓动实现可能有细微差异。视觉接近，不是逐位一致。
 4. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。
-5. **TiltEffect**：按需包装普通控件，支持鼠标输入，跳过列表 item 容器。倾斜作用于整个控件，不是单个 item 容器；最大倾斜/回弹行为是近似值。鼠标倾斜在通过已启用容器路由的 mouse-up 时结束；触摸 manipulation 是更完整的输入路径。
+5. **TiltEffect**：控件在加载时被包装进 `ProjectionHost`，因此只倾斜该控件本身，且不会在指针按下期间修改视觉树；倾斜关闭时会移除包装。支持鼠标输入（通过隧道的 preview 事件），跳过列表 item 容器。倾斜作用于整个控件，不是单个 item 容器；最大倾斜/回弹行为是近似值。鼠标倾斜在通过已启用容器路由的 mouse-up 时结束；触摸 manipulation 是更完整的输入路径。
 6. **SlideInEffect**：未实现（需要 Pivot）。
 7. **FeatheredTransition**：已实现，但原始 `TurnstileFeatherTransition` 面向 Pivot 内页面内容；移植版将其应用于转场 Frame 的页面宿主。
 
