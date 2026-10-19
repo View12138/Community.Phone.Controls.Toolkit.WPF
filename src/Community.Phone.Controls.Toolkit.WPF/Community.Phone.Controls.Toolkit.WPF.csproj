@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <OutputType>Library</OutputType>
+    <AssemblyName>Community.Phone.Controls.Toolkit.WPF</AssemblyName>
+    <RootNamespace>Microsoft.Phone.Controls</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS0618;CS0612;CA1416</NoWarn>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <PackageId>Community.Phone.Controls.Toolkit.WPF</PackageId>
+    <Title>Community Windows Phone Toolkit for WPF</Title>
+    <Description>WPF compatibility port of the archived Windows Phone Toolkit. Provides Metro-styled controls, PlaneProjection-compatible 3D projection, navigation transitions, and phone application infrastructure for modern WPF.</Description>
+    <PackageTags>WPF;WindowsPhone;Toolkit;Metro;Controls;Transitions;Projection</PackageTags>
+    <PackageLicenseExpression>MS-PL</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\packages</PackageOutputPath>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\README_zh-CN.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES_zh-CN.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\docs\en\*.md" Pack="true" PackagePath="docs\en\" />
+    <None Include="..\..\docs\zh-CN\*.md" Pack="true" PackagePath="docs\zh-CN\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+
+</Project>

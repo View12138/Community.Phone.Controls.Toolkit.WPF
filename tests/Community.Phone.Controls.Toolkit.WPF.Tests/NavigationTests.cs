@@ -1,0 +1,479 @@
+using System;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Navigation;
+using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
+using Xunit;
+
+namespace Community.Phone.Controls.Toolkit.WPF.Tests
+{
+    public class NavigationTests
+    {
+        [Fact]
+        public void Frame_NavigatesAndRaisesPageLifecycle()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                int firstTo = 0;
+                int firstFrom = 0;
+                int secondTo = 0;
+
+                TestPage first = new TestPage();
+                first.NavigatedTo += delegate { firstTo++; };
+                first.NavigatedFrom += delegate { firstFrom++; };
+                TestPage second = new TestPage();
+                second.NavigatedTo += delegate { secondTo++; };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    frame.Navigate(first);
+                    PumpFor(300);
+                    Assert.Same(first, frame.Content);
+                    Assert.Equal(1, firstTo);
+
+                    frame.Navigate(second);
+                    PumpFor(300);
+                    Assert.Same(second, frame.Content);
+                    Assert.Equal(1, firstFrom);
+                    Assert.Equal(1, secondTo);
+
+                    Assert.True(frame.CanGoBack);
+                    frame.GoBack();
+                    PumpFor(300);
+                    Assert.Same(first, frame.Content);
+                    Assert.Equal(2, firstTo);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_NavigationContextCarriesParameters()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage page = new TestPage();
+                NavigationContext context = null;
+                page.NavigatedTo += delegate { context = page.NavigationContext; };
+
+                Dictionary<string, string> parameters = new Dictionary<string, string>
+                {
+                    { "id", "42" },
+                    { "mode", "edit" }
+                };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(frame.Navigate(page, parameters));
+                    PumpFor(250);
+
+                    Assert.NotNull(context);
+                    Assert.Equal("42", context.QueryString["id"]);
+                    Assert.Equal("edit", context.QueryString["mode"]);
+                    Assert.Same(parameters, context.ExtraData);
+                    Assert.Null(context.Uri);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_StateSurvivesBackNavigation()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    frame.Navigate(first);
+                    PumpFor(200);
+                    first.State["value"] = 7;
+
+                    frame.Navigate(second);
+                    PumpFor(200);
+                    Assert.Same(second, frame.Content);
+
+                    Assert.True(frame.CanGoBack);
+                    frame.GoBack();
+                    PumpFor(200);
+
+                    Assert.Same(first, frame.Content);
+                    Assert.Equal(7, first.State["value"]);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_BackKeyPressCanCancelBackNavigation()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.Navigate(first);
+                    PumpFor(200);
+                    frame.Navigate(second);
+                    PumpFor(200);
+
+                    second.BackKeyPress += delegate(object sender, System.ComponentModel.CancelEventArgs e)
+                    {
+                        e.Cancel = true;
+                    };
+
+                    frame.GoBack();
+                    PumpFor(200);
+                    Assert.Same(second, frame.Content);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_RapidNavigationKeepsTheLatestPage()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    frame.Navigate(first);
+                    frame.Navigate(second);
+                    PumpFor(400);
+
+                    Assert.Same(second, frame.Content);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+
+                NavigationOutTransition outTransition = new NavigationOutTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardOut }
+                };
+                NavigationInTransition inTransition = new NavigationInTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardIn }
+                };
+                TransitionService.SetNavigationOutTransition(first, outTransition);
+                TransitionService.SetNavigationInTransition(second, inTransition);
+
+                int outBegun = 0;
+                int outEnded = 0;
+                int inBegun = 0;
+                int inEnded = 0;
+                outTransition.BeginTransition += delegate { outBegun++; };
+                outTransition.EndTransition += delegate { outEnded++; };
+                inTransition.BeginTransition += delegate { inBegun++; };
+                inTransition.EndTransition += delegate { inEnded++; };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+
+                    frame.Navigate(first);
+                    PumpFor(300);
+                    frame.Navigate(second);
+                    PumpFor(100);
+
+                    Assert.Equal(1, outBegun);
+                    Assert.Same(second, frame.Content);
+
+                    PumpFor(1000);
+                    Assert.Equal(1, outEnded);
+                    Assert.Equal(1, inBegun);
+                    Assert.Equal(1, inEnded);
+                    Assert.True(second.IsHitTestVisible);
+                    Assert.Null(ProjectionService.GetProjection(second));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_RapidNavigationDoesNotLeaveTransitionsActive()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+                NavigationInTransition inTransition = new NavigationInTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardIn }
+                };
+                TransitionService.SetNavigationInTransition(first, inTransition);
+                TransitionService.SetNavigationInTransition(second, inTransition);
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+
+                    frame.Navigate(first);
+                    PumpFor(50);
+                    frame.Navigate(second);
+                    PumpFor(1200);
+
+                    Assert.Same(second, frame.Content);
+                    Assert.True(second.IsHitTestVisible);
+                    Assert.Null(ProjectionService.GetProjection(second));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_FallsBackWhenTransitionFactoryThrows()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage page = new TestPage();
+                TransitionService.SetNavigationInTransition(page, new NavigationInTransition
+                {
+                    Forward = new ThrowingTransitionElement()
+                });
+
+                int failures = 0;
+                TransitionFailedEventArgs failure = null;
+                frame.TransitionFailed += delegate(object sender, TransitionFailedEventArgs e)
+                {
+                    failures++;
+                    failure = e;
+                };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+                    Assert.NotNull(frame.Template.FindName("FirstContentPresenter", frame));
+                    Assert.NotNull(frame.Template.FindName("SecondContentPresenter", frame));
+                    Assert.NotNull(TransitionService.GetNavigationInTransition(page));
+                    frame.Navigate(page);
+                    PumpFor(250);
+
+                    Assert.Same(page, frame.Content);
+                    Assert.Equal(1, failures);
+                    Assert.False(failure.IsExit);
+                    Assert.IsType<InvalidOperationException>(failure.Exception);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_DetectsOrientationFromSize()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame { Width = 480, Height = 800 };
+                frame.Measure(new Size(480, 800));
+                frame.Arrange(new Rect(0, 0, 480, 800));
+                WpfTestHelper.PumpDispatcher();
+                Assert.Equal(PageOrientation.PortraitUp, frame.Orientation);
+
+                frame.Width = 800;
+                frame.Height = 480;
+                frame.Measure(new Size(800, 480));
+                frame.Arrange(new Rect(0, 0, 800, 480));
+                WpfTestHelper.PumpDispatcher();
+                Assert.Equal(PageOrientation.LandscapeLeft, frame.Orientation);
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_PlaysTurnstileTransition()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage page = new TestPage();
+                TransitionService.SetNavigationInTransition(page, new NavigationInTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardIn }
+                });
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+                    frame.Navigate(page);
+                    PumpFor(100);
+
+                    Assert.Same(page, frame.Content);
+                    PlaneProjection projection = ProjectionService.GetProjection(page) as PlaneProjection;
+                    Assert.NotNull(projection);
+                    Assert.InRange(projection.RotationY, -80.0, 0.0);
+
+                    PumpFor(800);
+                    Assert.Null(ProjectionService.GetProjection(page));
+                    Assert.True(page.IsHitTestVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TurnstileTransition_ReportsStateAndRestoresProjection()
+        {
+            StaTest.Run(() =>
+            {
+                Border element = new Border { Width = 200, Height = 100, Background = Brushes.Red };
+                StackPanel panel = new StackPanel();
+                panel.Children.Add(element);
+                Window window = new Window { Width = 260, Height = 180, Content = panel };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ITransition transition = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardIn }.GetTransition(element);
+                    Assert.NotNull(transition);
+                    Assert.Equal(ClockState.Stopped, transition.GetCurrentState());
+
+                    transition.Begin();
+                    WpfTestHelper.PumpDispatcher();
+                    Assert.NotEqual(ClockState.Stopped, transition.GetCurrentState());
+                    Assert.NotNull(ProjectionService.GetProjection(element));
+
+                    PumpFor(900);
+                    Assert.Equal(ClockState.Stopped, transition.GetCurrentState());
+                    Assert.Null(ProjectionService.GetProjection(element));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void SystemTrayAndApplicationServiceExposeState()
+        {
+            StaTest.Run(() =>
+            {
+                TestPage page = new TestPage();
+                SystemTray.SetIsVisible(page, true);
+                Assert.True(SystemTray.GetIsVisible(page));
+
+                Microsoft.Phone.Shell.PhoneApplicationService service = Microsoft.Phone.Shell.PhoneApplicationService.Current;
+                Assert.NotNull(service);
+                Assert.NotNull(service.State);
+                service.State["key"] = 42;
+                Assert.Equal(42, service.State["key"]);
+            });
+        }
+
+        private static void PumpFor(int milliseconds)
+        {
+            DateTime end = DateTime.UtcNow.AddMilliseconds(milliseconds);
+            while (DateTime.UtcNow < end)
+            {
+                WpfTestHelper.PumpDispatcher();
+                System.Threading.Thread.Sleep(15);
+            }
+        }
+
+        private sealed class ThrowingTransitionElement : TransitionElement
+        {
+            public override ITransition GetTransition(UIElement element)
+            {
+                throw new InvalidOperationException("Intentional transition failure for tests.");
+            }
+        }
+
+        private sealed class TestPage : PhoneApplicationPage
+        {
+            public TestPage()
+            {
+                Content = new Grid();
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>PhoneToolkitSample</RootNamespace>
+    <AssemblyName>Community.Phone.Controls.Toolkit.WPF.Sample</AssemblyName>
+    <StartupObject>PhoneToolkitSample.App</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj" />
+  </ItemGroup>
+
+</Project>

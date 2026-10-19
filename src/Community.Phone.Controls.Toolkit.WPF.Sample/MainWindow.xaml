@@ -1,0 +1,13 @@
+<Window
+    x:Class="PhoneToolkitSample.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    Title="Community Phone Toolkit WPF Sample"
+    Width="480"
+    Height="800"
+    Background="Black">
+    <Grid>
+        <phone:TransitionFrame x:Name="Frame" />
+    </Grid>
+</Window>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Community.Phone.Controls.Toolkit.WPF.Sample/Community.Phone.Controls.Toolkit.WPF.Sample.csproj" />
+    <Project Path="src/Community.Phone.Controls.Toolkit.WPF/Community.Phone.Controls.Toolkit.WPF.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Community.Phone.Controls.Toolkit.WPF.Tests/Community.Phone.Controls.Toolkit.WPF.Tests.csproj" />
+  </Folder>
+</Solution>

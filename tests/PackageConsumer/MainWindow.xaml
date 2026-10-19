@@ -1,0 +1,28 @@
+<Window x:Class="PackageConsumer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+        Title="Package consumer smoke test"
+        Width="520"
+        Height="700"
+        Background="{StaticResource PhoneBackgroundBrush}"
+        FontFamily="{StaticResource PhoneFontFamilyNormal}">
+    <StackPanel Margin="24">
+        <TextBlock Text="Installed from NuGet" Style="{StaticResource PhoneTextTitle1Style}" />
+        <phone:ToggleSwitch Header="Package installed" IsChecked="True" Margin="0,8,0,8" />
+        <phone:Rating Value="3" AllowHalfItemIncrement="True" Margin="0,8,0,8" />
+        <phone:PhoneTextBox Hint="Type here" LengthIndicatorVisible="True" MaxLength="40" Margin="0,8,0,8" />
+        <phone:ProjectionHost Width="440" Height="180">
+            <Border Background="#FF2D2D30">
+                <TextBlock Text="Real 3D from the package"
+                           Foreground="White"
+                           FontSize="24"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+            </Border>
+            <phone:ProjectionHost.Projection>
+                <phone:PlaneProjection RotationY="-28" RotationX="8" />
+            </phone:ProjectionHost.Projection>
+        </phone:ProjectionHost>
+    </StackPanel>
+</Window>
