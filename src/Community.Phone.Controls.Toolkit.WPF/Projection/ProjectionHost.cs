@@ -311,6 +311,20 @@ namespace Microsoft.Phone.Controls
 
         private void OnProjectionPropertyChanged(object sender, EventArgs e)
         {
+            // A storyboard can animate a projection from identity to a
+            // non-identity transform (or back) without replacing the
+            // Projection object. The host has to switch render paths in that
+            // case as well, otherwise the animation is calculated but never
+            // displayed.
+            if (ShouldUse3D())
+            {
+                Ensure3D();
+            }
+            else
+            {
+                Ensure2D();
+            }
+
             UpdateScene(RenderSize);
         }
 

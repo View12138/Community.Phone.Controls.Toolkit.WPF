@@ -90,6 +90,27 @@ namespace Microsoft.Phone.Controls.Primitives
         }
 
         /// <inheritdoc />
+        protected override void OnChecked(RoutedEventArgs e)
+        {
+            base.OnChecked(e);
+            ChangeVisualState(true);
+        }
+
+        /// <inheritdoc />
+        protected override void OnUnchecked(RoutedEventArgs e)
+        {
+            base.OnUnchecked(e);
+            ChangeVisualState(true);
+        }
+
+        /// <inheritdoc />
+        protected override void OnIndeterminate(RoutedEventArgs e)
+        {
+            base.OnIndeterminate(e);
+            ChangeVisualState(true);
+        }
+
+        /// <inheritdoc />
         public override void OnApplyTemplate()
         {
             if (_track != null)

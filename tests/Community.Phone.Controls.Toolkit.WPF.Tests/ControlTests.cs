@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -29,6 +30,14 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.NotNull(WpfTestHelper.Theme[typeof(Rating)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(PhoneTextBox)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(TransitionFrame)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(Button)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(TextBox)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ListBox)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ListBoxItem)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ComboBox)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ComboBoxItem)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ScrollBar)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(ProgressBar)]);
             });
         }
 
@@ -48,6 +57,81 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                 toggle.IsChecked = true;
                 Assert.Equal(true, toggle.IsChecked);
+            });
+        }
+
+        [Fact]
+        public void ToggleSwitch_AnimatesThumbTranslation()
+        {
+            StaTest.Run(() =>
+            {
+                ToggleSwitch toggle = new ToggleSwitch { Width = 220, Height = 120 };
+                Window window = new Window { Width = 300, Height = 200, Content = toggle };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Microsoft.Phone.Controls.Primitives.ToggleSwitchButton switchButton =
+                        (Microsoft.Phone.Controls.Primitives.ToggleSwitchButton)toggle.Template.FindName("Switch", toggle);
+                    Assert.NotNull(switchButton);
+                    TranslateTransform thumb = (TranslateTransform)switchButton.Template.FindName("ThumbTranslation", switchButton);
+                    Assert.NotNull(thumb);
+                    Assert.Equal(0, thumb.X);
+
+                    switchButton.IsChecked = true;
+                    PumpFor(70);
+                    Assert.True(thumb.X > 0 && thumb.X < 69, "The switch thumb should animate between the two ends.");
+                    PumpFor(300);
+                    Assert.Equal(69, thumb.X, 1);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Rating_MouseClickChangesValue()
+        {
+            StaTest.Run(() =>
+            {
+                Rating rating = new Rating { Width = 200, Height = 40, RatingItemCount = 5, Value = 1 };
+                Window window = new Window
+                {
+                    Width = 300,
+                    Height = 160,
+                    Left = 120,
+                    Top = 120,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    ShowInTaskbar = false,
+                    Topmost = true,
+                    Content = rating
+                };
+                try
+                {
+                    window.Show();
+                    window.Activate();
+                    PumpFor(150);
+
+                    Point point = rating.PointToScreen(new Point(150, 20));
+                    SetCursorPos((int)point.X, (int)point.Y);
+                    PumpFor(50);
+                    Point local = Mouse.GetPosition(rating);
+                    mouse_event(MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
+                    mouse_event(MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
+                    PumpFor(200);
+
+                    Assert.True(
+                        local.X > 50,
+                        string.Format("The pointer should be over the rating. local={0}, screen={1}, size={2}x{3}", local, point, rating.ActualWidth, rating.ActualHeight));
+                    Assert.Equal(4, rating.Value);
+                }
+                finally
+                {
+                    window.Close();
+                }
             });
         }
 
@@ -186,6 +270,43 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                 switchButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
                 Assert.Equal(1, clickCount);
+            });
+        }
+
+        [Fact]
+        public void PhoneTextBox_InnerEditorIsVisibleAndReceivesFocus()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneTextBox textBox = new PhoneTextBox { Hint = "Type", Width = 300, Height = 60 };
+                Window window = new Window { Width = 400, Height = 200, Content = textBox };
+                try
+                {
+                    window.Show();
+                    window.Activate();
+                    window.UpdateLayout();
+                    PumpFor(100);
+
+                    TextBox inner = (TextBox)textBox.Template.FindName("Text", textBox);
+                    Assert.NotNull(inner);
+                    Assert.True(inner.IsVisible, "The inner editor must be visible; otherwise clicks focus an editor that is not rendered.");
+                    Keyboard.Focus(textBox);
+                    WpfTestHelper.PumpDispatcher();
+                    Assert.True(
+                        inner.IsKeyboardFocusWithin,
+                        string.Format(
+                            "Focus on the PhoneTextBox should be forwarded to its editor. outer={0}, inner={1}, focused={2}",
+                            textBox.IsKeyboardFocused,
+                            inner.IsKeyboardFocused,
+                            Keyboard.FocusedElement));
+
+                    inner.Text = "typed";
+                    Assert.Equal("typed", textBox.Text);
+                }
+                finally
+                {
+                    window.Close();
+                }
             });
         }
 
@@ -472,6 +593,15 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 System.Threading.Thread.Sleep(10);
             }
         }
+
+        private const uint MouseLeftDown = 0x0002;
+        private const uint MouseLeftUp = 0x0004;
+
+        [DllImport("user32.dll")]
+        private static extern bool SetCursorPos(int x, int y);
+
+        [DllImport("user32.dll")]
+        private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
 
         [Fact]
         public void RecurringDaysPicker_SummarizesWeekdays()

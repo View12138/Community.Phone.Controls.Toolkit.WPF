@@ -42,6 +42,7 @@ namespace Microsoft.Phone.Controls
         private Geometry _clippingMask;
         private readonly List<RatingItem> _filledItemCollection = new List<RatingItem>();
         private readonly List<RatingItem> _unfilledItemCollection = new List<RatingItem>();
+        private bool _isMouseTracking;
 
         /// <summary>
         /// Occurs when <see cref="Value"/> changes.
@@ -239,6 +240,65 @@ namespace Microsoft.Phone.Controls
             SynchronizeGrids();
         }
 
+        /// <inheritdoc />
+        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseLeftButtonDown(e);
+
+            if (ReadOnly)
+            {
+                return;
+            }
+
+            _isMouseTracking = true;
+            CaptureMouse();
+            UpdateValueFromMouse(e.GetPosition(this));
+            ChangeDragHelperVisibility(ShowSelectionHelper);
+            e.Handled = true;
+        }
+
+        /// <inheritdoc />
+        protected override void OnPreviewMouseMove(MouseEventArgs e)
+        {
+            base.OnPreviewMouseMove(e);
+
+            if (_isMouseTracking && e.LeftButton == MouseButtonState.Pressed)
+            {
+                UpdateValueFromMouse(e.GetPosition(this));
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseLeftButtonUp(e);
+
+            if (_isMouseTracking)
+            {
+                UpdateValueFromMouse(e.GetPosition(this));
+                _isMouseTracking = false;
+                ReleaseMouseCapture();
+                ChangeDragHelperVisibility(false);
+                e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void OnLostMouseCapture(MouseEventArgs e)
+        {
+            base.OnLostMouseCapture(e);
+
+            _isMouseTracking = false;
+            ChangeDragHelperVisibility(false);
+        }
+
+        private void UpdateValueFromMouse(Point position)
+        {
+            PerformValueCalculation(position, this);
+            UpdateDragHelper();
+        }
+
         private void OnManipulationStarted(object sender, ManipulationStartedEventArgs e)
         {
             if (!ReadOnly)
@@ -348,9 +408,15 @@ namespace Microsoft.Phone.Controls
                 numberOfPositions *= 2;
             }
 
-            double newValue = Orientation == Orientation.Horizontal
-                ? Math.Ceiling(location.X / ActualWidth * numberOfPositions)
-                : Math.Ceiling(location.Y / ActualHeight * numberOfPositions);
+            double size = Orientation == Orientation.Horizontal ? ActualWidth : ActualHeight;
+            if (size <= 0)
+            {
+                return;
+            }
+
+            double position = Orientation == Orientation.Horizontal ? location.X : location.Y;
+            double newValue = Math.Ceiling(position / size * numberOfPositions);
+            newValue = Math.Max(0, Math.Min(numberOfPositions, newValue));
 
             if (!AllowSelectingZero && newValue <= 0)
             {

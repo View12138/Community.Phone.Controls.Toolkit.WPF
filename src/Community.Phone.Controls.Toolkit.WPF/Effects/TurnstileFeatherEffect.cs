@@ -242,20 +242,20 @@ namespace Microsoft.Phone.Controls
                 {
                     case TurnstileFeatherTransitionMode.ForwardIn:
                         element.Opacity = 0;
-                        AddProjectionAnimation(storyboard, projection, ForwardInFeatheringAngle, 0, ForwardInFeatheringDuration, ForwardInFeatheringDelay * counter, FeatheringEaseOut);
+                        AddProjectionAnimation(storyboard, element, projection, ForwardInFeatheringAngle, 0, ForwardInFeatheringDuration, ForwardInFeatheringDelay * counter, FeatheringEaseOut);
                         AddOpacityAnimation(storyboard, element, 0, state.OriginalOpacity, 0, ForwardInFeatheringDelay * counter);
                         break;
                     case TurnstileFeatherTransitionMode.ForwardOut:
-                        AddProjectionAnimation(storyboard, projection, 0, ForwardOutFeatheringAngle, ForwardOutFeatheringDuration, ForwardOutFeatheringDelay * counter, FeatheringEaseIn);
+                        AddProjectionAnimation(storyboard, element, projection, 0, ForwardOutFeatheringAngle, ForwardOutFeatheringDuration, ForwardOutFeatheringDelay * counter, FeatheringEaseIn);
                         AddOpacityAnimation(storyboard, element, state.OriginalOpacity, 0, 0, ForwardOutFeatheringDelay * counter + ForwardOutFeatheringDuration);
                         break;
                     case TurnstileFeatherTransitionMode.BackwardIn:
                         element.Opacity = 0;
-                        AddProjectionAnimation(storyboard, projection, BackwardInFeatheringAngle, 0, BackwardInFeatheringDuration, BackwardInFeatheringDelay * counter, FeatheringEaseOut);
+                        AddProjectionAnimation(storyboard, element, projection, BackwardInFeatheringAngle, 0, BackwardInFeatheringDuration, BackwardInFeatheringDelay * counter, FeatheringEaseOut);
                         AddOpacityAnimation(storyboard, element, 0, state.OriginalOpacity, 0, BackwardInFeatheringDelay * counter);
                         break;
                     case TurnstileFeatherTransitionMode.BackwardOut:
-                        AddProjectionAnimation(storyboard, projection, 0, BackwardOutFeatheringAngle, BackwardOutFeatheringDuration, BackwardOutFeatheringDelay * counter, FeatheringEaseIn);
+                        AddProjectionAnimation(storyboard, element, projection, 0, BackwardOutFeatheringAngle, BackwardOutFeatheringDuration, BackwardOutFeatheringDelay * counter, FeatheringEaseIn);
                         AddOpacityAnimation(storyboard, element, state.OriginalOpacity, 0, 0, BackwardOutFeatheringDelay * counter + BackwardOutFeatheringDuration);
                         break;
                 }
@@ -301,6 +301,7 @@ namespace Microsoft.Phone.Controls
 
         private static void AddProjectionAnimation(
             Storyboard storyboard,
+            FrameworkElement element,
             PlaneProjection projection,
             double from,
             double to,
@@ -308,6 +309,11 @@ namespace Microsoft.Phone.Controls
             double beginMilliseconds,
             IEasingFunction easing)
         {
+            if (element == null || projection == null)
+            {
+                return;
+            }
+
             DoubleAnimation animation = new DoubleAnimation
             {
                 From = from,
@@ -318,8 +324,10 @@ namespace Microsoft.Phone.Controls
                 FillBehavior = FillBehavior.HoldEnd
             };
 
-            Storyboard.SetTarget(animation, projection);
-            Storyboard.SetTargetProperty(animation, new PropertyPath(PlaneProjection.RotationYProperty));
+            Storyboard.SetTarget(animation, element);
+            Storyboard.SetTargetProperty(
+                animation,
+                new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, PlaneProjection.RotationYProperty));
             storyboard.Children.Add(animation);
         }
 

@@ -238,10 +238,16 @@ namespace Microsoft.Phone.Controls
             _oldContentPresenter = _firstContentPresenter;
             _useFirstAsNew = true;
             _readyToTransitionToNewContent = true;
+            _lastPresentedContent = null;
 
-            if (Content != null && _firstContentPresenter != null)
+            if (Content != null)
             {
-                _firstContentPresenter.Child = Content as UIElement;
+                // Host the initial content in the presenter that is currently
+                // considered new. OnNavigating flips the presenters, so the
+                // initial content must already be in the presenter that will
+                // become the outgoing presenter when the first navigation
+                // starts.
+                OnContentChanged(null, Content);
             }
         }
 

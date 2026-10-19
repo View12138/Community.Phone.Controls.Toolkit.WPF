@@ -45,7 +45,10 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12,0,12,24">
-                <TextBlock Text="Projection" Style="{StaticResource PhoneTextAccentStyle}" />
+                <TextBlock
+                    Text="Projection and navigation"
+                    Style="{StaticResource PhoneTextAccentStyle}"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="1" />
                 <phone:ProjectionHost x:Name="ProjectionDemo" Height="180" Margin="0,8,0,16">
                     <Border Background="{StaticResource PhoneAccentBrush}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -57,24 +60,81 @@
                         <phone:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
                     </phone:ProjectionHost.Projection>
                 </phone:ProjectionHost>
+                <TextBlock Text="The projection rotates continuously; the button animates RotationX." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" />
+                <TextBlock x:Name="ProjectionStatus" Text="RotationX 0°, RotationY 0°" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,12" />
 
-                <Button Content="Open detail page (turnstile)" Click="OnOpenDetail" Margin="0,0,0,16" />
-                <Button Content="Animate projection" Click="OnAnimateProjection" Margin="0,0,0,16" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="Open detail (turnstile)" Click="OnOpenDetail" Margin="0,0,8,0" />
+                    <Button Content="Animate projection" Click="OnAnimateProjection" />
+                </StackPanel>
+                <Button Content="Open feather page" Click="OnOpenFeatherPage" Margin="0,0,0,16" />
 
-                <TextBlock Text="Controls" Style="{StaticResource PhoneTextAccentStyle}" />
+                <TextBlock
+                    Text="WPF base controls"
+                    Style="{StaticResource PhoneTextAccentStyle}"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="2" />
+                <Button Content="Accent button" Margin="0,8,0,8" phone:TiltEffect.IsTiltEnabled="True" />
+                <TextBox Text="Editable WPF TextBox" Margin="0,0,0,8" />
+                <ComboBox SelectedIndex="0" Margin="0,0,0,8">
+                    <ComboBoxItem Content="ComboBox item A" />
+                    <ComboBoxItem Content="ComboBox item B" />
+                    <ComboBoxItem Content="ComboBox item C" />
+                </ComboBox>
+                <CheckBox Content="CheckBox" IsChecked="True" Margin="0,0,0,8" />
+                <RadioButton GroupName="SampleRadio" Content="RadioButton A" IsChecked="True" Margin="0,0,0,4" />
+                <RadioButton GroupName="SampleRadio" Content="RadioButton B" Margin="0,0,0,12" />
+                <ListBox Height="112" Margin="0,0,0,16">
+                    <ListBoxItem Content="ListBox item one" />
+                    <ListBoxItem Content="ListBox item two" />
+                    <ListBoxItem Content="ListBox item three" />
+                </ListBox>
+                <phone:WrapPanel Margin="0,0,0,16">
+                    <Button Content="WrapPanel 1" Margin="0,0,8,8" />
+                    <Button Content="WrapPanel 2" Margin="0,0,8,8" />
+                    <Button Content="WrapPanel 3" Margin="0,0,8,8" />
+                </phone:WrapPanel>
+
+                <TextBlock
+                    Text="Toolkit controls"
+                    Style="{StaticResource PhoneTextAccentStyle}"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="3" />
                 <phone:ToggleSwitch Header="Wi-Fi networking" Margin="0,8,0,8" />
-                <phone:Rating Width="220" Height="44" Value="3" AllowHalfItemIncrement="True" Margin="0,8,0,16" />
+                <phone:Rating x:Name="DemoRating" Width="220" Height="44" Value="3" AllowHalfItemIncrement="True" Margin="0,8,0,8" ValueChanged="OnRatingValueChanged" />
+                <TextBlock x:Name="RatingStatus" Text="Rating: 3.0" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,8" />
                 <phone:PhoneTextBox Hint="Type something" LengthIndicatorVisible="True" LengthIndicatorThreshold="0" MaxLength="100" Margin="0,0,0,16" />
                 <phone:ListPicker Header="Transition family" x:Name="Picker" Margin="0,0,0,16">
                     <sys:String>Turnstile</sys:String>
                     <sys:String>Slide</sys:String>
                     <sys:String>Rotate</sys:String>
                 </phone:ListPicker>
+                <phone:RecurringDaysPicker Header="Repeats" Margin="0,0,0,16" />
                 <phone:ExpanderView Header="ExpanderView" Margin="0,0,0,16">
                     <TextBlock Text="Expanded content" Margin="0,8,0,0" />
                     <TextBlock Text="Second item" Margin="0,8,0,0" />
                 </phone:ExpanderView>
-                <phone:HubTile Title="HubTile" Message="Back side" DisplayNotification="False" HorizontalAlignment="Left" />
+                <phone:DatePicker Header="Date" Margin="0,0,0,12" />
+                <phone:TimePicker Header="Time" Margin="0,0,0,16" />
+                <phone:PerformanceProgressBar IsIndeterminate="True" Margin="0,0,0,16" />
+                <phone:RelativeAnimatingContentControl Margin="0,0,0,16">
+                    <TextBlock Text="RelativeAnimatingContentControl content" Style="{StaticResource PhoneTextNormalStyle}" />
+                </phone:RelativeAnimatingContentControl>
+                <phone:HubTile Title="HubTile" Message="Back side" DisplayNotification="False" HorizontalAlignment="Left" Margin="0,0,0,16" />
+
+                <TextBlock
+                    Text="Menus and dialogs"
+                    Style="{StaticResource PhoneTextAccentStyle}"
+                    phone:TurnstileFeatherEffect.FeatheringIndex="4" />
+                <Border Background="{StaticResource PhoneChromeBrush}" Padding="12" Margin="0,8,0,12">
+                    <ContextMenuService.ContextMenu>
+                        <phone:ContextMenu>
+                            <phone:MenuItem Header="Copy" Click="OnContextMenuCopy" />
+                            <phone:Separator />
+                            <phone:MenuItem Header="Delete" />
+                        </phone:ContextMenu>
+                    </ContextMenuService.ContextMenu>
+                    <TextBlock Text="Right-click this panel for a Metro ContextMenu" Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" />
+                </Border>
+                <Button Content="Show CustomMessageBox" Click="OnShowMessage" Margin="0,0,0,16" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

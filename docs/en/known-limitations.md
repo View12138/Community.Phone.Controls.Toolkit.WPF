@@ -61,15 +61,15 @@ This port targets a truthful subset of the archived Windows Phone Toolkit. The l
 
 ## 6. Controls
 
-1. **Visual fidelity** — control templates approximate the Metro look using WPF primitives. Some WP-specific visual states, animations, and system-resource lookups are simplified or absent. Functional API surfaces are the priority.
+1. **Visual fidelity** — control templates approximate the Metro look using WPF primitives. The theme also supplies implicit WP styles for common WPF controls (`Button`, `TextBox`, `ListBox`/`ListBoxItem`, `ComboBox`/`ComboBoxItem`, `CheckBox`, `RadioButton`, `ScrollBar`, `ContextMenu`/`MenuItem`, `ProgressBar`, and `ToolTip`). Some specialized WPF chrome (for example the native calendar inside WPF `DatePicker`) and WP-specific visual states still differ. Functional API surfaces are the priority.
 2. **`CustomMessageBox`** — hosted in a WPF `Window`, so it is a separate top-level window rather than an in-page overlay. `Dismiss()` and the result/event contract are preserved.
-3. **`ListPicker`** — normal mode uses a WPF `Popup`; full mode uses a modal `Window`. It does not navigate to `ListPickerPage`, so `PickerPageUri`, full-mode page lifecycle, and WP transition behavior are not reproduced. `SelectedItems` and `SelectionMode` are supported.
+3. **`ListPicker`** — normal mode uses a WPF `Popup` with the WP list-item hover/selection styling; full mode uses a modal `Window`. It does not navigate to `ListPickerPage`, so `PickerPageUri`, full-mode page lifecycle, and WP transition behavior are not reproduced. `SelectedItems` and `SelectionMode` are supported.
 4. **`DatePicker`/`TimePicker`** — use a WPF `DatePicker`/hour-minute selectors in a modal window. WP’s looping selectors, picker page transitions, and date/time picker application bar are not reproduced. `ValueStringFormat`, `ValueString`, `ValueChanged`, and `Header` are supported.
-5. **`ExpanderView`** — height animation is simplified; layout of arbitrary nested content may differ from WP. The original `ItemsCanvas`/`ExpanderPanel` part names are preserved.
+5. **`ExpanderView`** — height animation is simplified; layout of arbitrary nested content may differ from WP. The original `ItemsCanvas`/`ExpanderPanel` part names are preserved. The expander gutter uses an 18-pixel content inset so the vertical rule does not touch the text.
 6. **`HubTile`** — the timer-driven hub cycle is implemented, but the original WP plane-projection flip visuals and exact timing are approximated. `HubTileService` group freeze/unfreeze is supported.
-7. **`PhoneTextBox`** — hint, action icon, and length indicator behavior are implemented. WP’s built-in text selection and input-scope edge cases may differ in WPF.
-8. **`Rating`** — items are generated in code; half-item and zero-selection behavior are implemented. Template part names are preserved, but custom templates must provide the expected parts.
-9. **`ToggleSwitch`** — header, switch foreground, checked/unchecked/indeterminate and click are supported. WP’s exact switch animation and system accent integration are approximated.
+7. **`PhoneTextBox`** — hint, action icon, and length indicator behavior are implemented. The inner editor is visible and receives focus from the templated control; WP’s built-in text selection and input-scope edge cases may still differ in WPF.
+8. **`Rating`** — items are generated in code; half-item and zero-selection behavior are implemented. Mouse click/drag selection is supported in addition to touch manipulation. Template part names are preserved, but custom templates must provide the expected parts.
+9. **`ToggleSwitch`** — header, switch foreground, checked/unchecked/indeterminate and click are supported. The thumb and background use animated transitions when the state changes. System accent integration remains approximate.
 10. **`ContextMenu`** — derives from WPF `ContextMenu`; `ContextMenuService.ContextMenu` is the attached property. `IsZoomEnabled`, `IsFadeEnabled`, `RegionOfInterest`, and `Owner` are retained but some WP zoom/fade visuals are not reproduced.
 11. **`PerformanceProgressBar`** — indeterminate mode is implemented with a simple fade; the original WP performance workarounds are not meaningful in WPF.
 12. **`RelativeAnimatingContentControl`** — the control exists, but the original magic-number relative animation rewriting is not ported.
@@ -97,7 +97,7 @@ The following are not fully automated:
 1. Visual comparison against the original WP controls (no WP emulator/device in this environment).
 2. Full transition frame visual verification (navigation tests verify projection state changes, not rendered frames).
 3. Application bar and system tray visuals (API tests only; visual presenter pending).
-4. Real pointer input outside synthetic routed mouse events (TiltEffect and feather wrappers are unit-tested).
+4. Real pointer input is covered for Rating (desktop click) and ToggleSwitch/PhoneTextBox interaction; TiltEffect uses synthetic routed events and no physical touch device is available in this environment.
 5. Date/time picker modal window interaction (API/value tests; no UI automation).
 6. All 50 packaged cultures (resource presence is verified; localized formatting is covered by converter tests for representative cultures).
 7. High-DPI, multi-monitor, and software-rendering 3D behavior.
@@ -114,9 +114,9 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
 1. Confirm the window opens and shows the Home page.
-2. Click **Open details** and confirm the turnstile transition runs both ways.
-3. Drag the projection sliders; the projected panel should rotate in real 3D and remain hit-testable.
-4. Toggle the switch, change the rating, type in the hint text box, open the list picker and expander.
+2. Click **Open detail (turnstile)** and confirm the turnstile transition runs on entry; click **Go back** and confirm the matching exit/entry transition runs.
+3. Click **Animate projection**; the status line should show `RotationX` changing while the panel tilts in real 3D. The panel also rotates continuously on `RotationY`.
+4. Toggle the switch and verify the thumb slides; click and drag across the Rating stars; type in the hint text box; open the ListPicker and hover/select items; expand the ExpanderView; open the ContextMenu; show the CustomMessageBox; inspect DatePicker, TimePicker, RecurringDaysPicker, PerformanceProgressBar, WrapPanel, HubTile, and the WPF base controls.
 5. Check `%TEMP%\community-phone-toolkit-sample-error.txt` after closing; it should not exist or should be empty.
 
 ### TiltEffect

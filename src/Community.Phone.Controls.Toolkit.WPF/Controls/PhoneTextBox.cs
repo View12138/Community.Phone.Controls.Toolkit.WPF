@@ -7,6 +7,7 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Microsoft.Phone.Controls
@@ -198,6 +199,11 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
+            if (_textBox != null && _textBox.IsEnabled && !_textBox.IsKeyboardFocusWithin)
+            {
+                _textBox.Focus();
+            }
+
             if (_foregroundBrushEdit != null)
             {
                 Foreground = _foregroundBrushEdit;
@@ -209,6 +215,17 @@ namespace Microsoft.Phone.Controls
             }
 
             base.OnGotFocus(e);
+        }
+
+        /// <inheritdoc />
+        protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnPreviewMouseLeftButtonDown(e);
+
+            if (_textBox != null && _textBox.IsEnabled && !_textBox.IsKeyboardFocusWithin)
+            {
+                _textBox.Focus();
+            }
         }
 
         /// <inheritdoc />

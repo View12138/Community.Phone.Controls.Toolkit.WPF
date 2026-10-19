@@ -257,6 +257,108 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void TurnstileTransition_AnimatesAStandalonePage()
+        {
+            StaTest.Run(() =>
+            {
+                Border content = new Border { Background = Brushes.Blue };
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 480,
+                    Height = 800,
+                    Child = content
+                };
+                Window window = new Window { Width = 480, Height = 800, Content = host };
+                ITransition transition = null;
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    transition = new TurnstileTransition
+                    {
+                        Mode = TurnstileTransitionMode.ForwardOut
+                    }.GetTransition(content);
+                    transition.Begin();
+                    PumpFor(80);
+
+                    PlaneProjection projection = (PlaneProjection)ProjectionService.GetProjection(content);
+                    Assert.NotNull(projection);
+                    Assert.NotEqual(0, projection.RotationY, 2);
+                    Assert.True(host.IsRenderingIn3D);
+                }
+                finally
+                {
+                    if (transition != null)
+                    {
+                        transition.Stop();
+                    }
+
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TransitionFrame_HostsInitialContentInTheOutgoingPresenter()
+        {
+            StaTest.Run(() =>
+            {
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage first = new TestPage();
+                TestPage second = new TestPage();
+                NavigationOutTransition outTransition = new NavigationOutTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardOut }
+                };
+                NavigationInTransition inTransition = new NavigationInTransition
+                {
+                    Forward = new TurnstileTransition { Mode = TurnstileTransitionMode.ForwardIn }
+                };
+                TransitionService.SetNavigationOutTransition(first, outTransition);
+                TransitionService.SetNavigationInTransition(second, inTransition);
+                int outBegun = 0;
+                outTransition.BeginTransition += delegate { outBegun++; };
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    frame.ApplyTemplate();
+                    window.UpdateLayout();
+
+                    frame.Navigate(first);
+                    PumpFor(650);
+                    frame.Navigate(second);
+                    PumpFor(80);
+                    Assert.Equal(1, outBegun);
+
+                    ProjectionHost outgoing = (ProjectionHost)frame.Template.FindName("SecondContentPresenter", frame);
+                    ProjectionHost incoming = (ProjectionHost)frame.Template.FindName("FirstContentPresenter", frame);
+                    Assert.Same(first, outgoing.Child);
+                    Assert.Same(second, incoming.Child);
+                    Assert.NotNull(ProjectionService.GetProjection(first));
+                    Assert.Same(outgoing, ProjectionService.GetProjectionHost(first));
+                    Assert.NotNull(outgoing.Projection);
+                    Assert.Same(ProjectionService.GetProjection(first), outgoing.Projection);
+                    PlaneProjection outgoingProjection = (PlaneProjection)outgoing.Projection;
+                    Assert.True(
+                        outgoing.IsRenderingIn3D,
+                        string.Format("RotationY={0}, state={1}, child={2}", outgoingProjection.RotationY, outgoingProjection.IsIdentity, outgoing.Child));
+
+                    PumpFor(800);
+                    Assert.Null(ProjectionService.GetProjection(first));
+                    Assert.True(second.IsHitTestVisible);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void TransitionFrame_RapidNavigationDoesNotLeaveTransitionsActive()
         {
             StaTest.Run(() =>
@@ -385,7 +487,9 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Assert.Same(page, frame.Content);
                     PlaneProjection projection = ProjectionService.GetProjection(page) as PlaneProjection;
                     Assert.NotNull(projection);
-                    Assert.InRange(projection.RotationY, -80.0, 0.0);
+                    Assert.True(
+                        projection.RotationY < 0 && projection.RotationY > -80,
+                        "The entry transition should have started rotating the page; RotationY=" + projection.RotationY);
 
                     PumpFor(800);
                     Assert.Null(ProjectionService.GetProjection(page));

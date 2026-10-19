@@ -27,7 +27,7 @@ namespace Microsoft.Phone.Controls
 
             PlaneProjection projection = EnsurePlaneProjection(element, 0.5, 0.5);
             Storyboard storyboard = new Storyboard();
-            AddRotationZ(storyboard, projection, new[]
+            AddRotationZ(storyboard, element, projection, new[]
             {
                 KeyFrame(0.0, 0.0, Ease(EasingMode.EaseIn, 1)),
                 KeyFrame(0.3, 45.0, Ease(EasingMode.EaseOut, 6)),
@@ -56,35 +56,35 @@ namespace Microsoft.Phone.Controls
             switch (mode)
             {
                 case RotateTransitionMode.In180Clockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 180.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 180.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 1.0, SineEase()) });
                     break;
                 case RotateTransitionMode.In180Counterclockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, -180.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, -180.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 1.0, SineEase()) });
                     break;
                 case RotateTransitionMode.In90Clockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 90.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 90.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 1.0, SineEase()) });
                     break;
                 case RotateTransitionMode.In90Counterclockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, -90.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, -90.0, null), KeyFrame(0.25, 0.0, Ease(EasingMode.EaseOut, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 1.0, SineEase()) });
                     break;
                 case RotateTransitionMode.Out180Clockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -180.0, Ease(EasingMode.EaseIn, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -180.0, Ease(EasingMode.EaseIn, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.25, 0.0, SineEase()) });
                     break;
                 case RotateTransitionMode.Out180Counterclockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 180.0, Ease(EasingMode.EaseIn, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 180.0, Ease(EasingMode.EaseIn, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.25, 0.0, SineEase()) });
                     break;
                 case RotateTransitionMode.Out90Clockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -90.0, Ease(EasingMode.EaseIn, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -90.0, Ease(EasingMode.EaseIn, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.25, 0.0, SineEase()) });
                     break;
                 case RotateTransitionMode.Out90Counterclockwise:
-                    AddRotationZ(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 90.0, Ease(EasingMode.EaseIn, 1)) });
+                    AddRotationZ(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 90.0, Ease(EasingMode.EaseIn, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.25, 0.0, SineEase()) });
                     break;
             }
@@ -168,27 +168,27 @@ namespace Microsoft.Phone.Controls
             switch (mode)
             {
                 case SwivelTransitionMode.BackwardIn:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, -45.0, null), KeyFrame(0.2, -30.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, -45.0, null), KeyFrame(0.2, -30.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.2, 0.0, null), KeyFrame(0.21, 1.0, null) });
                     break;
                 case SwivelTransitionMode.BackwardOut:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 60.0, Ease(EasingMode.EaseIn, 6)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 60.0, Ease(EasingMode.EaseIn, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
                     break;
                 case SwivelTransitionMode.ForwardIn:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, -45.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, -45.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null) });
                     break;
                 case SwivelTransitionMode.ForwardOut:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 90.0, Ease(EasingMode.EaseIn, 15)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 90.0, Ease(EasingMode.EaseIn, 15)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
                     break;
                 case SwivelTransitionMode.FullScreenIn:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, -30.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, -30.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null) });
                     break;
                 case SwivelTransitionMode.FullScreenOut:
-                    AddRotationX(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 30.0, Ease(EasingMode.EaseIn, 1)) });
+                    AddRotationX(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 30.0, Ease(EasingMode.EaseIn, 1)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
                     break;
             }
@@ -213,20 +213,20 @@ namespace Microsoft.Phone.Controls
             switch (mode)
             {
                 case TurnstileTransitionMode.ForwardIn:
-                    AddRotationY(storyboard, projection, new[] { KeyFrame(0.0, -80.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, -80.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01, 1.0, null) });
                     AddVisibility(storyboard, element);
                     break;
                 case TurnstileTransitionMode.ForwardOut:
-                    AddRotationY(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 50.0, Ease(EasingMode.EaseIn, 6)) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, 50.0, Ease(EasingMode.EaseIn, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
                     break;
                 case TurnstileTransitionMode.BackwardIn:
-                    AddRotationY(storyboard, projection, new[] { KeyFrame(0.0, 50.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 50.0, null), KeyFrame(0.35, 0.0, Ease(EasingMode.EaseOut, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.01, 1.0, null) });
                     break;
                 case TurnstileTransitionMode.BackwardOut:
-                    AddRotationY(storyboard, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -80.0, Ease(EasingMode.EaseIn, 6)) });
+                    AddRotationY(storyboard, element, projection, new[] { KeyFrame(0.0, 0.0, null), KeyFrame(0.25, -80.0, Ease(EasingMode.EaseIn, 6)) });
                     AddOpacity(storyboard, element, new[] { KeyFrame(0.0, 1.0, null), KeyFrame(0.24, 1.0, null), KeyFrame(0.25, 0.0, null) });
                     break;
             }
@@ -296,19 +296,56 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        private static void AddRotationX(Storyboard storyboard, PlaneProjection projection, KeyFrameData[] frames)
+        private static void AddRotationX(Storyboard storyboard, UIElement element, PlaneProjection projection, KeyFrameData[] frames)
         {
-            AddDoubleAnimation(storyboard, projection, PlaneProjection.RotationXProperty, frames);
+            AddProjectionAnimation(storyboard, element, projection, PlaneProjection.RotationXProperty, frames);
         }
 
-        private static void AddRotationY(Storyboard storyboard, PlaneProjection projection, KeyFrameData[] frames)
+        private static void AddRotationY(Storyboard storyboard, UIElement element, PlaneProjection projection, KeyFrameData[] frames)
         {
-            AddDoubleAnimation(storyboard, projection, PlaneProjection.RotationYProperty, frames);
+            AddProjectionAnimation(storyboard, element, projection, PlaneProjection.RotationYProperty, frames);
         }
 
-        private static void AddRotationZ(Storyboard storyboard, PlaneProjection projection, KeyFrameData[] frames)
+        private static void AddRotationZ(Storyboard storyboard, UIElement element, PlaneProjection projection, KeyFrameData[] frames)
         {
-            AddDoubleAnimation(storyboard, projection, PlaneProjection.RotationZProperty, frames);
+            AddProjectionAnimation(storyboard, element, projection, PlaneProjection.RotationZProperty, frames);
+        }
+
+        private static void AddProjectionAnimation(
+            Storyboard storyboard,
+            UIElement element,
+            PlaneProjection projection,
+            DependencyProperty property,
+            KeyFrameData[] frames)
+        {
+            if (projection == null)
+            {
+                throw new ArgumentNullException("projection");
+            }
+
+            DoubleAnimationUsingKeyFrames animation = new DoubleAnimationUsingKeyFrames();
+            animation.Duration = new Duration(TimeSpan.FromSeconds(frames[frames.Length - 1].Time));
+
+            // Storyboard clocks do not reliably animate a Freezable that is
+            // targeted directly. Target the element instead and traverse its
+            // attached projection with a property path.
+            Storyboard.SetTarget(animation, element);
+            Storyboard.SetTargetProperty(
+                animation,
+                new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, property));
+
+            for (int i = 0; i < frames.Length; i++)
+            {
+                EasingDoubleKeyFrame keyFrame = new EasingDoubleKeyFrame(frames[i].Value, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(frames[i].Time)));
+                if (frames[i].Easing != null)
+                {
+                    keyFrame.EasingFunction = frames[i].Easing;
+                }
+
+                animation.KeyFrames.Add(keyFrame);
+            }
+
+            storyboard.Children.Add(animation);
         }
 
         private static void AddOpacity(Storyboard storyboard, UIElement element, KeyFrameData[] frames)

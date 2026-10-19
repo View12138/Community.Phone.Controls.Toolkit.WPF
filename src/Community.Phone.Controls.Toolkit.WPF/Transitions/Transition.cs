@@ -96,7 +96,20 @@ namespace Microsoft.Phone.Controls
             _completed = false;
             _restored = false;
             _started = true;
-            Storyboard.Begin();
+
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject != null)
+            {
+                // Begin the clock from a FrameworkElement in the visual tree.
+                // Storyboard.Begin() without a containing object does not tick
+                // reliably for animations whose targets are Freezables such
+                // as PlaneProjection.
+                Storyboard.Begin(containingObject, true);
+            }
+            else
+            {
+                Storyboard.Begin();
+            }
         }
 
         /// <inheritdoc />
@@ -115,7 +128,11 @@ namespace Microsoft.Phone.Controls
 
             try
             {
-                return Storyboard.GetCurrentTime();
+                FrameworkElement containingObject = _element as FrameworkElement;
+                TimeSpan? currentTime = containingObject == null
+                    ? Storyboard.GetCurrentTime()
+                    : Storyboard.GetCurrentTime(containingObject);
+                return currentTime ?? TimeSpan.Zero;
             }
             catch (InvalidOperationException)
             {
@@ -126,31 +143,71 @@ namespace Microsoft.Phone.Controls
         /// <inheritdoc />
         public void Pause()
         {
-            Storyboard.Pause();
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject == null)
+            {
+                Storyboard.Pause();
+            }
+            else
+            {
+                Storyboard.Pause(containingObject);
+            }
         }
 
         /// <inheritdoc />
         public void Resume()
         {
-            Storyboard.Resume();
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject == null)
+            {
+                Storyboard.Resume();
+            }
+            else
+            {
+                Storyboard.Resume(containingObject);
+            }
         }
 
         /// <inheritdoc />
         public void Seek(TimeSpan offset)
         {
-            Storyboard.Seek(offset);
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject == null)
+            {
+                Storyboard.Seek(offset);
+            }
+            else
+            {
+                Storyboard.Seek(containingObject, offset, TimeSeekOrigin.BeginTime);
+            }
         }
 
         /// <inheritdoc />
         public void SeekAlignedToLastTick(TimeSpan offset)
         {
-            Storyboard.SeekAlignedToLastTick(offset);
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject == null)
+            {
+                Storyboard.SeekAlignedToLastTick(offset);
+            }
+            else
+            {
+                Storyboard.SeekAlignedToLastTick(containingObject, offset, TimeSeekOrigin.BeginTime);
+            }
         }
 
         /// <inheritdoc />
         public void SkipToFill()
         {
-            Storyboard.SkipToFill();
+            FrameworkElement containingObject = _element as FrameworkElement;
+            if (containingObject == null)
+            {
+                Storyboard.SkipToFill();
+            }
+            else
+            {
+                Storyboard.SkipToFill(containingObject);
+            }
         }
 
         /// <inheritdoc />
@@ -158,8 +215,18 @@ namespace Microsoft.Phone.Controls
         {
             if (_started)
             {
-                Storyboard.Stop();
-                Storyboard.Remove();
+                FrameworkElement containingObject = _element as FrameworkElement;
+                if (containingObject != null)
+                {
+                    Storyboard.Stop(containingObject);
+                    Storyboard.Remove(containingObject);
+                }
+                else
+                {
+                    Storyboard.Stop();
+                    Storyboard.Remove();
+                }
+
                 _started = false;
             }
 

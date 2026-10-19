@@ -14,7 +14,7 @@
 - **效果**：`TiltEffect`、`TurnstileFeatherEffect`，基于真实投影管线。
 - **控件**：`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ExpanderView`、`ListPicker`、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`RecurringDaysPicker`、`PerformanceProgressBar`，以及相关转换器和辅助类。
 - **本地化**：50 个真实文化加中性资源，由原始 designer/资源生成。
-- **主题**：Metro 调色板、字体、文本样式、Frame 模板和控件模板位于 `Themes/Generic.xaml`。
+- **主题**：Metro 调色板、字体、文本样式、Frame 模板和控件模板位于 `Themes/Generic.xaml`。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。
 
 ## 环境要求
 
@@ -153,9 +153,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 ## 验证状态
 
 - Release 构建：0 warnings，0 errors。
-- 自动化测试：57 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场、Shell API）。
+- 自动化测试：65 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、Turnstile 进入/退出 storyboard、feather 转场、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
 - 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
-- 示例：启动成功；UI 自动化实际打开详情页、返回首页，未产生启动错误。
+- 示例：启动成功；UI 自动化实际打开详情页、返回首页，修改了 Rating 和 ToggleSwitch，打开了 ListPicker 和 ContextMenu，在 PhoneTextBox 中输入文本，未产生启动错误。
 
 ## 运行示例
 
@@ -163,7 +163,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
-示例展示投影、Turnstile 导航、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ListPicker`、`ExpanderView` 和 `HubTile`。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。
+示例展示投影、带动画的导航，以及全部已实现控件和效果：带 WP 样式的 WPF 基础控件、`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ListPicker`、`RecurringDaysPicker`、`ExpanderView`、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`PerformanceProgressBar`、`RelativeAnimatingContentControl`、`TiltEffect` 和 `TurnstileFeatherEffect`。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。
 
 ## 文档
 

@@ -61,15 +61,15 @@
 
 ## 6. 控件
 
-1. **视觉保真度**：控件模板用 WPF 原语近似 Metro 外观。部分 WP 专用视觉状态、动画和系统资源查找被简化或缺失；功能 API 优先。
+1. **视觉保真度**：控件模板用 WPF 原语近似 Metro 外观。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。部分专用 WPF chrome（例如 WPF `DatePicker` 内的原生日历）和 WP 专用视觉状态仍有差异；功能 API 优先。
 2. **`CustomMessageBox`**：由 WPF `Window` 承载，是独立顶层窗口而不是页内浮层。保留 `Dismiss()` 和结果/事件契约。
-3. **`ListPicker`**：普通模式使用 WPF `Popup`；完整模式使用模态 `Window`。不会导航到 `ListPickerPage`，因此 `PickerPageUri`、完整模式页面生命周期和 WP 转场行为未复刻。支持 `SelectedItems` 和 `SelectionMode`。
+3. **`ListPicker`**：普通模式使用 WPF `Popup`，列表项使用 WP 悬停/选中样式；完整模式使用模态 `Window`。不会导航到 `ListPickerPage`，因此 `PickerPageUri`、完整模式页面生命周期和 WP 转场行为未复刻。支持 `SelectedItems` 和 `SelectionMode`。
 4. **`DatePicker`/`TimePicker`**：在模态窗口中使用 WPF `DatePicker`/小时分钟选择器。未复刻 WP 的 looping selector、picker page 转场和日期时间 picker 应用栏。支持 `ValueStringFormat`、`ValueString`、`ValueChanged` 和 `Header`。`ValueStringFormat` 是复合格式字符串（例如 `"{0:yyyy-MM-dd}"`）。
-5. **`ExpanderView`**：高度动画简化；任意嵌套内容的布局可能与 WP 不同。保留原始 `ItemsCanvas`/`ExpanderPanel` 部件名。
+5. **`ExpanderView`**：高度动画简化；任意嵌套内容的布局可能与 WP 不同。保留原始 `ItemsCanvas`/`ExpanderPanel` 部件名。展开区使用 18 像素内容缩进，避免竖线与文本相贴。
 6. **`HubTile`**：实现了定时器驱动的 hub 循环，但原始 WP 平面投影翻转视觉和精确时序是近似的。支持 `HubTileService` 组冻结/解冻。
-7. **`PhoneTextBox`**：实现了 hint、action icon 和长度指示行为。WP 内置文本选择和输入作用域边界在 WPF 中可能不同。
-8. **`Rating`**：项目在代码中生成；半星和零值选择已实现。保留模板部件名，但自定义模板必须提供预期部件。
-9. **`ToggleSwitch`**：支持 header、switch foreground、checked/unchecked/indeterminate 和 click。WP 精确开关动画和系统 accent 集成是近似的。
+7. **`PhoneTextBox`**：实现了 hint、action icon 和长度指示行为。内部编辑器现在可见，并会从模板控件接收焦点；WP 内置文本选择和输入作用域边界在 WPF 中仍可能不同。
+8. **`Rating`**：项目在代码中生成；半星和零值选择已实现。除触摸 manipulation 外，也支持鼠标点击/拖动选择。保留模板部件名，但自定义模板必须提供预期部件。
+9. **`ToggleSwitch`**：支持 header、switch foreground、checked/unchecked/indeterminate 和 click。状态变化时滑块和背景使用动画过渡；系统 accent 集成仍是近似。
 10. **`ContextMenu`**：继承 WPF `ContextMenu`；`ContextMenuService.ContextMenu` 是附加属性。保留 `IsZoomEnabled`、`IsFadeEnabled`、`RegionOfInterest` 和 `Owner`，但部分 WP zoom/fade 视觉未复刻。
 11. **`PerformanceProgressBar`**：实现不确定模式，使用简单淡入淡出；原始 WP 性能 workaround 在 WPF 中没有意义。
 12. **`RelativeAnimatingContentControl`**：控件存在，但原始 magic-number 相对动画重写没有移植。
@@ -98,7 +98,7 @@
 1. 与原始 WP 控件的视觉对比（当前环境没有 WP 模拟器/设备）。
 2. 完整转场 Frame 的逐帧视觉验证（导航测试验证投影状态变化，不验证渲染帧）。
 3. 应用栏和系统栏视觉（仅 API 测试；视觉呈现器待完成）。
-4. 合成路由鼠标事件之外的真实指针输入（TiltEffect 和 feather 包装已有单元测试）。
+4. Rating（桌面鼠标点击）以及 ToggleSwitch/PhoneTextBox 交互已覆盖真实指针/键盘输入；TiltEffect 仍使用合成路由事件，且当前环境没有物理触摸设备。
 5. 日期/时间 picker 模态窗口交互（API/值测试；没有 UI 自动化）。
 6. 全部 50 个打包文化（验证资源存在；代表性文化有转换器测试）。
 7. 高 DPI、多显示器、软件渲染 3D 行为。
@@ -113,9 +113,9 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
 1. 确认窗口打开并显示 Home 页。
-2. 点击 **Open details**，确认 Turnstile 转场进入和返回都执行。
-3. 拖动投影滑块；投影面板应在真实 3D 中旋转并保持可命中测试。
-4. 切换 ToggleSwitch、修改 Rating、在 hint 文本框输入、打开 ListPicker 和 Expander。
+2. 点击 **Open detail (turnstile)** 确认进入转场执行；点击 **Go back** 确认返回转场执行。
+3. 点击 **Animate projection**；状态行应显示 `RotationX` 变化，投影面板在真实 3D 中倾斜；面板同时持续进行 `RotationY` 旋转。
+4. 切换 ToggleSwitch 并确认滑块有动画；在 Rating 星星上点击/拖动；在 hint 文本框输入；打开 ListPicker 并检查悬停/选中样式；展开 ExpanderView；打开 ContextMenu；显示 CustomMessageBox；检查 DatePicker、TimePicker、RecurringDaysPicker、PerformanceProgressBar、WrapPanel、HubTile 和 WPF 基础控件。
 5. 关闭后检查 `%TEMP%\community-phone-toolkit-sample-error.txt`；不应存在或应为空。
 
 ### TiltEffect

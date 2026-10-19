@@ -14,7 +14,7 @@ A WPF compatibility port of the archived **Windows Phone Toolkit**, delivered as
 - **Effects** — `TiltEffect` and `TurnstileFeatherEffect` backed by the real projection pipeline.
 - **Controls** — `WrapPanel`, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ExpanderView`, `ListPicker`, `HubTile`, `ContextMenu`, `CustomMessageBox`, `DatePicker`, `TimePicker`, `RecurringDaysPicker`, `PerformanceProgressBar`, and related converters/helpers.
 - **Localization** — 50 real cultures plus the neutral resource, generated from the original designer/resources.
-- **Theme** — Metro palette, fonts, text styles, frame templates, and control templates in `Themes/Generic.xaml`.
+- **Theme** — Metro palette, fonts, text styles, frame templates, and control templates in `Themes/Generic.xaml`. The theme also supplies implicit WP styles for common WPF controls (`Button`, `TextBox`, `ListBox`/`ListBoxItem`, `ComboBox`/`ComboBoxItem`, `CheckBox`, `RadioButton`, `ScrollBar`, `ContextMenu`/`MenuItem`, `ProgressBar`, and `ToolTip`).
 
 ## Requirements
 
@@ -153,9 +153,9 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 ## Verification status
 
 - Release build: 0 warnings, 0 errors.
-- Automated tests: 57 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, shell APIs).
+- Automated tests: 65 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, entry/exit Turnstile storyboards, feathered transitions, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
 - Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls and theme resources.
-- Sample: launched successfully; UI automation opened the detail page, returned to the home page, and produced no startup error.
+- Sample: launched successfully; UI automation opened the detail page, returned to the home page, changed the rating and ToggleSwitch, opened the ListPicker and ContextMenu, typed into PhoneTextBox, and produced no startup error.
 
 ## Run the sample
 
@@ -163,7 +163,7 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
-The sample demonstrates projection, turnstile navigation, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ListPicker`, `ExpanderView`, and `HubTile`. Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`.
+The sample demonstrates projection and animated navigation alongside all implemented controls and effects: WPF base controls with WP styles, `WrapPanel`, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ListPicker`, `RecurringDaysPicker`, `ExpanderView`, `HubTile`, `ContextMenu`, `CustomMessageBox`, `DatePicker`, `TimePicker`, `PerformanceProgressBar`, `RelativeAnimatingContentControl`, `TiltEffect`, and `TurnstileFeatherEffect`. Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`.
 
 ## Documentation
 

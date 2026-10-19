@@ -278,6 +278,111 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void Storyboard_AnimatesProjectionTarget()
+        {
+            StaTest.Run(() =>
+            {
+                Border content = new Border { Background = Brushes.Red, Width = 200, Height = 100 };
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 200,
+                    Height = 100,
+                    Child = content
+                };
+                PlaneProjection projection = new PlaneProjection();
+                ProjectionService.SetProjection(content, projection);
+
+                Window window = new Window { Width = 260, Height = 160, Content = host };
+                Storyboard storyboard = null;
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    storyboard = new Storyboard();
+                    DoubleAnimationUsingKeyFrames animation = new DoubleAnimationUsingKeyFrames
+                    {
+                        Duration = TimeSpan.FromMilliseconds(300)
+                    };
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(50, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(300))));
+                    Storyboard.SetTarget(animation, content);
+                    Storyboard.SetTargetProperty(
+                        animation,
+                        new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, PlaneProjection.RotationYProperty));
+                    storyboard.Children.Add(animation);
+
+                    DoubleAnimation opacity = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300));
+                    Storyboard.SetTarget(opacity, content);
+                    Storyboard.SetTargetProperty(opacity, new PropertyPath(UIElement.OpacityProperty));
+                    storyboard.Children.Add(opacity);
+
+                    storyboard.Begin(content, true);
+
+                    PumpFor(120);
+                    Assert.True(content.Opacity < 0.9, "The storyboard clock should be ticking.");
+                    Assert.NotEqual(0, projection.RotationY, 2);
+                }
+                finally
+                {
+                    if (storyboard != null)
+                    {
+                        storyboard.Stop(content);
+                        storyboard.Remove(content);
+                    }
+
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_Enters3DWhenIdentityProjectionIsAnimated()
+        {
+            StaTest.Run(() =>
+            {
+                Border content = new Border { Background = Brushes.Orange, Width = 200, Height = 100 };
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 200,
+                    Height = 100,
+                    Child = content
+                };
+                PlaneProjection projection = new PlaneProjection();
+                host.Projection = projection;
+
+                Window window = new Window { Width = 260, Height = 160, Content = host };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.False(host.IsRenderingIn3D, "An identity projection should initially use the 2D path.");
+
+                    projection.BeginAnimation(
+                        PlaneProjection.RotationYProperty,
+                        new DoubleAnimation
+                        {
+                            From = 0,
+                            To = -45,
+                            Duration = TimeSpan.FromMilliseconds(300)
+                        });
+
+                    PumpFor(100);
+
+                    Assert.True(host.IsRenderingIn3D, "Animating an identity projection must switch the host to the 3D path.");
+                    Assert.NotEqual(0, projection.RotationY, 2);
+                    Assert.True(RenderNonTransparentPixels(host) > 0);
+                }
+                finally
+                {
+                    projection.BeginAnimation(PlaneProjection.RotationYProperty, null);
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void ProjectionHost_RendersAtHighDpiWithoutChangingLayoutUnits()
         {
             StaTest.Run(() =>

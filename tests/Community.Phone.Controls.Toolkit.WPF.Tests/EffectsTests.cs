@@ -43,13 +43,61 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     {
                         RoutedEvent = Mouse.PreviewMouseUpEvent
                     });
-                    PumpFor(700);
+                    PumpFor(2000);
 
                     Assert.Null(ProjectionService.GetProjection(button));
                 }
                 finally
                 {
                     TiltEffect.SetIsTiltEnabled(panel, false);
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void TurnstileFeatherEffect_AnimatesFeatheredElements()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationPage page = new PhoneApplicationPage();
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Border first = new Border { Width = 100, Height = 40, Background = Brushes.Blue };
+                Border second = new Border { Width = 100, Height = 40, Background = Brushes.Green };
+                panel.Children.Add(first);
+                panel.Children.Add(second);
+                page.Content = panel;
+
+                Window window = new Window { Width = 400, Height = 300, Content = page };
+                ITransition transition = null;
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    TurnstileFeatherEffect.SetFeatheringIndex(first, 0);
+                    TurnstileFeatherEffect.SetFeatheringIndex(second, 1);
+
+                    transition = new TurnstileFeatherTransition
+                    {
+                        Mode = TurnstileFeatherTransitionMode.ForwardIn
+                    }.GetTransition(page);
+                    transition.Begin();
+                    PumpFor(120);
+
+                    PlaneProjection firstProjection = ProjectionService.GetProjection(first) as PlaneProjection;
+                    Assert.NotNull(firstProjection);
+                    Assert.False(firstProjection.IsIdentity);
+                    Assert.True(first.Opacity > 0 && first.Opacity <= 1);
+                }
+                finally
+                {
+                    if (transition != null)
+                    {
+                        transition.Stop();
+                    }
+
+                    TurnstileFeatherEffect.SetFeatheringIndex(first, -1);
+                    TurnstileFeatherEffect.SetFeatheringIndex(second, -1);
                     window.Close();
                 }
             });
