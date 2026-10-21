@@ -38,6 +38,22 @@ namespace PhoneToolkitSample.Pages
             };
 
             DemoProjection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
+
+            // The Border on this page declares its projection without a
+            // ProjectionHost; ProjectionService wraps it on demand.
+            DoubleAnimation hostlessAnimation = new DoubleAnimation
+            {
+                From = -22,
+                To = 22,
+                Duration = TimeSpan.FromSeconds(3.5),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                BeginTime = TimeSpan.FromSeconds(0.4),
+                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            HostlessProjection.BeginAnimation(PlaneProjection.RotationYProperty, hostlessAnimation);
+
             UpdateStatus();
             _statusTimer.Start();
         }

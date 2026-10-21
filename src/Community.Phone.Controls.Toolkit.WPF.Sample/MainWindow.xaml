@@ -9,23 +9,37 @@
     Background="Black"
     ResizeMode="CanResizeWithGrip">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
         <phone:TransitionFrame x:Name="Frame" />
-        <Button VerticalAlignment="Center" Content="asd" RenderTransformOrigin="0.5,0.5">
-            <Button.RenderTransform>
-                <TransformGroup>
-                    <ScaleTransform/>
-                    <SkewTransform/>
-                    <RotateTransform Angle="48.576"/>
-                    <TranslateTransform/>
-                </TransformGroup>
-            </Button.RenderTransform>
-            <!--<Button.RenderTransform>
-                <RotateTransform3D>
-                    <RotateTransform3D.Rotation>
-                        <AxisAngleRotation3D x:Name="myAngleRotation" Axis="0,3,0" Angle="1" />
-                    </RotateTransform3D.Rotation>
-                </RotateTransform3D>
-            </Button.RenderTransform>-->
-        </Button>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button
+                HorizontalAlignment="Center"
+                BorderThickness="0"
+                Click="Back_Button_Click"
+                Content="&#xE72B;"
+                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
+            <Button
+                Grid.Column="1"
+                HorizontalAlignment="Center"
+                BorderThickness="0"
+                Click="Home_Button_Click"
+                Content="&#xE80F;"
+                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
+            <Button
+                Grid.Column="2"
+                HorizontalAlignment="Center"
+                BorderThickness="0"
+                Click="Search_Button_Click"
+                Content="&#xE721;"
+                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
+        </Grid>
     </Grid>
 </Window>

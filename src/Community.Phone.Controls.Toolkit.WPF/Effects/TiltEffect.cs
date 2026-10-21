@@ -1,10 +1,12 @@
-// (c) Copyright Microsoft Corporation.
+﻿// (c) Copyright Microsoft Corporation.
 // This source is subject to the Microsoft Public License (Ms-PL).
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -12,169 +14,238 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
+#if WINDOWS_PHONE
+
+#endif
+
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Provides attached properties for adding a tilt effect to controls
-    /// within a container.
+    /// This code provides attached properties for adding a 'tilt' effect to all 
+    /// controls within a container.
     /// </summary>
-    /// <remarks>
-    /// In WPF, the tilt is implemented by wrapping the tiltable element in a
-    /// <see cref="ProjectionHost"/> and animating a real
-    /// <see cref="PlaneProjection"/>. Mouse input is supported in addition to
-    /// touch manipulation.
-    /// </remarks>
+    /// <QualityBand>Preview</QualityBand>
+    [SuppressMessage("Microsoft.Design", "CA1052:StaticHolderTypesShouldBeSealed", Justification = "Cannot be static and derive from DependencyObject.")]
     public partial class TiltEffect : DependencyObject
     {
+        /// <summary>
+        /// Maximum amount of tilt, in radians.
+        /// </summary>
         private const double MaxAngle = 0.3;
-        private const double MaxDepression = 25;
-        private static readonly TimeSpan TiltReturnAnimationDelay = TimeSpan.FromMilliseconds(200);
-        private static readonly TimeSpan TiltReturnAnimationDuration = TimeSpan.FromMilliseconds(100);
-
-        private static FrameworkElement _currentTiltElement;
-        private static ProjectionHost _currentHost;
-        private static GeneralTransform _containerToHost;
-        private static PlaneProjection _currentProjection;
-        private static bool _wrappedByTilt;
-        private static Point _currentTiltElementCenter;
-        private static Storyboard _tiltReturnStoryboard;
-        private static bool _tiltReturnStoryboardBegun;
-        private static DoubleAnimation _tiltReturnXAnimation;
-        private static DoubleAnimation _tiltReturnYAnimation;
-        private static DoubleAnimation _tiltReturnZAnimation;
-        private static bool _wasPauseAnimation;
 
         /// <summary>
-        /// Gets or sets a value indicating whether a slightly more accurate
-        /// easing function is used for tilt return animations.
+        /// Maximum amount of depression, in pixels
+        /// </summary>
+        private const double MaxDepression = 25;
+
+        /// <summary>
+        /// Delay between releasing an element and the tilt release animation 
+        /// playing.
+        /// </summary>
+        private static readonly TimeSpan TiltReturnAnimationDelay = TimeSpan.FromMilliseconds(200);
+
+        /// <summary>
+        /// Duration of tilt release animation.
+        /// </summary>
+        private static readonly TimeSpan TiltReturnAnimationDuration = TimeSpan.FromMilliseconds(100);
+
+        /// <summary>
+        /// The control that is currently being tilted.
+        /// </summary>
+        private static FrameworkElement currentTiltElement;
+
+        /// <summary>
+        /// The container whose pointer events drive the current tilt.
+        /// </summary>
+        private static FrameworkElement currentTiltContainer;
+
+        /// <summary>
+        /// Mapping from the tilt container to the tilted control, captured 
+        /// while the control is still rendered in 2D.
+        /// </summary>
+        private static GeneralTransform currentTiltContainerToHost;
+
+        /// <summary>
+        /// The single instance of a storyboard used for all tilts.
+        /// </summary>
+        private static Storyboard tiltReturnStoryboard;
+
+        /// <summary>
+        /// The single instance of an X rotation used for all tilts.
+        /// </summary>
+        private static DoubleAnimation tiltReturnXAnimation;
+
+        /// <summary>
+        /// The single instance of a Y rotation used for all tilts.
+        /// </summary>
+        private static DoubleAnimation tiltReturnYAnimation;
+
+        /// <summary>
+        /// The single instance of a Z depression used for all tilts.
+        /// </summary>
+        private static DoubleAnimation tiltReturnZAnimation;
+
+        /// <summary>
+        /// Whether the tilt return storyboard has been started.
+        /// </summary>
+        private static bool tiltReturnStoryboardBegun;
+
+        /// <summary>
+        /// The bounds of the content that is currently being tilted, in the
+        /// control's coordinates. Like the original toolkit, a tilt rotates
+        /// about the centre of the control's first visual child (what the
+        /// control actually shows), not about the centre of its layout slot.
+        /// </summary>
+        private static Rect currentTiltElementBounds;
+
+        /// <summary>
+        /// Whether the animation just completed was for a 'pause' or not.
+        /// </summary>
+        private static bool wasPauseAnimation = false;
+
+        /// <summary>
+        /// Whether to use a slightly more accurate (but slightly slower) tilt 
+        /// animation easing function.
         /// </summary>
         public static bool UseLogarithmicEase { get; set; }
 
         /// <summary>
-        /// Gets the default list of items that are tiltable.
+        /// Default list of items that are tiltable.
         /// </summary>
+        [SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tiltable", Justification = "By design.")]
+        [SuppressMessage("Microsoft.Design", "CA1002:DoNotExposeGenericLists", Justification = "Keeping it simple.")]
         public static List<Type> TiltableItems { get; private set; }
 
-        static TiltEffect()
-        {
-            TiltableItems = new List<Type>
-            {
-                typeof(ButtonBase),
-                typeof(MenuItem),
-                typeof(ListBoxItem),
-                typeof(ProjectionHost)
-            };
-        }
-
+        #region Constructor and Static Constructor
+        /// <summary>
+        /// This is not a constructable class, but it cannot be static because 
+        /// it derives from DependencyObject.
+        /// </summary>
         private TiltEffect()
         {
         }
 
         /// <summary>
-        /// Identifies the IsTiltEnabled attached property.
+        /// Initialize the static properties
         /// </summary>
-        public static readonly DependencyProperty IsTiltEnabledProperty =
-            DependencyProperty.RegisterAttached(
-                "IsTiltEnabled",
-                typeof(bool),
-                typeof(TiltEffect),
-                new PropertyMetadata(false, OnIsTiltEnabledChanged));
+        [SuppressMessage("Microsoft.Performance", "CA1810:InitializeReferenceTypeStaticFieldsInline", Justification = "Need to initialize the tiltable items property.")]
+        static TiltEffect()
+        {
+            // The tiltable items list.
+            TiltableItems = new List<Type>()
+            {
+                typeof(ButtonBase),
+                typeof(ListBoxItem),
+                typeof(ListPicker),
+                typeof(MenuItem),
+                typeof(LongListSelector)
+            };
+        }
+
+        #endregion
+
+        #region Dependency properties
 
         /// <summary>
-        /// Gets the IsTiltEnabled attached property.
+        /// Whether the tilt effect is enabled on a container (and all its 
+        /// children).
         /// </summary>
+        public static readonly DependencyProperty IsTiltEnabledProperty = DependencyProperty.RegisterAttached(
+          "IsTiltEnabled",
+          typeof(bool),
+          typeof(TiltEffect),
+          new PropertyMetadata(OnIsTiltEnabledChanged)
+          );
+
+        /// <summary>
+        /// Gets the IsTiltEnabled dependency property from an object.
+        /// </summary>
+        /// <param name="source">The object to get the property from.</param>
+        /// <returns>The property's value.</returns>
+        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Standard pattern.")]
         public static bool GetIsTiltEnabled(DependencyObject source)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException("source");
-            }
-
             return (bool)source.GetValue(IsTiltEnabledProperty);
         }
 
         /// <summary>
-        /// Sets the IsTiltEnabled attached property.
+        /// Sets the IsTiltEnabled dependency property on an object.
         /// </summary>
+        /// <param name="source">The object to set the property on.</param>
+        /// <param name="value">The value to set.</param>
+        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Standard pattern.")]
         public static void SetIsTiltEnabled(DependencyObject source, bool value)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException("source");
-            }
-
             source.SetValue(IsTiltEnabledProperty, value);
         }
 
         /// <summary>
-        /// Identifies the SuppressTilt attached property.
+        /// Suppresses the tilt effect on a single control that would otherwise 
+        /// be tilted.
         /// </summary>
-        public static readonly DependencyProperty SuppressTiltProperty =
-            DependencyProperty.RegisterAttached("SuppressTilt", typeof(bool), typeof(TiltEffect), null);
+        public static readonly DependencyProperty SuppressTiltProperty = DependencyProperty.RegisterAttached(
+          "SuppressTilt",
+          typeof(bool),
+          typeof(TiltEffect),
+          null
+          );
 
         /// <summary>
-        /// Gets the SuppressTilt attached property.
+        /// Gets the SuppressTilt dependency property from an object.
         /// </summary>
+        /// <param name="source">The object to get the property from.</param>
+        /// <returns>The property's value.</returns>
+        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Standard pattern.")]
         public static bool GetSuppressTilt(DependencyObject source)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException("source");
-            }
-
             return (bool)source.GetValue(SuppressTiltProperty);
         }
 
         /// <summary>
-        /// Sets the SuppressTilt attached property.
+        /// Sets the SuppressTilt dependency property from an object.
         /// </summary>
+        /// <param name="source">The object to get the property from.</param>
+        /// <param name="value">The property's value.</param>
+        [SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0", Justification = "Standard pattern.")]
         public static void SetSuppressTilt(DependencyObject source, bool value)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException("source");
-            }
-
             source.SetValue(SuppressTiltProperty, value);
         }
 
-        private static void OnIsTiltEnabledChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
+        /// <summary>
+        /// Property change handler for the IsTiltEnabled dependency property.
+        /// </summary>
+        /// <param name="target">The element that the property is atteched to.</param>
+        /// <param name="args">Event arguments.</param>
+        /// <remarks>
+        /// Adds or removes event handlers from the element that has been 
+        /// (un)registered for tilting.
+        /// </remarks>
+        static void OnIsTiltEnabledChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
         {
-            FrameworkElement element = target as FrameworkElement;
-            if (element == null)
+            FrameworkElement fe = target as FrameworkElement;
+            if (fe != null)
             {
-                return;
-            }
-
-            if ((bool)args.NewValue)
-            {
-                element.IsManipulationEnabled = true;
-                element.ManipulationStarted += OnManipulationStarted;
-                element.ManipulationDelta += OnManipulationDelta;
-                element.ManipulationCompleted += OnManipulationCompleted;
-                element.PreviewMouseDown += OnMouseLeftButtonDown;
-                element.PreviewMouseMove += OnMouseMove;
-                element.PreviewMouseUp += OnMouseLeftButtonUp;
-                element.LostMouseCapture += OnLostMouseCapture;
-                element.Loaded -= OnTiltElementLoaded;
-                element.Loaded += OnTiltElementLoaded;
-
-                if (element.IsLoaded)
+                // Add / remove the event handler if necessary
+                if ((bool)args.NewValue == true)
                 {
-                    EnsureTiltHost(element);
+                    fe.ManipulationStarted += TiltEffect_ManipulationStarted;
+                    fe.PreviewMouseDown += TiltEffect_MouseDown;
+                    fe.Loaded -= OnTiltElementLoaded;
+                    fe.Loaded += OnTiltElementLoaded;
+
+                    if (fe.IsLoaded)
+                    {
+                        EnsureTiltHost(fe);
+                    }
                 }
-            }
-            else
-            {
-                element.ManipulationStarted -= OnManipulationStarted;
-                element.ManipulationDelta -= OnManipulationDelta;
-                element.ManipulationCompleted -= OnManipulationCompleted;
-                element.PreviewMouseDown -= OnMouseLeftButtonDown;
-                element.PreviewMouseMove -= OnMouseMove;
-                element.PreviewMouseUp -= OnMouseLeftButtonUp;
-                element.LostMouseCapture -= OnLostMouseCapture;
-                element.Loaded -= OnTiltElementLoaded;
-                ProjectionService.ReleaseProjectionHost(element);
+                else
+                {
+                    fe.ManipulationStarted -= TiltEffect_ManipulationStarted;
+                    fe.PreviewMouseDown -= TiltEffect_MouseDown;
+                    fe.Loaded -= OnTiltElementLoaded;
+                    ProjectionService.ReleaseProjectionHost(fe);
+                }
             }
         }
 
@@ -212,133 +283,9 @@ namespace Microsoft.Phone.Controls
             return false;
         }
 
-        private static void OnManipulationStarted(object sender, ManipulationStartedEventArgs e)
-        {
-            TryStartTiltEffect(
-                e.OriginalSource as FrameworkElement ?? sender as FrameworkElement,
-                e.ManipulationOrigin,
-                e.ManipulationContainer as FrameworkElement ?? sender as FrameworkElement);
-        }
-
-        private static void OnManipulationDelta(object sender, ManipulationDeltaEventArgs e)
-        {
-            ContinueTiltEffect(sender as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer as FrameworkElement);
-        }
-
-        private static void OnManipulationCompleted(object sender, ManipulationCompletedEventArgs e)
-        {
-            EndTiltEffect();
-        }
-
-        private static void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Left)
-            {
-                return;
-            }
-
-            FrameworkElement container = sender as FrameworkElement;
-            if (container == null)
-            {
-                return;
-            }
-
-            Point point = e.GetPosition(container);
-            FrameworkElement source = e.OriginalSource as FrameworkElement ?? container;
-            TryStartTiltEffect(source, point, container);
-        }
-
-        private static void OnMouseMove(object sender, MouseEventArgs e)
-        {
-            FrameworkElement container = sender as FrameworkElement;
-            if (container == null || _currentHost == null || e.LeftButton != MouseButtonState.Pressed)
-            {
-                return;
-            }
-
-            ContinueTiltEffect(container, e.GetPosition(container), container);
-        }
-
-        private static void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton != MouseButton.Left)
-            {
-                return;
-            }
-
-            EndTiltEffect();
-        }
-
-        private static void OnLostMouseCapture(object sender, MouseEventArgs e)
-        {
-            EndTiltEffect();
-        }
-
-        private static bool TryStartTiltEffect(FrameworkElement source, Point point, FrameworkElement container)
-        {
-            if (source == null || container == null)
-            {
-                return false;
-            }
-
-            DependencyObject current = source;
-            FrameworkElement tiltable = null;
-            while (current != null)
-            {
-                FrameworkElement element = current as FrameworkElement;
-                if (element != null)
-                {
-                    foreach (Type type in TiltableItems)
-                    {
-                        if (type.IsAssignableFrom(element.GetType()))
-                        {
-                            tiltable = element;
-                            break;
-                        }
-                    }
-                }
-
-                if (tiltable != null)
-                {
-                    break;
-                }
-
-                current = VisualTreeHelper.GetParent(current);
-            }
-
-            if (tiltable == null || IsSuppressed(tiltable))
-            {
-                return false;
-            }
-
-            ProjectionHost host = tiltable as ProjectionHost;
-            bool wrapped = false;
-            if (host == null)
-            {
-                host = ProjectionService.GetProjectionHost(tiltable);
-                if (host == null || !ReferenceEquals(host.Child, tiltable))
-                {
-                    // Only a host that directly contains the element can tilt
-                    // it; an ancestor host would tilt the whole page.
-                    host = ProjectionService.EnsureProjectionHost(tiltable);
-                    wrapped = host != null;
-                }
-            }
-
-            if (host == null || host.Projection != null)
-            {
-                if (wrapped)
-                {
-                    ProjectionService.ReleaseProjectionHost(tiltable);
-                }
-
-                return false;
-            }
-
-            BeginTiltEffect(host, tiltable, wrapped, point, container);
-            return true;
-        }
-
+        /// <summary>
+        /// Looks up the tree to find either an explicit DO or DO NOT suppress.
+        /// </summary>
         private static bool IsSuppressed(FrameworkElement element)
         {
             DependencyObject current = element;
@@ -355,266 +302,706 @@ namespace Microsoft.Phone.Controls
             return false;
         }
 
-        private static void BeginTiltEffect(ProjectionHost host, FrameworkElement tiltable, bool wrapped, Point point, FrameworkElement container)
+        /// <summary>
+        /// Gets the bounds of the content a control shows, in the control's
+        /// coordinates. The original toolkit tilted the control's first visual
+        /// child, so the rotation is centred on what is actually visible
+        /// instead of on the (possibly much larger) layout slot.
+        /// </summary>
+        private static Rect GetTiltBounds(FrameworkElement element)
         {
-            if (_tiltReturnStoryboard != null)
+            if (VisualTreeHelper.GetChildrenCount(element) > 0)
             {
-                StopTiltReturnStoryboardAndCleanup();
-            }
-
-            _currentHost = host;
-            _wrappedByTilt = wrapped;
-            _currentTiltElement = tiltable;
-            _currentProjection = new PlaneProjection();
-
-            try
-            {
-                // The transform has to be captured while the element is still
-                // rendered in 2D: a 3D hosted element has no 2D transform to
-                // its host, and the pointer position is needed for every
-                // update of the tilt.
-                _containerToHost = container.TransformToVisual(host);
-                Point elementPoint = _containerToHost.Transform(point);
-                _currentTiltElementCenter = new Point(host.ActualWidth / 2, host.ActualHeight / 2);
-
-                // Switch the render path before the first tilted frame so the
-                // animation does not change appearance one frame in.
-                host.Prefer3D = true;
-                ProjectionService.SetProjection(tiltable, _currentProjection);
-
-                PrepareTiltReturnStoryboard(host);
-                ApplyTiltEffect(elementPoint, _currentTiltElementCenter);
-            }
-            catch (ArgumentException)
-            {
-                StopTiltReturnStoryboardAndCleanup();
-            }
-            catch (InvalidOperationException)
-            {
-                StopTiltReturnStoryboardAndCleanup();
-            }
-        }
-
-        private static void PrepareTiltReturnStoryboard(FrameworkElement element)
-        {
-            if (_tiltReturnStoryboard == null)
-            {
-                _tiltReturnStoryboard = new Storyboard();
-                _tiltReturnStoryboard.Completed += OnTiltReturnStoryboardCompleted;
-
-                _tiltReturnXAnimation = new DoubleAnimation
+                FrameworkElement content = VisualTreeHelper.GetChild(element, 0) as FrameworkElement;
+                if (content != null && content.ActualWidth > 0 && content.ActualHeight > 0)
                 {
-                    BeginTime = TiltReturnAnimationDelay,
-                    To = 0,
-                    Duration = TiltReturnAnimationDuration
-                };
-                Storyboard.SetTargetProperty(_tiltReturnXAnimation, new PropertyPath(PlaneProjection.RotationXProperty));
+                    try
+                    {
+                        Rect bounds = content.TransformToAncestor(element).TransformBounds(
+                            new Rect(0, 0, content.ActualWidth, content.ActualHeight));
 
-                _tiltReturnYAnimation = new DoubleAnimation
-                {
-                    BeginTime = TiltReturnAnimationDelay,
-                    To = 0,
-                    Duration = TiltReturnAnimationDuration
-                };
-                Storyboard.SetTargetProperty(_tiltReturnYAnimation, new PropertyPath(PlaneProjection.RotationYProperty));
-
-                _tiltReturnZAnimation = new DoubleAnimation
-                {
-                    BeginTime = TiltReturnAnimationDelay,
-                    To = 0,
-                    Duration = TiltReturnAnimationDuration
-                };
-                Storyboard.SetTargetProperty(_tiltReturnZAnimation, new PropertyPath(PlaneProjection.GlobalOffsetZProperty));
-
-                if (UseLogarithmicEase)
-                {
-                    _tiltReturnXAnimation.EasingFunction = new LogarithmicEase();
-                    _tiltReturnYAnimation.EasingFunction = new LogarithmicEase();
-                    _tiltReturnZAnimation.EasingFunction = new LogarithmicEase();
+                        if (bounds.Width > 0 && bounds.Height > 0)
+                        {
+                            return bounds;
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
                 }
-
-                _tiltReturnStoryboard.Children.Add(_tiltReturnXAnimation);
-                _tiltReturnStoryboard.Children.Add(_tiltReturnYAnimation);
-                _tiltReturnStoryboard.Children.Add(_tiltReturnZAnimation);
             }
 
-            Storyboard.SetTarget(_tiltReturnXAnimation, _currentProjection);
-            Storyboard.SetTarget(_tiltReturnYAnimation, _currentProjection);
-            Storyboard.SetTarget(_tiltReturnZAnimation, _currentProjection);
+            return new Rect(0, 0, element.ActualWidth, element.ActualHeight);
         }
 
-        private static void ContinueTiltEffect(FrameworkElement source, Point point, FrameworkElement container)
+        #endregion
+
+        #region Top-level manipulation event handlers
+
+        /// <summary>
+        /// Event handler for ManipulationStarted.
+        /// </summary>
+        /// <param name="sender">sender of the event - this will be the tilt 
+        /// container (eg, entire page).</param>
+        /// <param name="e">Event arguments.</param>
+        private static void TiltEffect_ManipulationStarted(object sender, ManipulationStartedEventArgs e)
         {
-            if (_currentHost == null || container == null)
+            TryStartTiltEffect(sender as FrameworkElement, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
+        }
+
+        private static void TiltEffect_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left)
             {
                 return;
             }
+
+            FrameworkElement container = sender as FrameworkElement;
+            TryStartTiltEffect(container, e.OriginalSource as FrameworkElement, e.GetPosition(container), container);
+        }
+
+        /// <summary>
+        /// Event handler for ManipulationDelta
+        /// </summary>
+        /// <param name="sender">sender of the event - this will be the tilting 
+        /// object (eg a button).</param>
+        /// <param name="e">Event arguments.</param>
+        private static void TiltEffect_ManipulationDelta(object sender, ManipulationDeltaEventArgs e)
+        {
+            ContinueTiltEffect(sender as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
+        }
+
+        private static void TiltEffect_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                return;
+            }
+
+            FrameworkElement container = sender as FrameworkElement;
+            ContinueTiltEffect(container, e.GetPosition(container), container);
+        }
+
+        /// <summary>
+        /// Event handler for ManipulationCompleted.
+        /// </summary>
+        /// <param name="sender">sender of the event - this will be the tilting 
+        /// object (eg a button).</param>
+        /// <param name="e">Event arguments.</param>
+        static void TiltEffect_ManipulationCompleted(object sender, ManipulationCompletedEventArgs e)
+        {
+            EndTiltEffect(currentTiltElement);
+        }
+        private static void TiltEffect_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e is MouseButtonEventArgs args && args.ChangedButton != MouseButton.Left)
+            {
+                return;
+            }
+
+            EndTiltEffect(currentTiltElement);
+        }
+
+        #endregion
+
+        #region Core tilt logic
+
+
+        /// <summary>
+        /// Checks if the manipulation should cause a tilt, and if so starts the 
+        /// tilt effect.
+        /// </summary>
+        /// <param name="source">The source of the manipulation (the tilt 
+        /// container, eg entire page).</param>
+        /// <param name="e">The args from the ManipulationStarted event.</param>
+        static void TryStartTiltEffect(FrameworkElement source, ManipulationStartedEventArgs e)
+        {
+            TryStartTiltEffect(source, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
+        }
+        /// <summary>
+        /// Checks if the manipulation should cause a tilt, and if so starts the 
+        /// tilt effect.
+        /// </summary>
+        /// <param name="source">The source of the manipulation (the tilt 
+        /// container, eg entire page).</param>
+        /// <param name="OriginalSource">The args from the ManipulationStarted event.</param>
+        /// <param name="ManipulationOrigin">The args from the ManipulationStarted event.</param>
+        /// <param name="ManipulationContainer">The args from the ManipulationStarted event.</param>
+        static void TryStartTiltEffect(FrameworkElement source, FrameworkElement OriginalSource, Point ManipulationOrigin, IInputElement ManipulationContainer)
+        {
+            FrameworkElement container = ManipulationContainer as FrameworkElement ?? source;
+            FrameworkElement ancestor = OriginalSource;
+
+            if (ancestor == null || container == null)
+            {
+                return;
+            }
+
+            // Clean up first: the cleanup may release the host this tilt is
+            // about to use.
+            if (tiltReturnStoryboard != null)
+            {
+                StopTiltReturnStoryboardAndCleanup();
+            }
+
+            while (ancestor != null)
+            {
+                if (IsTiltable(ancestor) && !IsSuppressed(ancestor))
+                {
+#if WP8
+                    if (ancestor is LongListSelector)
+                    {
+                        StartTiltEffectOnLLS((LongListSelector)ancestor, OriginalSource, ManipulationOrigin, ManipulationContainer);
+                        return;
+                    }
+#endif
+                    GeneralTransform containerToElement;
+                    Point tiltTouchPoint;
+                    Rect elementBounds;
+
+                    try
+                    {
+                        // The mapping has to be captured while the control is
+                        // still rendered in 2D: a 3D hosted element has no 2D
+                        // transform to its host.
+                        containerToElement = container.TransformToVisual(ancestor);
+                        tiltTouchPoint = containerToElement.Transform(ManipulationOrigin);
+                        elementBounds = GetTiltBounds(ancestor);
+                    }
+                    catch (ArgumentException)
+                    {
+                        return;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        return;
+                    }
+
+                    BeginTiltEffect(ancestor, tiltTouchPoint, elementBounds, container, containerToElement);
+                    return;
+                }
+
+                ancestor = ancestor.GetVisualParent();
+            }
+        }
+
+
+#if WP8
+        /// <summary>
+        /// Starts the tilt effect on LLS items or sticky header.
+        /// </summary>
+        private static void StartTiltEffectOnLLS(LongListSelector lls, ManipulationStartedEventArgs e)
+        {
+            StartTiltEffectOnLLS(lls, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
+        }
+        private static void StartTiltEffectOnLLS(LongListSelector lls, FrameworkElement OriginalSource, Point ManipulationOrigin, IInputElement ManipulationContainer)
+        {
+            FrameworkElement parent = (FrameworkElement)OriginalSource;
+            ContentPresenter[] cps = new ContentPresenter[2];
+            ContentPresenter cp;
+            int cpCount = 0;
+
+            // Starts from OriginalSource and goes up to ViewportControl
+            // while keeping trace of the last 2 ContentPresenter            
+            do
+            {
+                cp = parent as ContentPresenter;
+                if (cp != null)
+                {
+                    cps[cpCount++ % 2] = cp;
+                }
+
+                parent = parent.GetVisualParent();
+            }
+            while (parent != lls && parent.GetType() != typeof(ViewportControl));
+
+            // Makes sure we found a ViewportControl and at least 2 content presenters in our way.
+            if (parent != lls && cpCount >= 2)
+            {
+                // The tilted element is the child of the ContentPresenter that is the farthest from ViewportControl.
+                FrameworkElement element = cps[cpCount % 2].GetVisualChildren().FirstOrDefault() as FrameworkElement;
+
+                // Starts tilt only if we found an element on which tilt is not suppressed.
+                if (element != null)
+                {
+                    object suppressTilt = element.ReadLocalValue(SuppressTiltProperty);
+
+                    if ((suppressTilt is bool) == false || (bool)suppressTilt == false)
+                    {
+                        FrameworkElement container = ManipulationContainer as FrameworkElement;
+
+                        // The mapping has to be captured while the element is
+                        // still rendered in 2D.
+                        GeneralTransform containerToElement = container.TransformToVisual(element);
+
+                        // Touch point relative to the element being tilted.
+                        Point tiltTouchPoint = containerToElement.Transform(ManipulationOrigin);
+
+                        // Bounds of the visible content, in element coordinates.
+                        Rect elementBounds = GetTiltBounds(element);
+
+                        BeginTiltEffect(element, tiltTouchPoint, elementBounds, container, containerToElement);
+                    }
+                }
+            }
+        }
+#endif
+
+        /// <summary>
+        /// Begins the tilt effect by preparing the control and doing the 
+        /// initial animation.
+        /// </summary>
+        /// <param name="element">The element to tilt.</param>
+        /// <param name="touchPoint">The touch point, in element coordinates.</param>
+        /// <param name="bounds">The bounds of the visible content, in element
+        /// coordinates; the tilt rotates about its centre.</param>
+        /// <param name="container">The container that drives the tilt.</param>
+        /// <param name="containerToElement">Mapping from the container to the
+        /// element, captured before the element is rendered in 3D.</param>
+        static void BeginTiltEffect(FrameworkElement element, Point touchPoint, Rect bounds, FrameworkElement container, GeneralTransform containerToElement)
+        {
+            if (tiltReturnStoryboard != null)
+            {
+                StopTiltReturnStoryboardAndCleanup();
+            }
+
+            if (PrepareControlForTilt(element, bounds, container) == false)
+            {
+                return;
+            }
+
+            currentTiltElement = element;
+            currentTiltContainer = container;
+            currentTiltContainerToHost = containerToElement;
+            currentTiltElementBounds = bounds;
+            PrepareTiltReturnStoryboard(element);
+
+            ApplyTiltEffect(currentTiltElement, touchPoint, currentTiltElementBounds);
+        }
+
+        /// <summary>
+        /// Prepares a control to be tilted by setting up a plane projection and
+        /// some event handlers.
+        /// </summary>
+        /// <param name="element">The control that is to be tilted.</param>
+        /// <param name="bounds">The bounds of the visible content, in the
+        /// control's coordinates.</param>
+        /// <param name="container">The container that drives the tilt.</param>
+        /// <returns>true if successful; false otherwise.</returns>
+        /// <remarks>
+        /// This method is conservative; it will fail any attempt to tilt a 
+        /// control that already has a projection on it.
+        /// </remarks>
+        static bool PrepareControlForTilt(FrameworkElement element, Rect bounds, FrameworkElement container)
+        {
+            // Prevents interference with any existing projection
+            if (ProjectionService.GetProjection(element) != null)
+            {
+                return false;
+            }
+
+            PlaneProjection projection = new PlaneProjection();
+
+            // The projection plane is the control's layout slot, but the
+            // rotation happens about the centre of the visible content, like
+            // the original toolkit (which tilted the first visual child).
+            double slotWidth = element.ActualWidth;
+            double slotHeight = element.ActualHeight;
+
+            if (bounds.Width > 0 && bounds.Height > 0 && slotWidth > 0 && slotHeight > 0)
+            {
+                projection.CenterOfRotationX = (bounds.Left + (bounds.Width / 2)) / slotWidth;
+                projection.CenterOfRotationY = (bounds.Top + (bounds.Height / 2)) / slotHeight;
+            }
+
+            // Assigning a projection wraps the control in a ProjectionHost on
+            // demand; the host is removed again when the projection is cleared.
+            ProjectionService.SetProjection(element, projection);
+
+            ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
+            if (host == null)
+            {
+                // The control cannot be projected (an item container, for
+                // example); undo the assignment and do nothing.
+                ProjectionService.SetProjection(element, null);
+                return false;
+            }
+
+            // Keep the render path in 3D until the cleanup so the return
+            // animation does not switch rasterization halfway through.
+            host.Prefer3D = true;
+
+            element.ManipulationDelta += TiltEffect_ManipulationDelta;
+            element.ManipulationCompleted += TiltEffect_ManipulationCompleted;
+            container.PreviewMouseMove += TiltEffect_MouseMove;
+            container.PreviewMouseUp += TiltEffect_MouseUp;
+            container.LostMouseCapture += TiltEffect_MouseUp;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Removes modifications made by PrepareControlForTilt.
+        /// </summary>
+        /// <param name="element">THe control to be un-prepared.</param>
+        /// <param name="container">The container that drives the tilt.</param>
+        /// <remarks>
+        /// This method is basic; it does not do anything to detect if the 
+        /// control being un-prepared was previously prepared.
+        /// </remarks>
+        private static void RevertPrepareControlForTilt(FrameworkElement element, FrameworkElement container)
+        {
+            element.ManipulationDelta -= TiltEffect_ManipulationDelta;
+            element.ManipulationCompleted -= TiltEffect_ManipulationCompleted;
+
+            if (container != null)
+            {
+                container.PreviewMouseMove -= TiltEffect_MouseMove;
+                container.PreviewMouseUp -= TiltEffect_MouseUp;
+                container.LostMouseCapture -= TiltEffect_MouseUp;
+            }
+
+            ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
+            if (host != null)
+            {
+                host.Prefer3D = false;
+            }
+
+            // Clearing the projection also removes a host that was created on
+            // demand for this tilt.
+            ProjectionService.SetProjection(element, null);
+        }
+
+        /// <summary>
+        /// Creates the tilt return storyboard (if not already created) and 
+        /// targets it to the projection.
+        /// </summary>
+        /// <param name="element">The framework element to prepare for
+        /// projection.</param>
+        static void PrepareTiltReturnStoryboard(FrameworkElement element)
+        {
+            if (tiltReturnStoryboard == null)
+            {
+                tiltReturnStoryboard = new Storyboard();
+                tiltReturnStoryboard.Completed += TiltReturnStoryboard_Completed;
+
+                tiltReturnXAnimation = new DoubleAnimation();
+                Storyboard.SetTargetProperty(tiltReturnXAnimation, new PropertyPath(PlaneProjection.RotationXProperty));
+                tiltReturnXAnimation.BeginTime = TiltReturnAnimationDelay;
+                tiltReturnXAnimation.To = 0;
+                tiltReturnXAnimation.Duration = TiltReturnAnimationDuration;
+
+                tiltReturnYAnimation = new DoubleAnimation();
+                Storyboard.SetTargetProperty(tiltReturnYAnimation, new PropertyPath(PlaneProjection.RotationYProperty));
+                tiltReturnYAnimation.BeginTime = TiltReturnAnimationDelay;
+                tiltReturnYAnimation.To = 0;
+                tiltReturnYAnimation.Duration = TiltReturnAnimationDuration;
+
+                tiltReturnZAnimation = new DoubleAnimation();
+                Storyboard.SetTargetProperty(tiltReturnZAnimation, new PropertyPath(PlaneProjection.GlobalOffsetZProperty));
+                tiltReturnZAnimation.BeginTime = TiltReturnAnimationDelay;
+                tiltReturnZAnimation.To = 0;
+                tiltReturnZAnimation.Duration = TiltReturnAnimationDuration;
+
+                if (UseLogarithmicEase)
+                {
+                    tiltReturnXAnimation.EasingFunction = new LogarithmicEase();
+                    tiltReturnYAnimation.EasingFunction = new LogarithmicEase();
+                    tiltReturnZAnimation.EasingFunction = new LogarithmicEase();
+                }
+
+                tiltReturnStoryboard.Children.Add(tiltReturnXAnimation);
+                tiltReturnStoryboard.Children.Add(tiltReturnYAnimation);
+                tiltReturnStoryboard.Children.Add(tiltReturnZAnimation);
+            }
+
+            Storyboard.SetTarget(tiltReturnXAnimation, element.Projection);
+            Storyboard.SetTarget(tiltReturnYAnimation, element.Projection);
+            Storyboard.SetTarget(tiltReturnZAnimation, element.Projection);
+        }
+
+        /// <summary>
+        /// Continues a tilt effect that is currently applied to an element, 
+        /// presumably because the user moved their finger.
+        /// </summary>
+        /// <param name="element">The element being tilted.</param>
+        /// <param name="e">The manipulation event args.</param>
+        static void ContinueTiltEffect(FrameworkElement element, ManipulationDeltaEventArgs e)
+        {
+            ContinueTiltEffect(element, e.ManipulationOrigin, e.ManipulationContainer);
+        }
+        static void ContinueTiltEffect(FrameworkElement element, Point ManipulationOrigin, IInputElement ManipulationContainer)
+        {
+            FrameworkElement container = ManipulationContainer as FrameworkElement;
+            if (container == null || element == null)
+            {
+                return;
+            }
+
+            if (container == null || element == null)
+            {
+                return;
+            }
+
+            Point tiltTouchPoint;
 
             try
             {
                 // The element is rendered in 3D while the tilt runs, so the
                 // mapping captured when the tilt started is used instead of
                 // recomputing it from the (now 3D hosted) element.
-                GeneralTransform transform = _containerToHost ?? container.TransformToVisual(_currentHost);
-                Point elementPoint = transform.Transform(point);
-                if (!new Rect(0, 0, _currentHost.ActualWidth, _currentHost.ActualHeight).Contains(elementPoint))
+                GeneralTransform transform = currentTiltContainerToHost;
+                if (transform == null)
                 {
-                    PauseTiltEffect();
+                    ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
+                    if (host == null)
+                    {
+                        return;
+                    }
+
+                    transform = container.TransformToVisual(host);
                 }
-                else
-                {
-                    ApplyTiltEffect(elementPoint, _currentTiltElementCenter);
-                }
+
+                tiltTouchPoint = transform.Transform(ManipulationOrigin);
             }
             catch (ArgumentException)
             {
+                return;
             }
             catch (InvalidOperationException)
             {
+                return;
+            }
+
+            // If touch moved outside the visible content, then pause the tilt
+            // (but don't cancel it)
+            if (currentTiltElementBounds.Contains(tiltTouchPoint) != true)
+            {
+                PauseTiltEffect();
+            }
+            else
+            {
+                // Apply the updated tilt effect
+                ApplyTiltEffect(currentTiltElement, tiltTouchPoint, currentTiltElementBounds);
             }
         }
 
-        private static void ApplyTiltEffect(Point touchPoint, Point centerPoint)
+        /// <summary>
+        /// Ends the tilt effect by playing the animation.
+        /// </summary>
+        /// <param name="element">The element being tilted.</param>
+        private static void EndTiltEffect(FrameworkElement element)
         {
-            if (_currentProjection == null)
+            if (element != null)
+            {
+                element.ManipulationCompleted -= TiltEffect_ManipulationCompleted;
+                element.ManipulationDelta -= TiltEffect_ManipulationDelta;
+            }
+
+            if (currentTiltContainer != null)
+            {
+                currentTiltContainer.PreviewMouseMove -= TiltEffect_MouseMove;
+                currentTiltContainer.PreviewMouseUp -= TiltEffect_MouseUp;
+                currentTiltContainer.LostMouseCapture -= TiltEffect_MouseUp;
+            }
+
+            if (tiltReturnStoryboard != null)
+            {
+                wasPauseAnimation = false;
+                if (!tiltReturnStoryboardBegun)
+                {
+                    tiltReturnStoryboard.Begin();
+                    tiltReturnStoryboardBegun = true;
+                }
+            }
+            else
+            {
+                StopTiltReturnStoryboardAndCleanup();
+            }
+        }
+
+        /// <summary>
+        /// Handler for the storyboard complete event.
+        /// </summary>
+        /// <param name="sender">sender of the event.</param>
+        /// <param name="e">event args.</param>
+        private static void TiltReturnStoryboard_Completed(object sender, EventArgs e)
+        {
+            tiltReturnStoryboardBegun = false;
+
+            if (wasPauseAnimation)
+            {
+                ResetTiltEffect(currentTiltElement);
+            }
+            else
+            {
+                StopTiltReturnStoryboardAndCleanup();
+            }
+        }
+
+        /// <summary>
+        /// Resets the tilt effect on the control, making it appear 'normal'
+        /// again.
+        /// </summary>
+        /// <param name="element">The element to reset the tilt on.</param>
+        /// <remarks>
+        /// This method doesn't turn off the tilt effect or cancel any current
+        /// manipulation; it just temporarily cancels the effect.
+        /// </remarks>
+        private static void ResetTiltEffect(FrameworkElement element)
+        {
+            PlaneProjection projection = element != null ? element.Projection as PlaneProjection : null;
+            if (projection == null)
             {
                 return;
             }
 
-            if (_tiltReturnStoryboard != null && _tiltReturnStoryboardBegun)
+            projection.RotationY = 0;
+            projection.RotationX = 0;
+            projection.GlobalOffsetZ = 0;
+        }
+
+        /// <summary>
+        /// Stops the tilt effect and release resources applied to the currently
+        /// tilted control.
+        /// </summary>
+        private static void StopTiltReturnStoryboardAndCleanup()
+        {
+            if (tiltReturnStoryboard != null)
             {
-                _tiltReturnStoryboard.Stop();
-                _tiltReturnStoryboardBegun = false;
-                _wasPauseAnimation = false;
+                tiltReturnStoryboard.Stop();
             }
 
-            double normalizedX = Math.Min(Math.Max(touchPoint.X / (centerPoint.X * 2), 0), 1);
-            double normalizedY = Math.Min(Math.Max(touchPoint.Y / (centerPoint.Y * 2), 0), 1);
-            if (double.IsNaN(normalizedX) || double.IsNaN(normalizedY))
+            if (currentTiltElement != null)
+            {
+                // Clearing the projection also removes the host that was
+                // created on demand for this tilt.
+                RevertPrepareControlForTilt(currentTiltElement, currentTiltContainer);
+            }
+
+            currentTiltElement = null;
+            currentTiltContainer = null;
+            currentTiltContainerToHost = null;
+            wasPauseAnimation = false;
+            tiltReturnStoryboardBegun = false;
+            tiltReturnStoryboard = null;
+            tiltReturnXAnimation = null;
+            tiltReturnYAnimation = null;
+            tiltReturnZAnimation = null;
+        }
+
+        /// <summary>
+        /// Pauses the tilt effect so that the control returns to the 'at rest'
+        /// position, but doesn't stop the tilt effect (handlers are still 
+        /// attached).
+        /// </summary>
+        private static void PauseTiltEffect()
+        {
+            if ((tiltReturnStoryboard != null) && !wasPauseAnimation)
+            {
+                if (tiltReturnStoryboardBegun)
+                {
+                    tiltReturnStoryboard.Stop();
+                    tiltReturnStoryboardBegun = false;
+                }
+
+                wasPauseAnimation = true;
+                tiltReturnStoryboard.Begin();
+                tiltReturnStoryboardBegun = true;
+            }
+        }
+
+        /// <summary>
+        /// Resets the storyboard to not running.
+        /// </summary>
+        private static void ResetTiltReturnStoryboard()
+        {
+            tiltReturnStoryboard.Stop();
+            tiltReturnStoryboardBegun = false;
+            wasPauseAnimation = false;
+        }
+
+        /// <summary>
+        /// Applies the tilt effect to the control.
+        /// </summary>
+        /// <param name="element">the control to tilt.</param>
+        /// <param name="touchPoint">The touch point, in the element's
+        /// coordinates.</param>
+        /// <param name="bounds">The bounds of the visible content, in the
+        /// element's coordinates.</param>
+        private static void ApplyTiltEffect(FrameworkElement element, Point touchPoint, Rect bounds)
+        {
+            // Stop any active animation
+            ResetTiltReturnStoryboard();
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
             {
                 return;
             }
 
-            double xMagnitude = Math.Abs(normalizedX - 0.5);
-            double yMagnitude = Math.Abs(normalizedY - 0.5);
-            double xDirection = -Math.Sign(normalizedX - 0.5);
-            double yDirection = Math.Sign(normalizedY - 0.5);
+            // Get the relative point of the touch inside the content bounds
+            Point normalizedPoint = new Point(
+                Math.Min(Math.Max((touchPoint.X - bounds.Left) / bounds.Width, 0), 1),
+                Math.Min(Math.Max((touchPoint.Y - bounds.Top) / bounds.Height, 0), 1));
+
+            if (double.IsNaN(normalizedPoint.X) || double.IsNaN(normalizedPoint.Y))
+            {
+                return;
+            }
+
+            // Shell values
+            double xMagnitude = Math.Abs(normalizedPoint.X - 0.5);
+            double yMagnitude = Math.Abs(normalizedPoint.Y - 0.5);
+            double xDirection = -Math.Sign(normalizedPoint.X - 0.5);
+            double yDirection = Math.Sign(normalizedPoint.Y - 0.5);
             double angleMagnitude = xMagnitude + yMagnitude;
-            double xAngleContribution = angleMagnitude > 0 ? xMagnitude / angleMagnitude : 0;
+            double xAngleContribution = xMagnitude + yMagnitude > 0 ? xMagnitude / (xMagnitude + yMagnitude) : 0;
 
             double angle = angleMagnitude * MaxAngle * 180 / Math.PI;
             double depression = (1 - angleMagnitude) * MaxDepression;
 
-            _currentProjection.RotationY = angle * xAngleContribution * xDirection;
-            _currentProjection.RotationX = angle * (1 - xAngleContribution) * yDirection;
-            _currentProjection.GlobalOffsetZ = -depression;
+            // RotationX and RotationY are the angles of rotations about the x- 
+            // or y-*axis*; to achieve a rotation in the x- or y-*direction*, we 
+            // need to swap the two. That is, a rotation to the left about the 
+            // y-axis is a rotation to the left in the x-direction, and a 
+            // rotation up about the x-axis is a rotation up in the y-direction.
+            PlaneProjection projection = element.Projection as PlaneProjection;
+            if (projection == null)
+            {
+                return;
+            }
+
+            projection.RotationY = angle * xAngleContribution * xDirection;
+            projection.RotationX = angle * (1 - xAngleContribution) * yDirection;
+            projection.GlobalOffsetZ = -depression;
         }
 
-        private static void EndTiltEffect()
+        #endregion
+
+        #region Custom easing function
+
+        /// <summary>
+        /// Provides an easing function for the tilt return.
+        /// </summary>
+        private class LogarithmicEase : EasingFunctionBase
         {
-            if (_currentHost != null)
-            {
-                _currentHost.ManipulationCompleted -= OnManipulationCompleted;
-            }
-
-            if (_tiltReturnStoryboard != null)
-            {
-                _wasPauseAnimation = false;
-                if (!_tiltReturnStoryboardBegun)
-                {
-                    _tiltReturnStoryboard.Begin();
-                    _tiltReturnStoryboardBegun = true;
-                }
-            }
-            else
-            {
-                StopTiltReturnStoryboardAndCleanup();
-            }
-        }
-
-        private static void OnTiltReturnStoryboardCompleted(object sender, EventArgs e)
-        {
-            _tiltReturnStoryboardBegun = false;
-
-            if (_wasPauseAnimation)
-            {
-                if (_currentProjection != null)
-                {
-                    _currentProjection.RotationX = 0;
-                    _currentProjection.RotationY = 0;
-                    _currentProjection.GlobalOffsetZ = 0;
-                }
-            }
-            else
-            {
-                StopTiltReturnStoryboardAndCleanup();
-            }
-        }
-
-        private static void PauseTiltEffect()
-        {
-            if (_tiltReturnStoryboard != null && !_wasPauseAnimation)
-            {
-                if (_tiltReturnStoryboardBegun)
-                {
-                    _tiltReturnStoryboard.Stop();
-                    _tiltReturnStoryboardBegun = false;
-                }
-
-                _wasPauseAnimation = true;
-                _tiltReturnStoryboard.Begin();
-                _tiltReturnStoryboardBegun = true;
-            }
-        }
-
-        private static void StopTiltReturnStoryboardAndCleanup()
-        {
-            if (_tiltReturnStoryboard != null && _tiltReturnStoryboardBegun)
-            {
-                _tiltReturnStoryboard.Stop();
-                _tiltReturnStoryboardBegun = false;
-            }
-
-            if (_currentHost != null)
-            {
-                _currentHost.Projection = null;
-                _currentHost.Prefer3D = false;
-            }
-
-            if (_currentTiltElement != null)
-            {
-                ProjectionService.SetProjection(_currentTiltElement, null);
-            }
-
-            if (_wrappedByTilt && _currentTiltElement != null)
-            {
-                ProjectionService.ReleaseProjectionHost(_currentTiltElement);
-            }
-
-            _currentHost = null;
-            _containerToHost = null;
-            _currentTiltElement = null;
-            _currentProjection = null;
-            _wrappedByTilt = false;
-            _wasPauseAnimation = false;
-            _tiltReturnStoryboardBegun = false;
-            _tiltReturnStoryboard = null;
-            _tiltReturnXAnimation = null;
-            _tiltReturnYAnimation = null;
-            _tiltReturnZAnimation = null;
-        }
-
-        private sealed class LogarithmicEase : EasingFunctionBase
-        {
+            /// <summary>
+            /// Computes the easing function.
+            /// </summary>
+            /// <param name="normalizedTime">The time.</param>
+            /// <returns>The eased value.</returns>
             protected override double EaseInCore(double normalizedTime)
             {
-                return Math.Log10(9 * normalizedTime + 1);
+                // ln(t + 1) / ln(2)
+                return Math.Log(normalizedTime + 1) / 0.693147181;
             }
 
-            protected override Freezable CreateInstanceCore()
-            {
-                return new LogarithmicEase();
-            }
+            protected override Freezable CreateInstanceCore() => new LogarithmicEase();
         }
+
+        #endregion
     }
 }

@@ -121,7 +121,18 @@ The host uses a real `Viewport3D`/`Viewport2DVisual3D`, so the content remains i
 </phone:ProjectionHost>
 ```
 
-Setting `ProjectionService.Projection` on a normal `Grid` compiles but does nothing unless a `ProjectionHost` ancestor exists. This is intentional and documented; use the wrapper.
+The same property works on any other element and wraps it on demand:
+
+```xml
+<Grid phone:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
+```
+
+```csharp
+myGrid.Projection = new PlaneProjection { RotationY = -35 };
+myGrid.Projection = null;   // releases the on-demand wrapper
+```
+
+The on-demand wrapper requires the element to be a direct child of a `Panel`; item containers (`ListBoxItem`) and `ContentPresenter` are skipped because replacing them breaks item generation. The wrapper is released when the projection is cleared, so the visual tree ends up unchanged. Use an explicit `ProjectionHost` in templates or when the element is not a panel child.
 
 ### 4.4 Animations
 
@@ -144,7 +155,7 @@ DoubleAnimation animation = new DoubleAnimation
 projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 ```
 
-`Projection` derives from `Animatable`, so `BeginAnimation` works directly. You can also target the attached property from a `Storyboard` when the projection is set on a `ProjectionHost`.
+`Projection` derives from `Animatable`, so `BeginAnimation` works directly. A `Storyboard` can also target the element itself with the property path `(ProjectionService.Projection).(PlaneProjection.RotationY)`, as in Silverlight.
 
 ### 4.5 `Matrix3DProjection`
 
@@ -276,7 +287,7 @@ The original WP platform supplied `PhoneAccentBrush`, `PhoneForegroundBrush`, `P
 1. Project builds against `net10.0-windows` (or your chosen Windows TFM) with `UseWPF`.
 2. `App.xaml` merges `Themes/Generic.xaml` if named Metro resources are used.
 3. Pages derive from `PhoneApplicationPage` and are hosted in `PhoneApplicationFrame`/`TransitionFrame`.
-4. Projection content is wrapped in `ProjectionHost`; verify hit testing and input.
+4. Projection is assigned to an element (wrapped on demand) or to an explicit `ProjectionHost`; verify hit testing and input.
 5. Navigation transitions run; watch for exceptions from invalid storyboard property values.
 6. Controls render with the expected theme and template parts.
 7. Unsupported modules are replaced with application-specific WPF implementations rather than assumed to work.

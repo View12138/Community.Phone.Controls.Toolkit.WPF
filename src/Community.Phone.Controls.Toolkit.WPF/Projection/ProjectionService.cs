@@ -17,9 +17,11 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     /// <remarks>
     /// Setting this property on a <see cref="ProjectionHost"/> applies the
-    /// projection directly. Setting it on a descendant applies the projection
-    /// to the nearest <see cref="ProjectionHost"/> ancestor, which enables
-    /// storyboard animation using the familiar
+    /// projection directly. Setting it on any other element applies the
+    /// projection to the host that directly contains that element, wrapping
+    /// the element in one on demand, so no visual-tree preparation is needed
+    /// before a projection is assigned. The same property enables storyboard
+    /// animation using the familiar
     /// <c>(UIElement.Projection).(PlaneProjection.RotationY)</c> style
     /// property path.
     /// </remarks>
@@ -27,7 +29,8 @@ namespace Microsoft.Phone.Controls
     {
         #region DependencyProperty Projection
         /// <summary>
-        /// Gets the projection attached to an element.
+        /// Gets the projection applied to an element or to the host that
+        /// directly contains it.
         /// </summary>
         public static Projection GetProjection(DependencyObject element)
         {
@@ -38,18 +41,30 @@ namespace Microsoft.Phone.Controls
 
             if (element is ProjectionHost host)
             {
-                if (host.Projection != null)
-                {
-                    return host.Projection;
-                }
+                return host.Projection ?? (Projection)element.GetValue(ProjectionProperty);
             }
 
-            return (Projection)element.GetValue(ProjectionProperty);
+            Projection projection = (Projection)element.GetValue(ProjectionProperty);
+            if (projection != null)
+            {
+                return projection;
+            }
+
+            FrameworkElement frameworkElement = element as FrameworkElement;
+            ProjectionHost direct = frameworkElement != null ? FindDirectHost(frameworkElement) : null;
+            return direct != null ? direct.Projection : null;
         }
 
         /// <summary>
         /// Sets the projection attached to an element.
         /// </summary>
+        /// <remarks>
+        /// Assigning a projection to an element that is not hosted yet wraps
+        /// the element in a <see cref="ProjectionHost"/> on demand, so a
+        /// projection can be assigned to any element without preparing the
+        /// visual tree first. The host created this way is released again when
+        /// the projection is cleared.
+        /// </remarks>
         public static void SetProjection(DependencyObject element, Projection value)
         {
             if (element == null)
@@ -68,20 +83,78 @@ namespace Microsoft.Phone.Controls
 
         private static void OnProjectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            ProjectionHost host = GetProjectionHost(d);
-            if (host != null)
+            ApplyProjection(d, (Projection)e.NewValue);
+        }
+
+        /// <summary>
+        /// Applies a projection to the host that directly contains the
+        /// element, creating that host on demand.
+        /// </summary>
+        private static void ApplyProjection(DependencyObject d, Projection projection)
+        {
+            if (d is ProjectionHost host)
             {
-                host.Projection = (Projection)e.NewValue;
+                host.Projection = projection;
+                return;
+            }
+
+            FrameworkElement element = d as FrameworkElement;
+            if (element == null)
+            {
+                return;
+            }
+
+            // Only a host that directly contains the element can project it.
+            // Falling back to the nearest ancestor host would apply the
+            // projection to the whole page, because pages are hosted by the
+            // transition frame's presenters.
+            ProjectionHost direct = FindDirectHost(element);
+            if (direct == null && projection != null)
+            {
+                direct = EnsureProjectionHost(element, true);
+            }
+
+            if (direct != null)
+            {
+                bool autoRelease = HostInfos.TryGetValue(element, out HostInfo info) && info.AutoRelease;
+                direct.Projection = projection;
+
+                if (projection == null && autoRelease)
+                {
+                    ReleaseProjectionHost(element);
+                }
+
                 return;
             }
 
             // The element may not be connected to the tree yet. Retry once it
             // is loaded so that XAML declarations on page content still work.
-            if (d is FrameworkElement element)
+            if (projection != null && !element.IsLoaded)
             {
                 element.Loaded -= OnElementLoaded;
                 element.Loaded += OnElementLoaded;
             }
+        }
+
+        extension(DependencyObject element)
+        {
+            public Projection Projection { get => GetProjection(element); set => SetProjection(element, value); }
+        }
+
+        /// <summary>
+        /// Creates the storyboard property path that targets a property of the
+        /// projection applied to the storyboard's target element, for example
+        /// <c>(ProjectionService.Projection).(PlaneProjection.RotationY)</c>.
+        /// </summary>
+        /// <param name="projectionProperty">The projection property to animate.</param>
+        public static PropertyPath GetProjectionPropertyPath(DependencyProperty projectionProperty)
+        {
+            if (projectionProperty == null)
+            {
+                throw new ArgumentNullException("projectionProperty");
+            }
+
+            return new PropertyPath("(0).(1)", ProjectionProperty, projectionProperty);
         }
         #endregion
 
@@ -90,9 +163,7 @@ namespace Microsoft.Phone.Controls
             if (sender is FrameworkElement element)
             {
                 element.Loaded -= OnElementLoaded;
-
-                ProjectionHost host = GetProjectionHost(element);
-                host?.Projection = (Projection)element.GetValue(ProjectionProperty);
+                ApplyProjection(element, (Projection)element.GetValue(ProjectionProperty));
             }
         }
 
@@ -131,6 +202,25 @@ namespace Microsoft.Phone.Controls
             return VisualTreeHelper.GetParent(element);
         }
 
+        /// <summary>
+        /// Finds the <see cref="ProjectionHost"/> that directly contains an
+        /// element, or null when the element is not hosted.
+        /// </summary>
+        /// <remarks>
+        /// Only a host that directly contains the element can project it; the
+        /// nearest ancestor host belongs to a parent (pages are hosted by the
+        /// transition frame's presenters, for example).
+        /// </remarks>
+        public static ProjectionHost GetDirectProjectionHost(FrameworkElement element)
+        {
+            if (element == null)
+            {
+                throw new ArgumentNullException("element");
+            }
+
+            return FindDirectHost(element);
+        }
+
         private static readonly ConditionalWeakTable<FrameworkElement, HostInfo> HostInfos =
             new ConditionalWeakTable<FrameworkElement, HostInfo>();
 
@@ -147,6 +237,11 @@ namespace Microsoft.Phone.Controls
         /// <see cref="ProjectionHost"/> explicitly.
         /// </remarks>
         public static ProjectionHost EnsureProjectionHost(FrameworkElement element)
+        {
+            return EnsureProjectionHost(element, false);
+        }
+
+        internal static ProjectionHost EnsureProjectionHost(FrameworkElement element, bool autoRelease)
         {
             if (element == null)
             {
@@ -199,7 +294,8 @@ namespace Microsoft.Phone.Controls
                 ZIndex = Panel.GetZIndex(element),
                 Dock = DockPanel.GetDock(element),
                 CanvasLeft = Canvas.GetLeft(element),
-                CanvasTop = Canvas.GetTop(element)
+                CanvasTop = Canvas.GetTop(element),
+                AutoRelease = autoRelease
             };
 
             ProjectionHost host = new ProjectionHost
@@ -337,6 +433,7 @@ namespace Microsoft.Phone.Controls
             public double CanvasLeft;
             public double CanvasTop;
             public ProjectionHost Host;
+            public bool AutoRelease;
         }
     }
 }

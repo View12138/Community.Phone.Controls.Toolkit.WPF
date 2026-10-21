@@ -16,10 +16,10 @@
 
 | WP 原始类型 | WPF 移植类型 | 级别 | 说明 |
 |---|---|---|---|
-| `Microsoft.Phone.Controls.PlaneProjection`（平台 `System.Windows.Media.PlaneProjection`） | `Microsoft.Phone.Controls.PlaneProjection` | C/D | 使用 `phone:` 前缀和 `ProjectionHost`。 |
+| `Microsoft.Phone.Controls.PlaneProjection`（平台 `System.Windows.Media.PlaneProjection`） | `Microsoft.Phone.Controls.PlaneProjection` | C/D | 使用 `phone:` 前缀；赋给元素上的 `ProjectionService.Projection`（按需包装）或赋给 `ProjectionHost`。 |
 | `Microsoft.Phone.Controls.Projection`（平台） | `Microsoft.Phone.Controls.Projection` | D | 新基类，继承 `Animatable`。 |
 | `Microsoft.Phone.Controls.Matrix3DProjection`（平台） | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | 矩阵使用 0..1 归一化坐标。 |
-| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | WPF 元素没有原地投影属性。 |
+| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | WPF 元素没有原地投影属性；赋值时会按需把元素包进 `ProjectionHost`，且 `(ProjectionService.Projection).(PlaneProjection.RotationY)` 可作为 storyboard 路径。 |
 | `Microsoft.Phone.Controls.PhoneApplicationFrame` | 同名 | B/C | 继承 WPF `Frame`，增加页面参数导航。 |
 | `Microsoft.Phone.Controls.PhoneApplicationPage` | 同名 | B/C | 继承 WPF `Page`；生命周期由 Frame 触发。 |
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`、`ExtraData`。 |
@@ -42,7 +42,7 @@
 
 | 原始类型 | 移植 | 级别 | XAML 修改 | 行为差异 |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；放入 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。 |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；赋给元素或 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。接收投影的元素会按需被包进 `ProjectionHost`。 |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | 同上 | 矩阵归一化 0..1，转换为像素空间。 |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` 可用于容器 | 普通控件按需包装；使用 `PreviewMouseDown/Move/Up`，容器可倾斜子按钮而不吞按钮点击；跳过列表 item 容器。 |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标必须可包装；跳过 item 容器/content presenter。 |
@@ -137,8 +137,8 @@
 | `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | 所有移植类型必需。 |
 | `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 仅修改命名空间即可（以及应用使用的 WPF 资源键）。 |
 | 使用 `phone:` 前缀的 `<toolkit:TransitionService.NavigationInTransition>...` | 可用。 |
-| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；使用 `ProjectionHost`。 |
-| `<Grid phone:ProjectionService.Projection="...">` | 附加属性可编译，但除非存在 `ProjectionHost` 祖先，否则无效。请显式使用 Host。 |
+| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection`（按需包装）或 `ProjectionHost`。 |
+| `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 panel 的直接子元素），清除投影时自动解包。 |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | 可用。 |
 | 使用 `shell:SystemTray.IsVisible` 的原始 `PhoneApplicationPage` XAML | 使用移植 `shell` 命名空间可解析；视觉 chrome 有限。 |
 | 原始 `shell:ApplicationBar` XAML | 可解析；保留 API 状态；视觉呈现器待完成。 |
@@ -147,7 +147,7 @@
 
 ## 按功能的兼容注意事项
 
-1. **投影与 3D**：真实 3D 渲染和动画已实现，但 XAML 需要包装。相机复现了 XAML 固定的 999 DIP 透视深度，因此缩放与透视收缩与 WP 一致；只有依赖“透视原点移出元素边界”的效果存在差异（见已知限制）。
+1. **投影与 3D**：真实 3D 渲染和动画已实现。原始 `<Grid.Projection>` 形式不编译，但把 `ProjectionService.Projection`（或 `element.Projection`）赋给任意元素时会按需把它包进 `ProjectionHost`，无需手动包装；模板中仍建议显式使用 Host。相机复现了 XAML 固定的 999 DIP 透视深度，因此缩放与透视收缩与 WP 一致；只有依赖“透视原点移出元素边界”的效果存在差异（见已知限制）。
 2. **转场**：时序、角度和模式与原始 storyboard 一致。由于 WPF `GetCurrentState()` 需要可控宿主，移植版自行跟踪 storyboard 状态。
 3. **导航**：保留 WPF `Frame`/`Page` 和 journal 行为，但 WP 页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 检测策略没有 WPF 系统等价物。
 4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线；无法包装的 item 容器/content presenter 会被跳过。

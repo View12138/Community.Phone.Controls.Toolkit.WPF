@@ -113,6 +113,7 @@ namespace Microsoft.Phone.Controls
         private readonly Viewport2DVisual3D _visual3D;
         private readonly PerspectiveCamera _camera;
         private readonly MeshGeometry3D _mesh;
+        private readonly ProjectedSurface _surface;
         private Projection _subscribedProjection;
         private bool _using3D;
         private Size _geometrySize = Size.Empty;
@@ -123,6 +124,7 @@ namespace Microsoft.Phone.Controls
         public ProjectionHost()
         {
             _mesh = new MeshGeometry3D();
+            _surface = new ProjectedSurface();
             _camera = new PerspectiveCamera
             {
                 NearPlaneDistance = NearPlaneDistance,
@@ -196,6 +198,7 @@ namespace Microsoft.Phone.Controls
 
             if (_using3D)
             {
+                _surface.Measure(availableSize);
                 _viewport.Measure(availableSize);
             }
 
@@ -208,7 +211,22 @@ namespace Microsoft.Phone.Controls
             UIElement child = Child;
             if (child != null)
             {
-                child.Arrange(new Rect(finalSize));
+                if (_using3D)
+                {
+                    // Viewport2DVisual3D lays its visual out at its desired size,
+                    // so the surface is pinned to the host's slot.
+                    if (_surface.Width != finalSize.Width || _surface.Height != finalSize.Height)
+                    {
+                        _surface.Width = finalSize.Width;
+                        _surface.Height = finalSize.Height;
+                    }
+
+                    _surface.Arrange(new Rect(finalSize));
+                }
+                else
+                {
+                    child.Arrange(new Rect(finalSize));
+                }
             }
 
             if (_using3D)
@@ -238,9 +256,9 @@ namespace Microsoft.Phone.Controls
 
                 if (_using3D)
                 {
-                    if (ReferenceEquals(_visual3D.Visual, oldChild))
+                    if (ReferenceEquals(_surface.Content, oldChild))
                     {
-                        _visual3D.Visual = null;
+                        _surface.Content = null;
                     }
                 }
                 else
@@ -381,7 +399,14 @@ namespace Microsoft.Phone.Controls
             }
 
             RemoveVisualChildIfNeeded();
-            _visual3D.Visual = Child;
+
+            // The projected visual is the surface, not the content itself:
+            // Viewport2DVisual3D maps the visual's painted bounds onto the
+            // quad, so content that does not fill its layout slot (for
+            // example a left-aligned CheckBox or a short TextBlock) would
+            // otherwise be stretched across the projected plane.
+            _surface.Content = Child;
+            _visual3D.Visual = _surface;
             AddVisualChild(_viewport);
             _using3D = true;
             InvalidateMeasure();
@@ -396,10 +421,8 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            if (ReferenceEquals(_visual3D.Visual, Child))
-            {
-                _visual3D.Visual = null;
-            }
+            _visual3D.Visual = null;
+            _surface.Content = null;
 
             RemoveVisualChild(_viewport);
             _using3D = false;
@@ -429,20 +452,25 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            Size contentSize = Child.RenderSize;
-            if (contentSize.Width <= 0 || contentSize.Height <= 0)
+            // The projected plane is the host's layout slot, not the size the
+            // child happened to be arranged at. A child that is smaller than
+            // its host (or that does not paint its whole slot) must keep its
+            // size and position on the plane, and the rotation centers are
+            // relative to the slot.
+            Size planeSize = hostSize;
+            if (planeSize.Width <= 0 || planeSize.Height <= 0)
             {
-                contentSize = hostSize;
+                planeSize = Child.RenderSize;
             }
 
-            if (contentSize.Width <= 0 || contentSize.Height <= 0)
+            if (planeSize.Width <= 0 || planeSize.Height <= 0)
             {
                 return;
             }
 
-            UpdateGeometry(contentSize);
-            UpdateCamera(hostSize, contentSize);
-            UpdateTransform(contentSize);
+            UpdateGeometry(planeSize);
+            UpdateCamera(hostSize, planeSize);
+            UpdateTransform(planeSize);
         }
 
         private void UpdateGeometry(Size contentSize)
@@ -511,6 +539,99 @@ namespace Microsoft.Phone.Controls
             }
 
             _visual3D.Transform = new MatrixTransform3D(projection.ToMatrix3D(contentSize));
+        }
+
+        /// <summary>
+        /// Hosts the projected content inside the 3D scene and paints a
+        /// transparent rectangle over the whole layout slot.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Viewport2DVisual3D"/> maps the projected visual's painted
+        /// bounds onto the quad. Content that does not paint its whole layout
+        /// slot (a left-aligned <see cref="CheckBox"/>, a short
+        /// <see cref="TextBlock"/>, ...) would be stretched to fill the plane,
+        /// so the surface paints a transparent rectangle of the slot size to
+        /// keep the mapping one-to-one.
+        /// </remarks>
+        private sealed class ProjectedSurface : FrameworkElement
+        {
+            private readonly VisualCollection _visuals;
+            private UIElement _content;
+
+            public ProjectedSurface()
+            {
+                _visuals = new VisualCollection(this);
+            }
+
+            public UIElement Content
+            {
+                get
+                {
+                    return _content;
+                }
+
+                set
+                {
+                    if (ReferenceEquals(_content, value))
+                    {
+                        return;
+                    }
+
+                    if (_content != null)
+                    {
+                        _visuals.Remove(_content);
+                    }
+
+                    _content = value;
+
+                    if (value != null)
+                    {
+                        _visuals.Add(value);
+                    }
+
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                }
+            }
+
+            protected override int VisualChildrenCount => _content != null ? 1 : 0;
+
+            protected override Visual GetVisualChild(int index)
+            {
+                if (index != 0 || _content == null)
+                {
+                    throw new ArgumentOutOfRangeException("index");
+                }
+
+                return _content;
+            }
+
+            protected override Size MeasureOverride(Size availableSize)
+            {
+                UIElement content = _content;
+                if (content == null)
+                {
+                    return new Size();
+                }
+
+                content.Measure(availableSize);
+                return content.DesiredSize;
+            }
+
+            protected override Size ArrangeOverride(Size finalSize)
+            {
+                if (_content != null)
+                {
+                    _content.Arrange(new Rect(finalSize));
+                }
+
+                return finalSize;
+            }
+
+            protected override void OnRender(DrawingContext drawingContext)
+            {
+                drawingContext.DrawRectangle(Brushes.Transparent, null, new Rect(RenderSize));
+            }
         }
     }
 }

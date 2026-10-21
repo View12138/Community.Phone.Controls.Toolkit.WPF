@@ -109,19 +109,24 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
     phone:ProjectionService.Projection="{StaticResource MyProjection}">
     <Grid>...</Grid>
 </phone:ProjectionHost>
+
+<!-- 任意元素上的附加属性；元素会按需被包装。 -->
+<Grid phone:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
 ```
 
-原始 `<Grid.Projection>` 形式**不兼容源码**，迁移时必须使用包装。该差异记录在兼容矩阵和已知限制中。
+`ProjectionService` 把投影应用到**直接包含**该元素的宿主；若元素尚未被宿主包装，则按 `EnsureProjectionHost` 的规则（Panel 的直接子元素；item 容器跳过）按需创建宿主。这样创建的宿主会在投影被清除时自动释放，因此“赋投影 → 清除投影”不会改变最终的可视树。代码中最短的形式是 `element.Projection = new PlaneProjection { RotationY = -35 };`；storyboard 路径仍然是 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。原始 `<Grid.Projection>` 形式依然**不兼容源码**，需用上面任一形式替代。
 
 ### 4.5 效果集成
 
-`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在被羽化元素订阅时完成包装（清空 feathering index 时解包），因此转场动画期间不会重新挂载内容。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
+`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。给元素赋投影（`ProjectionService.SetProjection`、`element.Projection` 或 XAML 附加属性）遵循同一规则：元素尚未被宿主包装时按需包装，并在投影被清除时释放这个按需创建的宿主。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在被羽化元素订阅时完成包装（清空 feathering index 时解包），因此转场动画期间不会重新挂载内容。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
 
 由于**出站转场取自被离开的页面**，想要特定退场动画的页面必须自己声明（或在导航前动态设置）。示例在 `SampleNavigator` 中采用后者，使进入和离开羽化示例都使用 feather 族。
 
 ### 4.6 渲染路径切换
 
 投影为 identity 时 Host 走 2D 路径，否则走 `Viewport3D` 路径。两条路径的**几何完全一致**（identity 投影与 2D 布局的偏差在 0.01 px 以内），但文本栅格化方式不同（ClearType 与 3D 纹理的灰度抗锯齿）。`ProjectionHost.Prefer3D` 让 Host 在投影仍是 identity 时就保持 3D 路径，因此 `TransitionFrame`、`TiltEffect`、`TurnstileFeatherEffect` 在**准备动画时**就切换渲染路径，而不是等到动画首帧。转场的 presenter 不再使用 `BitmapCache`：3D 管线本身就会栅格化内容，额外的 1x 缓存只会让它变糊。
+
+`Viewport2DVisual3D` 把被投影可视对象的**绘制边界**（painted bounds）映射到四边形上，而不是布局槽。绘制范围小于布局槽的内容（左对齐的 `CheckBox`、较短的 `TextBlock`、任何被拉宽但只画一部分的元素）会被拉伸到整个投影平面（这曾让倾斜的 `CheckBox` 方框和文字横向被拉宽约 1.8 倍）。因此 Host 投影一个填满**布局槽**的内部 surface：它按布局槽尺寸绘制透明矩形，并被固定为布局槽尺寸（3D 可视宿主会按 desired size 布局它），平面几何以及 `CenterOfRotation`/`LocalOffset`/`GlobalOffset` 都以布局槽为准，而不是子元素碰巧被测量/排列出的大小。因此比宿主小的子元素会保持它在 2D 下的大小和位置。`ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot` 与 `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize` 覆盖这两点。
 
 开发机实测帧率（`CompositionTarget.Rendering`，480×800 内容）：2D 基线约 150 fps、整页投影约 92–96 fps、6 个独立羽化元素约 64–68 fps，2D→3D 切换只花一帧（约 6 ms）。把羽化目标在**订阅时**提前包装可以把这部分开销移出转场过程，因为动画期间重新挂载元素会让每个目标触发一次完整布局。
 
@@ -174,7 +179,7 @@ WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保
 
 ### `TiltEffect`
 
-保留 `IsTiltEnabled`、`SuppressTilt`、`TiltableItems`、`UseLogarithmicEase`。按下时向上查找最近的 tiltable 祖先，确保存在 `ProjectionHost`，创建 `PlaneProjection`，并应用原始归一化点 → RotationX/RotationY/GlobalOffsetZ 计算。鼠标支持通过隧道式 `PreviewMouseDown/Move/Up` 实现，使容器可以倾斜子按钮而不会吞掉按钮点击；同时支持触摸 manipulation。返回动画直接以投影为目标，并跟踪 Storyboard 是否已应用，避免 WPF `Storyboard` 状态异常，同时清理每次交互的状态。普通 WPF 控件按需包装；列表 item 容器不包装。
+保留 `IsTiltEnabled`、`SuppressTilt`、`TiltableItems`、`UseLogarithmicEase`。按下时向上查找最近的 tiltable 祖先，先缓存 container→control 变换，再通过 `ProjectionService` 赋 `PlaneProjection`——该服务会按需把控件包进 `ProjectionHost`，并在投影清除时移除包装，因此倾斜逻辑不再自己管理宿主。旋转支点取控件的**第一个可视子元素**（模板根，也就是控件实际显示的内容）的中心，按压点也按该边界归一化，与原版工具箱的 `GetChild(control, 0)` 一致；`CenterOfRotation` 以布局槽（即投影平面）为基准表达。随后应用原始归一化点 → RotationX/RotationY/GlobalOffsetZ 计算，指针离开可见内容时暂停倾斜。鼠标支持通过隧道式 `PreviewMouseDown/Move/Up` 实现，使容器可以倾斜子按钮而不会吞掉按钮点击；同时支持触摸 manipulation。返回动画直接以投影为目标，并跟踪 Storyboard 是否已应用，避免 WPF `Storyboard` 状态异常，同时清理每次交互的状态。普通 WPF 控件按需包装；列表 item 容器不包装。
 
 ### `TurnstileFeatherEffect`
 

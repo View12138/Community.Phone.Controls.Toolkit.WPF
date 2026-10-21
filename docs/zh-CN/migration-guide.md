@@ -121,7 +121,18 @@ Host 使用真实 `Viewport3D`/`Viewport2DVisual3D`，因此内容可交互，�
 </phone:ProjectionHost>
 ```
 
-在普通 `Grid` 上设置 `ProjectionService.Projection` 可以编译，但除非存在 `ProjectionHost` 祖先，否则没有效果。请使用包装形式。
+同一个属性也可以用在任意元素上，元素会按需被包装：
+
+```xml
+<Grid phone:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
+```
+
+```csharp
+myGrid.Projection = new PlaneProjection { RotationY = -35 };
+myGrid.Projection = null;   // 释放按需创建的包装
+```
+
+按需包装要求元素是 `Panel` 的直接子元素；`ListBoxItem` 与 `ContentPresenter` 会被跳过，因为替换它们会破坏 item 生成。投影被清除时包装会自动释放，因此最终的可视树与原来一致。模板中或元素不是 panel 子元素时，请显式使用 `ProjectionHost`。
 
 ### 4.4 动画
 
@@ -144,7 +155,7 @@ DoubleAnimation animation = new DoubleAnimation
 projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 ```
 
-`Projection` 继承 `Animatable`，所以 `BeginAnimation` 可直接使用。投影设置在 `ProjectionHost` 上时，也可以在 `Storyboard` 中定位附加属性。
+`Projection` 继承 `Animatable`，所以 `BeginAnimation` 可直接使用。`Storyboard` 也可以把元素本身作为目标，路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`，与 Silverlight 一致。
 
 ### 4.5 `Matrix3DProjection`
 
@@ -276,7 +287,7 @@ Frame.TransitionFailed += (sender, e) =>
 1. 工程以 `net10.0-windows`（或选择的 Windows TFM）和 `UseWPF` 构建。
 2. 如果使用命名 Metro 资源，`App.xaml` 合并了 `Themes/Generic.xaml`。
 3. 页面继承 `PhoneApplicationPage`，并放在 `PhoneApplicationFrame`/`TransitionFrame` 内。
-4. 投影内容用 `ProjectionHost` 包装；验证命中测试和输入。
+4. 投影赋给元素（按需包装）或显式 `ProjectionHost`；验证命中测试和输入。
 5. 导航转场实际运行；注意无效 storyboard 属性值导致的异常。
 6. 控件以预期主题和模板部件渲染。
 7. 不支持的模块用应用专用 WPF 实现替代，而不是假定其可用。

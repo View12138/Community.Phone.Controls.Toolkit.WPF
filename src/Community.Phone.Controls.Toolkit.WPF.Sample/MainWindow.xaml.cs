@@ -13,5 +13,23 @@ namespace PhoneToolkitSample
         {
             get { return (Microsoft.Phone.Controls.TransitionFrame)FindName("Frame"); }
         }
+
+        private void Back_Button_Click(object sender, RoutedEventArgs e)
+        {
+            PhoneFrame.GoBack();
+        }
+
+        private void Home_Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (PhoneFrame.Content.GetType() != typeof(Pages.MainPage))
+            {
+                PhoneFrame.Navigate(new Pages.MainPage());
+            }
+        }
+
+        private void Search_Button_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }

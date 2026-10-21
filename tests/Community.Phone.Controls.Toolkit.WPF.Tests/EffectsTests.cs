@@ -12,6 +12,59 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
     public class EffectsTests
     {
         [Fact]
+        public void TiltEffect_RotatesAboutTheVisibleContentNotTheLayoutSlot()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 441 };
+                TiltEffect.SetIsTiltEnabled(panel, true);
+                CheckBox checkBox = new CheckBox { Content = "Enable full screen", Margin = new Thickness(0, 12, 0, 0) };
+                panel.Children.Add(checkBox);
+
+                Window window = new Window { Width = 480, Height = 200, Content = panel };
+                window.Resources.MergedDictionaries.Add(WpfTestHelper.Theme);
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    panel.UpdateLayout();
+
+                    // The CheckBox template paints a left-aligned strip, so its
+                    // first visual child is narrower than the layout slot.
+                    FrameworkElement content = VisualTreeHelper.GetChild(checkBox, 0) as FrameworkElement;
+                    Assert.NotNull(content);
+                    Rect contentBounds = content.TransformToAncestor(checkBox).TransformBounds(
+                        new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                    Assert.True(
+                        checkBox.ActualWidth > contentBounds.Width * 1.5,
+                        "The test needs a control whose content does not fill its slot.");
+
+                    // Press in the check box glyph with a deterministic point;
+                    // the public entry point reads the real cursor position, so
+                    // the internal overload is invoked directly.
+                    Point press = checkBox.TranslatePoint(new Point(30, 30), panel);
+                    typeof(TiltEffect).GetMethod(
+                        "TryStartTiltEffect",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+                        null,
+                        new[] { typeof(FrameworkElement), typeof(FrameworkElement), typeof(Point), typeof(IInputElement) },
+                        null).Invoke(null, new object[] { panel, checkBox, press, panel });
+                    WpfTestHelper.PumpDispatcher();
+
+                    PlaneProjection projection = ProjectionService.GetProjection(checkBox) as PlaneProjection;
+                    Assert.NotNull(projection);
+                    Assert.Equal(contentBounds.Left + (contentBounds.Width / 2), projection.CenterOfRotationX * checkBox.ActualWidth, 3);
+                    Assert.Equal(contentBounds.Top + (contentBounds.Height / 2), projection.CenterOfRotationY * checkBox.ActualHeight, 3);
+                }
+                finally
+                {
+                    TiltEffect.SetIsTiltEnabled(panel, false);
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void TiltEffect_WrapsAChildButtonAndAnimatesARealProjection()
         {
             StaTest.Run(() =>
@@ -35,17 +88,30 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     ProjectionHost host = ProjectionService.GetProjectionHost(button);
                     Assert.NotNull(host);
+                    Assert.True(host.IsRenderingIn3D);
                     PlaneProjection projection = ProjectionService.GetProjection(button) as PlaneProjection;
                     Assert.NotNull(projection);
                     Assert.False(projection.IsIdentity);
+
+                    double tiltMagnitude = Math.Abs(projection.RotationX) + Math.Abs(projection.RotationY);
 
                     button.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
                     {
                         RoutedEvent = Mouse.PreviewMouseUpEvent
                     });
+
+                    // The release animation waits for TiltReturnAnimationDelay
+                    // before it starts, so the tilt is still applied.
+                    PumpFor(120);
+                    Assert.Same(projection, ProjectionService.GetProjection(button));
+                    Assert.True(tiltMagnitude > 0);
+
                     PumpFor(2000);
 
+                    // The return animation has run and the render path is back
+                    // to 2D.
                     Assert.Null(ProjectionService.GetProjection(button));
+                    Assert.False(host.IsRenderingIn3D);
                 }
                 finally
                 {

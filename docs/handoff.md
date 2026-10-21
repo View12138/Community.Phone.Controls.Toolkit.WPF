@@ -70,13 +70,15 @@ All of the following is **implemented and verified** unless marked otherwise.
 
 ### 4.3 Effects
 
-- `Effects/TiltEffect.cs`: tilts only the control (never the page); wraps the control at `Loaded` (unwraps when tilt is disabled) so the visual tree is not modified during pointer input; captures the container→host transform before switching to 3D (3D-hosted elements cannot be transformed to their host); sets `Prefer3D` instead of `BitmapCache`.
+- `Effects/TiltEffect.cs`: tilts only the control (never the page); wraps the control at `Loaded` (unwraps when tilt is disabled) so the visual tree is not modified during pointer input; captures the container→host transform before switching to 3D (3D-hosted elements cannot be transformed to their host); sets `Prefer3D` instead of `BitmapCache`. The rotation pivots at the **first visual child's** bounds (the visible template content) and normalizes the press point against them, like the original toolkit's `GetChild(control, 0)`; `CenterOfRotation` is relative to the layout slot that is actually projected. The return animation tracks its begun state instead of `Storyboard.GetCurrentState()` (which throws without a containing clock) and resets all per-tilt state, so it is safe across UI threads. Since `ProjectionService` wraps on assignment, the tilt no longer manages hosts: it assigns the projection, keeps `Prefer3D` on the direct host, and clears the projection (which releases the on-demand wrapper).
 - `Effects/TurnstileFeatherEffect.cs`: per-item hosts now work (same ancestor-host fix) plus `Prefer3D` prepare/cleanup.
+- `Projection/ProjectionHost.cs`: the 3D scene now projects an internal slot-sized surface instead of the content itself. `Viewport2DVisual3D` maps the visual's **painted bounds** onto the quad, so content that paints less than its layout slot was stretched across the plane — visible as a horizontally stretched `CheckBox` (its template paints a left-aligned strip) and a distorted feathering label. The surface is pinned to the layout slot, and the plane geometry plus `CenterOfRotation`/offsets are computed from the slot (`UpdateScene`) instead of `Child.RenderSize`, so a child smaller than the host keeps its 2D size and position.
+- `Projection/ProjectionService.cs`: assigning `Projection` (attached property, `SetProjection`, or the `element.Projection` extension member) applies to the host that **directly** contains the element and wraps the element on demand (`ProjectionHost` is no longer required up front). The on-demand wrapper is released when the projection is cleared, so the visual tree ends up unchanged; item containers are still skipped. `GetDirectProjectionHost` exposes the host that actually receives the projection, and `(ProjectionService.Projection).(PlaneProjection.RotationY)` remains the storyboard path.
 
 ### 4.4 Tests added/updated
 
-- `ProjectionTests`: `ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`, `ProjectionHost_AppliesTheXamlPerspectiveDepth`, `PlaneProjection_RotationYMatchesTheXamlDepthDirection` (renamed) and two sign assertions updated.
-- `EffectsTests`: `TiltEffect_DoesNotTiltThePageThatHostsTheElement`.
+- `ProjectionTests`: `ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`, `ProjectionHost_AppliesTheXamlPerspectiveDepth`, `PlaneProjection_RotationYMatchesTheXamlDepthDirection` (renamed) and two sign assertions updated; `ProjectionService_WrapsAnElementThatReceivesAProjection`, `ProjectionService_AppliesAProjectionDeclaredBeforeTheElementLoads`, `ProjectionService_DoesNotProjectThePageHostOfAContainedElement`, `ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot`, `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize`.
+- `EffectsTests`: `TiltEffect_DoesNotTiltThePageThatHostsTheElement`; `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection` now also checks the 3D render path, the return-animation delay, and the return to 2D; `TiltEffect_RotatesAboutTheVisibleContentNotTheLayoutSlot` asserts that the pivot is the template root's centre (a left-aligned `CheckBox` inside a wide slot).
 - `NavigationTests`: `TransitionFrame_PlaysTurnstileTransition` now asserts `Prefer3D`/`IsRenderingIn3D` on the first frame and after completion.
 
 ### 4.5 Latest turn: WP parity tuning, feather smoothness, sample redesign
@@ -133,9 +135,9 @@ Explicitly **not** claimed:
 
 | Path | Role |
 |---|---|
-| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D host, camera (`PerspectiveDepth`), `Prefer3D`, scene updates |
+| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D host, camera (`PerspectiveDepth`), `Prefer3D`, slot-sized projected surface, scene updates |
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D` (sign conventions, row-vector order) |
-| `…/Projection/ProjectionService.cs` | attached projection, `EnsureProjectionHost` / `FindDirectHost`, host wrap/unwrap |
+| `…/Projection/ProjectionService.cs` | attached projection (wraps on demand, releases on clear), `EnsureProjectionHost` / `FindDirectHost`, host wrap/unwrap |
 | `…/Projection/ProjectionMath.cs` | rotation/translation helpers |
 | `…/Transitions/TransitionFrame.cs` | presenter flipping, sequencing, prepare/restore, failure fallback |
 | `…/Transitions/Transitions.cs` | the 19 storyboards in code (normative values) plus the turnstile WP-parity constants (`TurnstileCenterOfRotationX`, `TurnstileDurationScale`) |

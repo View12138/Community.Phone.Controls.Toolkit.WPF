@@ -120,6 +120,7 @@
     <FontFamily x:Key="PhoneFontFamilySemiLight">Segoe WP SemiLight</FontFamily>
     <FontFamily x:Key="PhoneFontFamilySemiBold">Segoe WP Semibold</FontFamily>
     <FontFamily x:Key="PhoneFontFamilyBold">Segoe WP Bold</FontFamily>
+    <FontFamily x:Key="PhoneFontFamilySymbol">Segoe MDL2 Assets</FontFamily>
     <!--  Font sizes  -->
     <!--  14pt  -->
     <System:Double x:Key="PhoneFontSizeSmall">18.667</System:Double>

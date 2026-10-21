@@ -25,6 +25,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <DefineConstants>$(DefineConstants);WINDOWS_PHONE;WP8</DefineConstants>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\README_zh-CN.md" Pack="true" PackagePath="\" />

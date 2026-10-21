@@ -70,13 +70,15 @@
 
 ### 4.3 效果
 
-- `Effects/TiltEffect.cs`：只倾斜控件本身（不再整页）；在 `Loaded` 时完成包裹（倾斜关闭时解包），避免指针输入期间改动视觉树；在切换到 3D 之前先缓存 container→host 变换（3D 宿主无法做 2D 变换）；用 `Prefer3D` 取代 `BitmapCache`。
+- `Effects/TiltEffect.cs`：只倾斜控件本身（不再整页）；在 `Loaded` 时完成包裹（倾斜关闭时解包），避免指针输入期间改动视觉树；在切换到 3D 之前先缓存 container→host 变换（3D 宿主无法做 2D 变换）；用 `Prefer3D` 取代 `BitmapCache`。旋转支点取**第一个可视子元素**（可见模板内容）的边界中心，按压点按该边界归一化，与原版工具箱的 `GetChild(control, 0)` 一致；`CenterOfRotation` 相对真正被投影的布局槽表达。回弹动画改为自行跟踪 begun 状态（`Storyboard.GetCurrentState()` 在没有包含时钟时会抛异常），并在清理时重置所有逐次状态，因此跨 UI 线程安全。由于 `ProjectionService` 会在赋值时按需包装，倾斜逻辑不再自己管理宿主：赋投影、让直接宿主保持 `Prefer3D`，清理时清除投影（由服务释放按需包装）。
 - `Effects/TurnstileFeatherEffect.cs`：逐元素宿主现在真正生效（同一个祖先宿主 bug 的修复），并加入 `Prefer3D` 的准备/清理。
+- `Projection/ProjectionHost.cs`：3D 场景改为投影一个内部“槽位尺寸”的 surface，而不是内容本身。`Viewport2DVisual3D` 会把可视对象的**绘制边界**映射到四边形上，绘制范围小于布局槽的内容会被拉伸——表现为 `CheckBox` 横向被拉宽（其模板只绘制左侧一条）以及羽化文字变形。surface 被固定为布局槽尺寸，并且平面几何与 `CenterOfRotation`/偏移都在 `UpdateScene` 中按布局槽（而不是 `Child.RenderSize`）计算，因此比宿主小的子元素会保持 2D 下的大小和位置。
+- `Projection/ProjectionService.cs`：给元素赋 `Projection`（附加属性、`SetProjection` 或 `element.Projection` 扩展成员）时，投影会应用到**直接包含**该元素的宿主，必要时把元素按需包进 `ProjectionHost`（不再需要事先准备包装）。按需创建的包装会在投影被清除时释放，因此最终可视树不变；item 容器仍然跳过。`GetDirectProjectionHost` 暴露真正接收投影的宿主，storyboard 路径仍为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。
 
 ### 4.4 测试增改
 
-- `ProjectionTests`：`ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`、`ProjectionHost_AppliesTheXamlPerspectiveDepth`、`PlaneProjection_RotationYMatchesTheXamlDepthDirection`（重命名），并更新两处符号断言。
-- `EffectsTests`：`TiltEffect_DoesNotTiltThePageThatHostsTheElement`。
+- `ProjectionTests`：`ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`、`ProjectionHost_AppliesTheXamlPerspectiveDepth`、`PlaneProjection_RotationYMatchesTheXamlDepthDirection`（重命名），并更新两处符号断言；新增 `ProjectionService_WrapsAnElementThatReceivesAProjection`、`ProjectionService_AppliesAProjectionDeclaredBeforeTheElementLoads`、`ProjectionService_DoesNotProjectThePageHostOfAContainedElement`、`ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot`、`ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize`。
+- `EffectsTests`：`TiltEffect_DoesNotTiltThePageThatHostsTheElement`；`TiltEffect_WrapsAChildButtonAndAnimatesARealProjection` 现在还会检查 3D 渲染路径、回弹延迟以及恢复 2D；`TiltEffect_RotatesAboutTheVisibleContentNotTheLayoutSlot` 断言支点是模板根的边界中心（宽槽中左对齐的 `CheckBox`）。
 - `NavigationTests`：`TransitionFrame_PlaysTurnstileTransition` 现在断言首帧与结束后的 `Prefer3D`/`IsRenderingIn3D`。
 
 ### 4.5 本轮：WP 对齐调优、羽化流畅度、Sample 重构
@@ -132,9 +134,9 @@
 
 | 路径 | 作用 |
 |---|---|
-| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D 宿主、相机（`PerspectiveDepth`）、`Prefer3D`、场景更新 |
+| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D 宿主、相机（`PerspectiveDepth`）、`Prefer3D`、槽位尺寸的投影 surface、场景更新 |
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D`（符号约定、行向量顺序） |
-| `…/Projection/ProjectionService.cs` | 附加投影、`EnsureProjectionHost` / `FindDirectHost`、宿主包裹/解包 |
+| `…/Projection/ProjectionService.cs` | 附加投影（按需包裹、清除时释放）、`EnsureProjectionHost` / `FindDirectHost`、宿主包裹/解包 |
 | `…/Projection/ProjectionMath.cs` | 旋转/平移辅助 |
 | `…/Transitions/TransitionFrame.cs` | presenter 翻转、串行时序、准备/复位、失败回退 |
 | `…/Transitions/Transitions.cs` | 代码形式的 19 个 storyboard（数值为权威）+ Turnstile 的 WP 对齐常量（`TurnstileCenterOfRotationX`、`TurnstileDurationScale`） |

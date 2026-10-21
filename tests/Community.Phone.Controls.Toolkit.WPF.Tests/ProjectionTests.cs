@@ -326,7 +326,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Storyboard.SetTarget(animation, content);
                     Storyboard.SetTargetProperty(
                         animation,
-                        new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, PlaneProjection.RotationYProperty));
+                        ProjectionService.GetProjectionPropertyPath(PlaneProjection.RotationYProperty));
                     storyboard.Children.Add(animation);
 
                     DoubleAnimation opacity = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(300));
@@ -681,6 +681,219 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     || hit.VisualHit is Border
                     || hit.VisualHit is Viewport2DVisual3D,
                     "Unexpected hit visual: " + hit.VisualHit);
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_WrapsAnElementThatReceivesAProjection()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Border content = new Border { Background = Brushes.Red, Width = 200, Height = 100 };
+                panel.Children.Add(content);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    panel.UpdateLayout();
+
+                    Assert.Null(ProjectionService.GetProjectionHost(content));
+
+                    PlaneProjection projection = new PlaneProjection { RotationY = 30 };
+                    content.Projection = projection;
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost host = ProjectionService.GetProjectionHost(content);
+                    Assert.NotNull(host);
+                    Assert.Same(content, host.Child);
+                    Assert.Same(projection, host.Projection);
+                    Assert.True(host.IsRenderingIn3D);
+                    Assert.Same(projection, content.Projection);
+
+                    content.Projection = null;
+
+                    Assert.Null(ProjectionService.GetProjection(content));
+                    Assert.Same(panel, VisualTreeHelper.GetParent(content));
+                    Assert.Null(host.Child);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_AppliesAProjectionDeclaredBeforeTheElementLoads()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Border content = new Border { Width = 200, Height = 100, Background = Brushes.Red };
+                PlaneProjection projection = new PlaneProjection { RotationX = 20 };
+                content.Projection = projection;
+
+                Assert.Null(ProjectionService.GetProjectionHost(content));
+
+                panel.Children.Add(content);
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost host = ProjectionService.GetProjectionHost(content);
+                    Assert.NotNull(host);
+                    Assert.Same(content, host.Child);
+                    Assert.Same(projection, host.Projection);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_DoesNotProjectThePageHostOfAContainedElement()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationPage page = new PhoneApplicationPage();
+                StackPanel panel = new StackPanel { Margin = new Thickness(12) };
+                Button button = new Button { Content = "Projected", Width = 200, Height = 60 };
+                panel.Children.Add(button);
+                page.Content = panel;
+
+                TransitionFrame frame = new TransitionFrame { Width = 480, Height = 800 };
+                Window window = new Window { Width = 520, Height = 860, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Content = page;
+                    PumpFor(400);
+
+                    ProjectionHost pageHost = ProjectionService.GetProjectionHost(page);
+                    Assert.NotNull(pageHost);
+                    Assert.Null(pageHost.Projection);
+
+                    PlaneProjection projection = new PlaneProjection { RotationY = 25 };
+                    button.Projection = projection;
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost buttonHost = ProjectionService.GetProjectionHost(button);
+                    Assert.NotNull(buttonHost);
+                    Assert.NotSame(pageHost, buttonHost);
+                    Assert.Same(projection, buttonHost.Projection);
+                    Assert.Null(pageHost.Projection);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot()
+        {
+            StaTest.Run(() =>
+            {
+                // A left-aligned 32x32 block inside a 200x50 slot: the control
+                // paints only a strip of its slot. Viewport2DVisual3D maps the
+                // painted bounds onto the quad, so the host must compensate or
+                // the block would be stretched across the whole plane.
+                Grid content = new Grid { Width = 200, Height = 50 };
+                content.Children.Add(new Border
+                {
+                    Width = 32,
+                    Height = 32,
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Left
+                });
+
+                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Child = content, Prefer3D = true };
+                host.Measure(new Size(200, 50));
+                host.Arrange(new Rect(0, 0, 200, 50));
+                host.UpdateLayout();
+
+                Assert.True(host.IsRenderingIn3D);
+
+                RenderTargetBitmap bitmap = new RenderTargetBitmap(200, 50, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(host);
+
+                int minX = int.MaxValue;
+                int maxX = -1;
+                for (int y = 0; y < 50; y++)
+                {
+                    for (int x = 0; x < 200; x++)
+                    {
+                        Color pixel = GetPixel(bitmap, x, y);
+                        if (pixel.R > 200 && pixel.G > 200 && pixel.B > 200)
+                        {
+                            minX = Math.Min(minX, x);
+                            maxX = Math.Max(maxX, x);
+                        }
+                    }
+                }
+
+                Assert.Equal(0, minX);
+                Assert.Equal(31, maxX);
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize()
+        {
+            StaTest.Run(() =>
+            {
+                // The child is smaller than the host slot: the plane (and the
+                // rotation centers) must be the slot, so the child keeps its
+                // 2D size and position.
+                Border content = new Border
+                {
+                    Width = 32,
+                    Height = 32,
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Left
+                };
+
+                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Child = content, Prefer3D = true };
+                host.Measure(new Size(200, 50));
+                host.Arrange(new Rect(0, 0, 200, 50));
+                host.UpdateLayout();
+
+                Assert.True(host.IsRenderingIn3D);
+
+                RenderTargetBitmap bitmap = new RenderTargetBitmap(200, 50, 96, 96, PixelFormats.Pbgra32);
+                bitmap.Render(host);
+
+                int minX = int.MaxValue;
+                int maxX = -1;
+                int minY = int.MaxValue;
+                int maxY = -1;
+                for (int y = 0; y < 50; y++)
+                {
+                    for (int x = 0; x < 200; x++)
+                    {
+                        Color pixel = GetPixel(bitmap, x, y);
+                        if (pixel.R > 200 && pixel.G > 200 && pixel.B > 200)
+                        {
+                            minX = Math.Min(minX, x);
+                            maxX = Math.Max(maxX, x);
+                            minY = Math.Min(minY, y);
+                            maxY = Math.Max(maxY, y);
+                        }
+                    }
+                }
+
+                Assert.Equal(0, minX);
+                Assert.Equal(31, maxX);
+                Assert.Equal(9, minY);
+                Assert.Equal(40, maxY);
             });
         }
 

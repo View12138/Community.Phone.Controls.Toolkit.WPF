@@ -17,13 +17,22 @@ namespace PhoneToolkitSample
             try
             {
                 MainWindow window = new MainWindow();
+                window.Loaded += Window_Loaded;
                 window.Show();
-                window.PhoneFrame.Navigate(new Pages.MainPage());
             }
             catch (Exception ex)
             {
                 WriteError(ex);
                 Shutdown(1);
+            }
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is MainWindow window)
+            {
+                window.Loaded -= Window_Loaded;
+                window.PhoneFrame.Navigate(new Pages.MainPage());
             }
         }
 

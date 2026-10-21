@@ -16,10 +16,10 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 
 | WP original | WPF port | Level | Notes |
 |---|---|---|---|
-| `Microsoft.Phone.Controls.PlaneProjection` (platform `System.Windows.Media.PlaneProjection`) | `Microsoft.Phone.Controls.PlaneProjection` | C/D | Use `phone:` prefix and a `ProjectionHost`. |
+| `Microsoft.Phone.Controls.PlaneProjection` (platform `System.Windows.Media.PlaneProjection`) | `Microsoft.Phone.Controls.PlaneProjection` | C/D | Use the `phone:` prefix; assign it to `ProjectionService.Projection` on an element (wrapped on demand) or to a `ProjectionHost`. |
 | `Microsoft.Phone.Controls.Projection` (platform) | `Microsoft.Phone.Controls.Projection` | D | New base type; `Animatable`. |
 | `Microsoft.Phone.Controls.Matrix3DProjection` (platform) | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | Matrix is normalized 0..1. |
-| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | No in-place property on WPF elements. |
+| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | No in-place property on WPF elements; assigning it wraps the element in a `ProjectionHost` on demand, and `(ProjectionService.Projection).(PlaneProjection.RotationY)` works as a storyboard path. |
 | `Microsoft.Phone.Controls.PhoneApplicationFrame` | `Microsoft.Phone.Controls.PhoneApplicationFrame` | B/C | Derives from WPF `Frame`; adds page-parameter navigation. |
 | `Microsoft.Phone.Controls.PhoneApplicationPage` | `Microsoft.Phone.Controls.PhoneApplicationPage` | B/C | Derives from WPF `Page`; lifecycle raised by the frame. |
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF has no equivalent; exposes `Uri`, `QueryString`, `ExtraData`. |
@@ -41,7 +41,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 
 | Original type | Port | Level | XAML change | Behavior difference |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; place inside `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; XAML's fixed 999 DIP perspective depth; rotation, center, and offset signs match XAML. |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; assign to an element or a `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; XAML's fixed 999 DIP perspective depth; rotation, center, and offset signs match XAML. An element that receives a projection is wrapped in a `ProjectionHost` on demand. |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | Same | Matrix normalized 0..1; converted to pixel space. |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` works on containers | Plain controls are wrapped on demand; `PreviewMouseDown/Move/Up` support means a container can tilt a child button without consuming its click; list item containers are skipped. |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | Requires wrappable targets; skipped item containers/content presenters. |
@@ -137,8 +137,8 @@ The original storyboards were converted to code, but the durations, key times, a
 | `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | Required for all ported types. |
 | `<phone:ToggleSwitch ... />`, `<phone:Rating ... />`, `<phone:WrapPanel ... />` | Works with migration of the namespace only (and WPF resource keys if the app uses Metro text styles). |
 | `<toolkit:TransitionService.NavigationInTransition>...` with `phone:` prefix | Works. |
-| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | Does not compile in WPF; use `ProjectionHost`. |
-| `<Grid phone:ProjectionService.Projection="...">` | Attached property compiles, but has no effect unless a `ProjectionHost` ancestor exists. Use the host explicitly. |
+| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | Does not compile in WPF; use `ProjectionService.Projection` (wrapped on demand) or a `ProjectionHost`. |
+| `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel) and unwrapped when the projection is cleared. |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | Works. |
 | Original `PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the port’s `shell` namespace; visual chrome is limited. |
 | Original `shell:ApplicationBar` XAML | Parses; API state is retained; visual presenter pending. |
@@ -147,7 +147,7 @@ The original storyboards were converted to code, but the durations, key times, a
 
 ## Compatibility caveats by feature
 
-1. **Projection and 3D** — real 3D rendering and animation are implemented, but the XAML form requires a wrapper. The camera reproduces XAML's fixed 999 DIP perspective depth, so scale and foreshortening match WP; only effects that rely on the perspective origin moving outside the element bounds differ (see known limitations).
+1. **Projection and 3D** — real 3D rendering and animation are implemented. The original `<Grid.Projection>` form does not compile, but assigning `ProjectionService.Projection` (or `element.Projection`) to any element wraps it in a `ProjectionHost` on demand, so no manual wrapper is needed; explicit hosts remain the form for templates. The camera reproduces XAML's fixed 999 DIP perspective depth, so scale and foreshortening match WP; only effects that rely on the perspective origin moving outside the element bounds differ (see known limitations).
 2. **Transitions** — timing, angles and modes match the original storyboards. Storyboard state is tracked by the port because WPF’s `GetCurrentState()` requires a controllable containing object.
 3. **Navigation** — WPF `Frame`/`Page` behavior and journal are retained, but WP page lifecycle is raised by the port’s frame; `PhoneApplicationService` idle-detection policy has no WPF system equivalent.
 4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped (item containers/content presenters) are skipped.
