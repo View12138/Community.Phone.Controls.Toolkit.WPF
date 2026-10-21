@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Phone.Controls;
+using PhoneToolkitSample.Samples;
 
 namespace PhoneToolkitSample.Pages
 {
@@ -41,6 +42,9 @@ namespace PhoneToolkitSample.Pages
                     break;
                 case "menus":
                     target = new MenusPage();
+                    break;
+                case "CustomMessageBox":
+                    target = new CustomMessageBoxSample();
                     break;
                 default:
                     return;

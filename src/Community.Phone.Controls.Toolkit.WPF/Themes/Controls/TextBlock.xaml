@@ -1,0 +1,60 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:Primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
+    xmlns:System="clr-namespace:System;assembly=System.Runtime"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
+
+    <Style x:Key="PhoneTextBlockBase" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeNormal}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="Margin" Value="{DynamicResource PhoneHorizontalMargin}" />
+    </Style>
+    <Style x:Key="PhoneTextNormalStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock" />
+    <Style x:Key="PhoneTextSubtleStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
+    </Style>
+    <Style x:Key="PhoneTextTitle1Style" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeExtraExtraLarge}" />
+    </Style>
+    <Style x:Key="PhoneTextTitle2Style" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeLarge}" />
+    </Style>
+    <Style x:Key="PhoneTextTitle3Style" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeMedium}" />
+    </Style>
+    <Style x:Key="PhoneTextExtraLargeStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeExtraLarge}" />
+    </Style>
+    <Style x:Key="PhoneTextGroupHeaderStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeLarge}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
+    </Style>
+    <Style x:Key="PhoneTextLargeStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeLarge}" />
+    </Style>
+    <Style x:Key="PhoneTextSmallStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeSmall}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
+    </Style>
+    <Style x:Key="PhoneTextContrastStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiBold}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneContrastForegroundBrush}" />
+    </Style>
+    <Style x:Key="PhoneTextAccentStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiBold}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneAccentBrush}" />
+    </Style>
+    <Style x:Key="PhoneTextHugeStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyLight}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeHuge}" />
+    </Style>
+</ResourceDictionary>

@@ -219,10 +219,7 @@ namespace Microsoft.Phone.Controls
             double width = Math.Max(elementSize.Width, 0);
             double height = Math.Max(elementSize.Height, 0);
 
-            Point3D center = new Point3D(
-                (CenterOfRotationX - 0.5) * width,
-                (0.5 - CenterOfRotationY) * height,
-                CenterOfRotationZ);
+            Point3D center = new Point3D((CenterOfRotationX - 0.5) * width, (0.5 - CenterOfRotationY) * height, CenterOfRotationZ);
 
             Vector3D localOffset = new Vector3D(LocalOffsetX, -LocalOffsetY, LocalOffsetZ);
             Vector3D globalOffset = new Vector3D(GlobalOffsetX, -GlobalOffsetY, GlobalOffsetZ);

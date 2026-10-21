@@ -36,8 +36,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,24,12,12">
-            <TextBlock Text="Community Phone Toolkit" Style="{StaticResource PhoneTextNormalStyle}" />
-            <TextBlock Text="samples" Style="{StaticResource PhoneTextTitle1Style}" />
+            <TextBlock Style="{StaticResource PhoneTextNormalStyle}" Text="Community Phone Toolkit" />
+            <TextBlock Style="{StaticResource PhoneTextTitle1Style}" Text="samples" />
         </StackPanel>
 
         <ListBox
@@ -47,47 +47,38 @@
             SelectionChanged="OnSampleSelected">
             <ListBoxItem Tag="controls">
                 <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Controls" Style="{StaticResource PhoneTextAccentStyle}" />
-                    <TextBlock
-                        Text="WPF base controls with WP styling plus the toolkit controls."
-                        Style="{StaticResource PhoneTextSubtleStyle}"
-                        TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Controls" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="WPF base controls with WP styling plus the toolkit controls." TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Tag="projection">
                 <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Projection" Style="{StaticResource PhoneTextAccentStyle}" />
-                    <TextBlock
-                        Text="PlaneProjection on real 3D content, animated continuously."
-                        Style="{StaticResource PhoneTextSubtleStyle}"
-                        TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Projection" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="PlaneProjection on real 3D content, animated continuously." TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Tag="transitions">
                 <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Transitions" Style="{StaticResource PhoneTextAccentStyle}" />
-                    <TextBlock
-                        Text="Pick a transition family and navigate with it."
-                        Style="{StaticResource PhoneTextSubtleStyle}"
-                        TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Transitions" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="Pick a transition family and navigate with it." TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Tag="feather">
                 <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Feathering" Style="{StaticResource PhoneTextAccentStyle}" />
-                    <TextBlock
-                        Text="TurnstileFeatherEffect staggers the elements of both pages."
-                        Style="{StaticResource PhoneTextSubtleStyle}"
-                        TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Feathering" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="TurnstileFeatherEffect staggers the elements of both pages." TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
             <ListBoxItem Tag="menus">
                 <StackPanel Margin="0,10,0,10">
-                    <TextBlock Text="Menus, dialogs and shell" Style="{StaticResource PhoneTextAccentStyle}" />
-                    <TextBlock
-                        Text="ContextMenu, CustomMessageBox, ApplicationBar and SystemTray state."
-                        Style="{StaticResource PhoneTextSubtleStyle}"
-                        TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Menus, dialogs and shell" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="ContextMenu, CustomMessageBox, ApplicationBar and SystemTray state." TextWrapping="Wrap" />
+                </StackPanel>
+            </ListBoxItem>
+            <ListBoxItem Tag="CustomMessageBox">
+                <StackPanel Margin="0,10,0,10">
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="CustomMessageBox" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="CustomMessageBox" TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
         </ListBox>

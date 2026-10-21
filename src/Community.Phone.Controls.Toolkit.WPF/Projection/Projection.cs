@@ -27,10 +27,7 @@ namespace Microsoft.Phone.Controls
         /// Gets a value indicating whether the projection leaves the element
         /// visually unchanged.
         /// </summary>
-        public virtual bool IsIdentity
-        {
-            get { return false; }
-        }
+        public virtual bool IsIdentity => false;
 
         /// <summary>
         /// Creates the pixel-space transform for an element of the supplied
@@ -44,13 +41,6 @@ namespace Microsoft.Phone.Controls
         /// <summary>
         /// Raises the <see cref="ProjectionChanged"/> event.
         /// </summary>
-        protected void OnProjectionChanged()
-        {
-            EventHandler handler = ProjectionChanged;
-            if (handler != null)
-            {
-                handler(this, EventArgs.Empty);
-            }
-        }
+        protected void OnProjectionChanged() => ProjectionChanged?.Invoke(this, EventArgs.Empty);
     }
 }

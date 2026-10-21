@@ -1,0 +1,88 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:Primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
+    xmlns:System="clr-namespace:System;assembly=System.Runtime"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
+
+    <Style TargetType="controls:CustomMessageBox">
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeNormal}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="controls:CustomMessageBox">
+                    <Grid HorizontalAlignment="Stretch" Background="{TemplateBinding Background}">
+                        <Grid Width="480" HorizontalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
+                                <TextBlock
+                                    x:Name="TitleTextBlock"
+                                    Margin="24,16,24,-6"
+                                    FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Text="{TemplateBinding Title}"
+                                    Visibility="Collapsed" />
+                                <TextBlock
+                                    x:Name="CaptionTextBlock"
+                                    Margin="24,8,24,0"
+                                    HorizontalAlignment="Left"
+                                    FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
+                                    FontSize="{DynamicResource PhoneFontSizeLarge}"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Text="{TemplateBinding Caption}"
+                                    TextWrapping="Wrap"
+                                    Visibility="Collapsed" />
+                                <TextBlock
+                                    x:Name="MessageTextBlock"
+                                    Margin="24,11,24,0"
+                                    HorizontalAlignment="Left"
+                                    FontFamily="{DynamicResource PhoneFontFamilySemiLight}"
+                                    FontSize="{DynamicResource PhoneFontSizeMedium}"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Text="{TemplateBinding Message}"
+                                    TextWrapping="Wrap"
+                                    Visibility="Collapsed" />
+                                <ContentPresenter Margin="12,0,0,0" />
+                            </StackPanel>
+                            <Button
+                                x:Name="LeftButton"
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Margin="12,0,0,12"
+                                controls:TiltEffect.IsTiltEnabled="True"
+                                Content="{TemplateBinding LeftButtonContent}"
+                                Foreground="{TemplateBinding Foreground}"
+                                IsEnabled="{TemplateBinding IsLeftButtonEnabled}"
+                                Visibility="Collapsed" />
+                            <Button
+                                x:Name="RightButton"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Margin="0,0,12,12"
+                                controls:TiltEffect.IsTiltEnabled="True"
+                                Content="{TemplateBinding RightButtonContent}"
+                                Foreground="{TemplateBinding Foreground}"
+                                IsEnabled="{TemplateBinding IsRightButtonEnabled}"
+                                Visibility="Collapsed" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

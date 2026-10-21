@@ -6,8 +6,26 @@
     Title="Community Phone Toolkit WPF Sample"
     Width="480"
     Height="800"
-    Background="Black">
+    Background="Black"
+    ResizeMode="CanResizeWithGrip">
     <Grid>
         <phone:TransitionFrame x:Name="Frame" />
+        <Button VerticalAlignment="Center" Content="asd" RenderTransformOrigin="0.5,0.5">
+            <Button.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="48.576"/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Button.RenderTransform>
+            <!--<Button.RenderTransform>
+                <RotateTransform3D>
+                    <RotateTransform3D.Rotation>
+                        <AxisAngleRotation3D x:Name="myAngleRotation" Axis="0,3,0" Angle="1" />
+                    </RotateTransform3D.Rotation>
+                </RotateTransform3D>
+            </Button.RenderTransform>-->
+        </Button>
     </Grid>
 </Window>

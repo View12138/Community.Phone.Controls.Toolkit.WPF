@@ -279,3 +279,4 @@ namespace Microsoft.Phone.Shell
         }
     }
 }
+

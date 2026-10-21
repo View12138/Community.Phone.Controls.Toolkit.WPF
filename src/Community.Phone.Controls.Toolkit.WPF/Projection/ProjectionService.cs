@@ -25,16 +25,7 @@ namespace Microsoft.Phone.Controls
     /// </remarks>
     public static class ProjectionService
     {
-        /// <summary>
-        /// Identifies the Projection attached property.
-        /// </summary>
-        public static readonly DependencyProperty ProjectionProperty =
-            DependencyProperty.RegisterAttached(
-                "Projection",
-                typeof(Projection),
-                typeof(ProjectionService),
-                new PropertyMetadata(null, OnProjectionChanged));
-
+        #region DependencyProperty Projection
         /// <summary>
         /// Gets the projection attached to an element.
         /// </summary>
@@ -45,13 +36,11 @@ namespace Microsoft.Phone.Controls
                 throw new ArgumentNullException("element");
             }
 
-            ProjectionHost host = element as ProjectionHost;
-            if (host != null)
+            if (element is ProjectionHost host)
             {
-                Projection direct = host.Projection;
-                if (direct != null)
+                if (host.Projection != null)
                 {
-                    return direct;
+                    return host.Projection;
                 }
             }
 
@@ -72,30 +61,10 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Finds the nearest <see cref="ProjectionHost"/> ancestor of an
-        /// element, or the element itself when it is a host.
+        /// Identifies the Projection attached property.
         /// </summary>
-        public static ProjectionHost GetProjectionHost(DependencyObject element)
-        {
-            ProjectionHost host = element as ProjectionHost;
-            if (host != null)
-            {
-                return host;
-            }
-
-            DependencyObject current = element;
-            while (current != null)
-            {
-                if (current is ProjectionHost)
-                {
-                    return (ProjectionHost)current;
-                }
-
-                current = GetParent(current);
-            }
-
-            return null;
-        }
+        public static readonly DependencyProperty ProjectionProperty =
+            DependencyProperty.RegisterAttached("Projection", typeof(Projection), typeof(ProjectionService), new PropertyMetadata(null, OnProjectionChanged));
 
         private static void OnProjectionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -108,30 +77,53 @@ namespace Microsoft.Phone.Controls
 
             // The element may not be connected to the tree yet. Retry once it
             // is loaded so that XAML declarations on page content still work.
-            FrameworkElement element = d as FrameworkElement;
-            if (element != null)
+            if (d is FrameworkElement element)
             {
                 element.Loaded -= OnElementLoaded;
                 element.Loaded += OnElementLoaded;
             }
         }
+        #endregion
 
         private static void OnElementLoaded(object sender, RoutedEventArgs e)
         {
-            FrameworkElement element = (FrameworkElement)sender;
-            element.Loaded -= OnElementLoaded;
-
-            ProjectionHost host = GetProjectionHost(element);
-            if (host != null)
+            if (sender is FrameworkElement element)
             {
-                host.Projection = (Projection)element.GetValue(ProjectionProperty);
+                element.Loaded -= OnElementLoaded;
+
+                ProjectionHost host = GetProjectionHost(element);
+                host?.Projection = (Projection)element.GetValue(ProjectionProperty);
             }
+        }
+
+        /// <summary>
+        /// Finds the nearest <see cref="ProjectionHost"/> ancestor of an
+        /// element, or the element itself when it is a host.
+        /// </summary>
+        public static ProjectionHost GetProjectionHost(DependencyObject element)
+        {
+            if (element is ProjectionHost host)
+            {
+                return host;
+            }
+
+            DependencyObject current = element;
+            while (current != null)
+            {
+                if (current is ProjectionHost _host)
+                {
+                    return _host;
+                }
+
+                current = GetParent(current);
+            }
+
+            return null;
         }
 
         private static DependencyObject GetParent(DependencyObject element)
         {
-            FrameworkElement frameworkElement = element as FrameworkElement;
-            if (frameworkElement != null)
+            if (element is FrameworkElement frameworkElement)
             {
                 return frameworkElement.Parent ?? frameworkElement.TemplatedParent;
             }
@@ -176,8 +168,7 @@ namespace Microsoft.Phone.Controls
                 return null;
             }
 
-            Panel panel = element.Parent as Panel;
-            if (panel == null)
+            if (element.Parent is not Panel panel)
             {
                 return null;
             }
@@ -260,20 +251,15 @@ namespace Microsoft.Phone.Controls
 
         private static ProjectionHost FindDirectHost(FrameworkElement element)
         {
-            HostInfo info;
-            if (HostInfos.TryGetValue(element, out info))
+            if (HostInfos.TryGetValue(element, out HostInfo info))
             {
                 return info.Host;
             }
 
             DependencyObject parent = element.Parent;
-            if (parent == null)
-            {
-                parent = VisualTreeHelper.GetParent(element);
-            }
+            parent ??= VisualTreeHelper.GetParent(element);
 
-            ProjectionHost host = parent as ProjectionHost;
-            if (host != null && ReferenceEquals(host.Child, element))
+            if (parent is ProjectionHost host && ReferenceEquals(host.Child, element))
             {
                 return host;
             }
@@ -292,8 +278,7 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            HostInfo info;
-            if (!HostInfos.TryGetValue(element, out info))
+            if (!HostInfos.TryGetValue(element, out HostInfo info))
             {
                 return;
             }

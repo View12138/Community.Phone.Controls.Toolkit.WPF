@@ -25,45 +25,79 @@ namespace Microsoft.Phone.Controls
     [ContentProperty("Child")]
     public class ProjectionHost : FrameworkElement
     {
+        #region Child DependencyProperty
+        /// <summary>
+        /// Gets or sets the content to project.
+        /// </summary>
+        public UIElement Child
+        {
+            get { return (UIElement)GetValue(ChildProperty); }
+            set { SetValue(ChildProperty, value); }
+        }
         /// <summary>
         /// Identifies the <see cref="Child"/> property.
         /// </summary>
         public static readonly DependencyProperty ChildProperty =
-            DependencyProperty.Register(
-                "Child",
-                typeof(UIElement),
-                typeof(ProjectionHost),
-                new PropertyMetadata(null, OnChildChanged));
+            DependencyProperty.Register("Child", typeof(UIElement), typeof(ProjectionHost), new PropertyMetadata(null, OnChildChanged));
+        #endregion
 
+        #region Projection DependencyProperty
+        /// <summary>
+        /// Gets or sets the projection applied to the content.
+        /// </summary>
+        public Projection Projection
+        {
+            get { return (Projection)GetValue(ProjectionProperty); }
+            set { SetValue(ProjectionProperty, value); }
+        }
         /// <summary>
         /// Identifies the <see cref="Projection"/> property.
         /// </summary>
         public static readonly DependencyProperty ProjectionProperty =
-            DependencyProperty.Register(
-                "Projection",
-                typeof(Projection),
-                typeof(ProjectionHost),
-                new PropertyMetadata(null, OnProjectionChanged));
+            DependencyProperty.Register("Projection", typeof(Projection), typeof(ProjectionHost), new PropertyMetadata(null, OnProjectionChanged));
+        #endregion
 
+        #region PerspectiveDepth DependencyProperty
+        /// <summary>
+        /// Gets or sets the distance, in device independent pixels, between the
+        /// viewer and the unprojected plane. Smaller values produce a stronger
+        /// perspective.
+        /// </summary>
+        public double PerspectiveDepth
+        {
+            get { return (double)GetValue(PerspectiveDepthProperty); }
+            set { SetValue(PerspectiveDepthProperty, value); }
+        }
         /// <summary>
         /// Identifies the <see cref="PerspectiveDepth"/> property.
         /// </summary>
         public static readonly DependencyProperty PerspectiveDepthProperty =
-            DependencyProperty.Register(
-                "PerspectiveDepth",
-                typeof(double),
-                typeof(ProjectionHost),
-                new PropertyMetadata(DefaultPerspectiveDepth, OnPerspectiveDepthChanged));
+            DependencyProperty.Register("PerspectiveDepth", typeof(double), typeof(ProjectionHost), new PropertyMetadata(DefaultPerspectiveDepth, OnPerspectiveDepthChanged));
+        #endregion
 
+        #region Prefer3D DependencyProperty
+        /// <summary>
+        /// Gets or sets a value indicating whether the content is rendered
+        /// through the 3D pipeline even while the projection is the identity.
+        /// </summary>
+        /// <remarks>
+        /// Switching between the 2D and the 3D render path restyles the
+        /// content (the 3D path rasterizes it, so ClearType is replaced by
+        /// grayscale anti-aliasing). Transitions set this before the first
+        /// animated frame so that the whole animation is rendered by a single
+        /// path instead of changing appearance on its first frame.
+        /// </remarks>
+        public bool Prefer3D
+        {
+            get { return (bool)GetValue(Prefer3DProperty); }
+            set { SetValue(Prefer3DProperty, value); }
+        }
         /// <summary>
         /// Identifies the <see cref="Prefer3D"/> property.
         /// </summary>
         public static readonly DependencyProperty Prefer3DProperty =
-            DependencyProperty.Register(
-                "Prefer3D",
-                typeof(bool),
-                typeof(ProjectionHost),
-                new PropertyMetadata(false, OnPrefer3DChanged));
+            DependencyProperty.Register("Prefer3D", typeof(bool), typeof(ProjectionHost), new PropertyMetadata(false, OnPrefer3DChanged));
+        #endregion
 
         /// <summary>
         /// The perspective depth used by the XAML <c>PlaneProjection</c>
@@ -72,7 +106,6 @@ namespace Microsoft.Phone.Controls
         /// perspective stays consistent for every element size.
         /// </summary>
         private const double DefaultPerspectiveDepth = 999.0;
-
         private const double NearPlaneDistance = 0.1;
         private const double FarPlaneDistance = 1000000.0;
 
@@ -121,73 +154,13 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Gets or sets the content to project.
-        /// </summary>
-        public UIElement Child
-        {
-            get { return (UIElement)GetValue(ChildProperty); }
-            set { SetValue(ChildProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the projection applied to the content.
-        /// </summary>
-        public Projection Projection
-        {
-            get { return (Projection)GetValue(ProjectionProperty); }
-            set { SetValue(ProjectionProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the distance, in device independent pixels, between the
-        /// viewer and the unprojected plane. Smaller values produce a stronger
-        /// perspective.
-        /// </summary>
-        public double PerspectiveDepth
-        {
-            get { return (double)GetValue(PerspectiveDepthProperty); }
-            set { SetValue(PerspectiveDepthProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the content is rendered
-        /// through the 3D pipeline even while the projection is the identity.
-        /// </summary>
-        /// <remarks>
-        /// Switching between the 2D and the 3D render path restyles the
-        /// content (the 3D path rasterizes it, so ClearType is replaced by
-        /// grayscale anti-aliasing). Transitions set this before the first
-        /// animated frame so that the whole animation is rendered by a single
-        /// path instead of changing appearance on its first frame.
-        /// </remarks>
-        public bool Prefer3D
-        {
-            get { return (bool)GetValue(Prefer3DProperty); }
-            set { SetValue(Prefer3DProperty, value); }
-        }
-
-        /// <summary>
         /// Gets a value indicating whether the content is currently rendered
         /// through the 3D pipeline.
         /// </summary>
-        public bool IsRenderingIn3D
-        {
-            get { return _using3D; }
-        }
+        public bool IsRenderingIn3D => _using3D;
 
         /// <inheritdoc />
-        protected override int VisualChildrenCount
-        {
-            get
-            {
-                if (_using3D)
-                {
-                    return 1;
-                }
-
-                return Child == null ? 0 : 1;
-            }
-        }
+        protected override int VisualChildrenCount => _using3D || Child != null ? 1 : 0;
 
         /// <inheritdoc />
         protected override Visual GetVisualChild(int index)

@@ -98,30 +98,16 @@ namespace Microsoft.Phone.Controls
 
             if (Storyboard.Children.Count == 0)
             {
-                // A transition can legitimately end up without animations, for
-                // example a feathered transition on a page that has no
-                // feathered elements. An empty storyboard never raises
-                // Completed, so the frame would wait forever for the
-                // transition to finish and the new page would stay
-                // non-interactive. Complete it on the next dispatcher pass so
-                // the asynchronous contract matches a real animation.
                 _started = false;
-                _element.Dispatcher.BeginInvoke(
-                    DispatcherPriority.Normal,
-                    new Action(CompleteWithoutAnimation));
+                _element.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(CompleteWithoutAnimation));
                 return;
             }
 
             Save();
             _started = true;
 
-            FrameworkElement containingObject = _element as FrameworkElement;
-            if (containingObject != null)
+            if (_element is FrameworkElement containingObject)
             {
-                // Begin the clock from a FrameworkElement in the visual tree.
-                // Storyboard.Begin() without a containing object does not tick
-                // reliably for animations whose targets are Freezables such
-                // as PlaneProjection.
                 Storyboard.Begin(containingObject, true);
             }
             else
