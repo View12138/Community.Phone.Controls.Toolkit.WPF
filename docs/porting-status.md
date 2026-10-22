@@ -12,7 +12,7 @@ English · [中文](zh-CN/porting-status.md)
 | 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
 | ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
 
-**Evidence snapshot (2026-10-22):** Release build 0 errors (22 pre-existing warnings, all in `LongListSelector`, `ViewportControl` and `WindowHelper`) · **103/103 tests pass** in Release and Debug (about 30 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer) · `build/verify-package.ps1` passes · sample smoke runs: the Controls sample (both list pickers) loads without an animation exception, the ListPicker full-mode page shows the original `ApplicationBar` (check/cancel), and the Menus sample draws the ported application bar (icons, labels, menu button and menu).
+**Evidence snapshot (2026-10-22):** cold Release build (library `obj`/`bin` deleted) 0 errors (22 pre-existing warnings, all in `LongListSelector`, `ViewportControl` and `WindowHelper`) · **103/103 tests pass** in Release and Debug (about 30 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer) · `build/verify-package.ps1` passes · earlier sample runs: the Controls sample (both list pickers) loads without an animation exception, the ListPicker full-mode page shows the original `ApplicationBar` (check/cancel), and the Menus sample draws the ported application bar. The on-screen sample check could not be repeated after the `ListPickerPage` theme/`MC3074` fixes because the interactive desktop was unavailable; those paths are covered by the `ListPickerPage` tests.
 
 ---
 

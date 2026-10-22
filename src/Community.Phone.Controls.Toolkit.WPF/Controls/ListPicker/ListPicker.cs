@@ -940,21 +940,79 @@ namespace Microsoft.Phone.Controls
         /// <inheritdoc />
         protected override void OnMouseEnter(MouseEventArgs e)
         {
+            if (null == e)
+            {
+                throw new ArgumentNullException("e");
+            }
+
             base.OnMouseEnter(e);
 
-            if (ListPickerMode == ListPickerMode.Normal && IsEnabled)
+            if (ListPickerMode == ListPickerMode.Normal)
             {
-                IsHighlighted = true;
+                if (!IsEnabled)
+                {
+                    return;
+                }
+
+                Point p = e.GetPosition(this);
+
+                if (e.OriginalSource != this)
+                {
+                    p = this.TransformToVisual((UIElement)e.OriginalSource).Transform(p);
+                }
+
+                if (IsValidManipulation(e.OriginalSource, p))
+                {
+                    IsHighlighted = true;
+                }
+            }
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (null == e)
+            {
+                throw new ArgumentNullException("e");
+            }
+
+            base.OnMouseMove(e);
+
+            if (ListPickerMode == ListPickerMode.Normal)
+            {
+                if (!IsEnabled)
+                {
+                    return;
+                }
+
+                Point p = e.GetPosition(this);
+
+                if (e.OriginalSource != this)
+                {
+                    p = ((UIElement)this).TransformToVisual((UIElement)e.OriginalSource).Transform(p);
+                }
+
+                IsHighlighted = IsValidManipulation(e.OriginalSource, p);
             }
         }
 
         /// <inheritdoc />
         protected override void OnMouseLeave(MouseEventArgs e)
         {
+            if (null == e)
+            {
+                throw new ArgumentNullException("e");
+            }
+
             base.OnMouseLeave(e);
+
+            if (!IsEnabled)
+            {
+                return;
+            }
 
             if (ListPickerMode == ListPickerMode.Normal)
             {
+                // Style box to look unselected
                 IsHighlighted = false;
             }
         }

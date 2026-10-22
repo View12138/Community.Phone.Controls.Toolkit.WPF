@@ -25,11 +25,11 @@ Acceptance criteria in use:
 
 | Check | Command | Result |
 |---|---|---|
-| Release build | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` | **0 errors**; the only warnings come from the untracked in-progress files (`LongListSelector.cs`, `ViewportControl.cs`, `WindowHelper.cs` — unused events / unreachable code). Tracked code, including the transition and projection subsystems, compiles warning-free |
+| Release build | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` (or after deleting `obj`/`bin`) | **0 errors**; the only warnings come from the untracked in-progress files (`LongListSelector.cs`, `ViewportControl.cs`, `WindowHelper.cs` — unused events / unreachable code). Tracked code, including the transition and projection subsystems, compiles warning-free |
 | Release tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **103 passed / 0 failed / 0 skipped** in about 30 s — every transition/navigation/projection/effect/ListPicker/application-bar test passes, including the previously failing `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
 | Debug tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **103 passed / 0 failed** |
 | Package + consumer | `powershell -File build\verify-package.ps1` | **passed** — `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` (+ `.snupkg`), fresh consumer restored from the local feed and ran |
-| Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, open every sample | **all five samples open and return** (Controls, Projection, Transitions → target page → back, Feathering → entry → back, Menus); the Controls page (both list pickers) loads without an animation exception, and the `RecurringDaysPicker` opens the full-mode `ListPickerPage` (header `REPEATS`, seven day rows, the original `ApplicationBar` with 完成/取消 icon buttons) and closes on 完成; process stays alive, no error file |
+| Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, open every sample | **all five samples open and return** (Controls, Projection, Transitions → target page → back, Feathering → entry → back, Menus); the Controls page (both list pickers) loads without an animation exception, and the `RecurringDaysPicker` opens the full-mode `ListPickerPage` (header `REPEATS`, seven day rows, the original `ApplicationBar` with 完成/取消 icon buttons) and closes on 完成; process stays alive, no error file. **Not repeated in the newest turn** — the interactive desktop was unavailable (`CopyFromScreen` → "invalid handle", UIA clicks do not land); the page path there is covered by the three `ListPickerPage` tests instead |
 
 Test inventory (103 cases, 99 methods): `ControlTests` 29, `ProjectionTests` 25, `NavigationTests` 16, `TransitionStoryboardTests` 9 methods / 13 cases, `EffectsTests` 7, `ShellTests` 10, `ConverterTests` 3, plus the `StaTest`/`WpfTestHelper` infrastructure.
 
@@ -212,6 +212,21 @@ Verification: two new tests — `ListPicker_FullModePageUsesTheApplicationBarFor
 
 Docs updated for this turn (both languages): `known-limitations.md` (ListPicker page chrome now uses the real `ApplicationBar`), `api-compatibility.md` (ListPicker row), `architecture.md` §9 (condition waits), `porting-status.md` (evidence snapshot + ListPicker/CustomMessageBox rows).
 
+### 4.12 Latest turn: clean-build break and the `ListPickerPage` regressions it hid
+
+The committed tree did not build from scratch, and the three `ListPickerPage` tests failed once it did. Both are fixed; no test was changed in the end.
+
+- **Cold build failed with `MC3074`** ("`PhoneApplicationPage` does not exist in `clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF`"). `MarkupCompilePass1` only sees the project's own types through `@(Compile)`; when a page of the library refers to the library's own assembly *by name*, the pass can't resolve it on a clean `obj` (an incremental build with leftover generated files hid this, which is why the failure appeared only after the tree was rebuilt from scratch). Fix: `ListPickerPage.xaml` declares `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **without** `assembly=`, exactly like the library theme XAML. Verified with the library's `obj`/`bin` deleted.
+- **The picker page has to bring its own theme.** `ListPicker` creates `ListPickerPage` itself, so the page is parsed while it is attached to nothing, and it is afterwards hosted inside the frame's `ProjectionHost`, where inherited resources are not reachable (the same WPF limitation that stops `DataContext` inheritance through `Viewport2DVisual3D`). Consequences handled in the page: its `Resources` now wraps the styles in an explicit `ResourceDictionary` that merges `Themes/Generic.xaml` (so every `StaticResource` inside the page's styles/templates resolves without an application-level theme), the properties set on the root element and header (`FontFamily`, `FontSize`, `Foreground`, `MainGrid.Background`) use `DynamicResource` because they are evaluated while the page is still detached, and the `TransparentBrush` used as an `ObjectAnimationUsingKeyFrames` value is now an inline `SolidColorBrush` (a keyframe value cannot use `DynamicResource`, and a `StaticResource` there is resolved in the template's own dictionary). The same inline brush was applied to `Themes/Controls/ListPicker.xaml`, whose template had the identical problem when the theme is used as the WPF *theme* dictionary rather than as an application dictionary.
+- **Wrong storyboard target in `AnimationForElement`** — the open/close animation targeted the `PlaneProjection` while its property path starts at the element's attached `ProjectionService.Projection`, so `Storyboard.Begin()` threw `InvalidOperationException` ("the Projection property does not point to a DependencyObject"). Now the target is the element, which is what the original WP code did (`(UIElement.Projection).(PlaneProjection.RotationX)`).
+- **`Extensions.IsExternalNavigation` dereferenced a null `Uri`.** The port navigates with page instances, so `NavigationEventArgs.Uri` is `null`; `ListPickerPage.OnNavigatedFrom` then threw `NullReferenceException` on the way back. The extension is null-safe now.
+
+Verification: library `obj`/`bin` deleted → Release build **0 errors, 22 warnings** (all pre-existing, in `LongListSelector`/`ViewportControl`/`WindowHelper`); `dotnet test` **103/103 in Release and Debug** (~28 s); `build\verify-package.ps1` passes. The on-screen sample check of the `RecurringDaysPicker` page could not be repeated this turn because the interactive desktop was unavailable (`CopyFromScreen` fails with "invalid handle", UI Automation clicks never reach the window); the same path is covered by the three `ListPickerPage` tests, which drive a real `TransitionFrame`.
+
+Rejected experiment (worth remembering): giving the test process an `Application` (even on one long-lived STA thread) makes `Application.Current.MainWindow` point at a window that a previous test already closed, which changes `ListPicker`'s frame discovery and left four tests failing — the tests keep one STA thread per test and no `Application`.
+
+Docs updated for this turn (both languages): this section, `porting-status.md` (evidence snapshot, ListPicker row), `known-limitations.md` (page-provided theme, `DynamicResource` on load-time properties), `architecture.md` (theme-dictionary rules).
+
 ---
 
 ## 5. Not done / not verified
@@ -297,8 +312,8 @@ Explicitly **not** claimed:
 ## 10. Git state — protect this
 
 - Branch: **`main`**, no remote tracking configured in this workspace.
-- HEAD: **`4c62a43` "fix"** (the transition/projection work described in §4.1–§4.8 is already committed).
-- Working tree at handoff time: **uncommitted** — the WP8 `ListPicker` port (§4.9), the `ApplicationBar` port (§4.10), the `ListPickerPage`/test-infrastructure turn (§4.11) and all doc updates live only in the working tree.
+- HEAD: **`83c24f6` "fix"** — it contains everything from §4.9–§4.11 (the WP8 `ListPicker` port, the `ApplicationBar` port, the `ListPickerPage` app bar and the test-loop changes) plus this workspace's other in-progress work.
+- Working tree at handoff time: **uncommitted and small** — exactly the four files from §4.12: `Common/Extensions.cs`, `Controls/ListPicker/ListPickerPage.xaml`, `Controls/ListPicker/ListPickerPage.xaml.cs`, `Themes/Controls/ListPicker.xaml`.
 
 **Modified (this work):**
 

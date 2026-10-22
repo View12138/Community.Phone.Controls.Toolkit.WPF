@@ -25,11 +25,11 @@
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
+| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental`（或删除 `obj`/`bin` 后重建） | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
 | Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **103 通过 / 0 失败 / 0 跳过**，约 30 秒 —— 所有转场/导航/投影/效果/ListPicker/应用栏测试均通过，包括此前失败的 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
 | Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **103 通过 / 0 失败** |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
-| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；Controls 页（含两个 list picker）加载时不再抛动画异常，`RecurringDaysPicker` 能打开完整模式 `ListPickerPage`（标题 `REPEATS`、七行星期、原版 `ApplicationBar` 的「完成/取消」图标按钮），点「完成」返回 Controls 页；Menus 页绘制出移植版应用栏（图标、标签、菜单按钮与菜单）；进程存活且无错误日志 |
+| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；Controls 页（含两个 list picker）加载时不再抛动画异常，`RecurringDaysPicker` 能打开完整模式 `ListPickerPage`（标题 `REPEATS`、七行星期、原版 `ApplicationBar` 的「完成/取消」图标按钮），点「完成」返回 Controls 页；Menus 页绘制出移植版应用栏（图标、标签、菜单按钮与菜单）；进程存活且无错误日志。**最近一轮未重复该验证** —— 交互式桌面不可用（`CopyFromScreen` 报 "句柄无效"，UIA 点击落不到窗口）；该路径由三个 `ListPickerPage` 测试覆盖 |
 
 测试清单（103 个用例、99 个方法）：`ControlTests` 29、`ProjectionTests` 25、`NavigationTests` 16、`TransitionStoryboardTests` 9 方法 / 13 用例、`EffectsTests` 7、`ShellTests` 10、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
 
@@ -211,6 +211,21 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 
 本轮同步更新的文档（双语）：`known-limitations.md`（ListPicker 页面 chrome 现在使用真实 `ApplicationBar`）、`api-compatibility.md`（ListPicker 行）、`architecture.md` §9（条件等待）、`porting-status.md`（证据快照 + ListPicker/CustomMessageBox 行）。
 
+### 4.12 本轮：干净构建失败，以及它掩盖的 `ListPickerPage` 回归
+
+已提交的代码在"从零构建"时无法编译，编译通过后又有三个 `ListPickerPage` 测试失败。两者都已修复，最终**没有改动任何测试**。
+
+- **干净构建报 `MC3074`**（"`clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF` 中不存在标记 `PhoneApplicationPage`"）。`MarkupCompilePass1` 只能通过 `@(Compile)` 认识本项目的类型；当库的页面用**程序集名**引用库自身时，在干净的 `obj` 上无法解析（增量构建残留的生成文件会掩盖这一点，所以只有在重新构建时才暴露）。修复：`ListPickerPage.xaml` 的 `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **不带** `assembly=`，与库内主题 XAML 的写法一致。已删除库的 `obj`/`bin` 后验证。
+- **picker 页面必须自带主题。** `ListPickerPage` 由 `ListPicker` 自己创建，因此页面在解析时尚未挂到任何可视化树上，之后又被放进 frame 的 `ProjectionHost`，那里继承资源不可达（与 `Viewport2DVisual3D` 阻断 `DataContext` 继承是同一个 WPF 限制）。页面侧的处理：`Resources` 用显式 `ResourceDictionary` 包住样式并合并 `Themes/Generic.xaml`（页面内所有样式/模板的 `StaticResource` 不再依赖应用级主题）；根元素与标题上在"尚未挂树"时求值的属性（`FontFamily`、`FontSize`、`Foreground`、`MainGrid.Background`）改用 `DynamicResource`；作为 `ObjectAnimationUsingKeyFrames` 值的 `TransparentBrush` 改为内联 `SolidColorBrush`（关键帧值不能用 `DynamicResource`，而 `StaticResource` 在模板所属字典里解析不到）。`Themes/Controls/ListPicker.xaml` 中同样的写法也一并改为内联画刷——当这份字典作为 WPF 的 *theme* 字典（而不是应用字典）加载时会出现完全相同的问题。
+- **`AnimationForElement` 的目标设错**：打开/关闭动画把 `Storyboard` 的目标设成 `PlaneProjection`，而属性路径是从元素的 `ProjectionService.Projection` 附加属性开始的，于是 `Storyboard.Begin()` 抛 `InvalidOperationException`（"Projection 属性未指向 DependencyObject"）。现在目标改为元素本身，与原版 WP 代码一致（`(UIElement.Projection).(PlaneProjection.RotationX)`）。
+- **`Extensions.IsExternalNavigation` 会解引用空的 `Uri`。** 移植版用页面实例导航，`NavigationEventArgs.Uri` 为 `null`，`ListPickerPage.OnNavigatedFrom` 在返回时抛 `NullReferenceException`。该扩展现在对 `null` 安全。
+
+验证：删除库的 `obj`/`bin` 后 Release 构建 **0 错误、22 警告**（全部为既有警告，来自 `LongListSelector`/`ViewportControl`/`WindowHelper`）；`dotnet test` **Release 与 Debug 均 103/103**（约 28 秒）；`build\verify-package.ps1` 通过。本轮的示例屏幕验证无法进行：交互式桌面不可用（`CopyFromScreen` 报 "句柄无效"，UI 自动化点击也落不到窗口上）；该路径由三个 `ListPickerPage` 测试覆盖（驱动真实的 `TransitionFrame`）。
+
+已放弃的方案（值得记住）：给测试进程创建 `Application`（即使放在单个长期存活的 STA 线程上），会让 `Application.Current.MainWindow` 指向上一个测试已经关闭的窗口，从而改变 `ListPicker` 查找 frame 的行为，导致四个测试失败；因此测试仍保持"每个测试一个 STA 线程、没有 `Application`"。
+
+本轮同步更新的文档（双语）：本节、`porting-status.md`（证据快照、ListPicker 行）、`known-limitations.md`（页面自带主题、加载期属性使用 `DynamicResource`）、`architecture.md`（主题字典规则）。
+
 ---
 
 ## 5. 未完成 / 未验证
@@ -296,8 +311,8 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 ## 10. Git 状态 —— 请保护好
 
 - 分支：**`main`**，本工作区未配置远端跟踪。
-- HEAD：**`4c62a43` "fix"**（§4.1–§4.8 描述的转场/投影工作已提交）。
-- 交接时工作区：**未提交** —— 原版 WP8 `ListPicker` 移植（§4.9）、`ApplicationBar` 移植（§4.10）、`ListPickerPage`/测试基础设施这一轮（§4.11）与全部文档更新只存在于工作区。
+- HEAD：**`83c24f6` "fix"** —— 包含 §4.9–§4.11 的全部内容（原版 WP8 `ListPicker` 移植、`ApplicationBar` 移植、`ListPickerPage` 应用栏、测试回路改动）以及本工作区其它进行中的工作。
+- 交接时工作区：**未提交但很小** —— 只有 §4.12 的四个文件：`Common/Extensions.cs`、`Controls/ListPicker/ListPickerPage.xaml`、`Controls/ListPicker/ListPickerPage.xaml.cs`、`Themes/Controls/ListPicker.xaml`。
 
 **已修改（本次工作）：**
 

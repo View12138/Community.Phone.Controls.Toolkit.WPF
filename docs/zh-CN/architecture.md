@@ -213,6 +213,8 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 
 已实现控件使用 WPF 依赖属性、模板和 `VisualStateManager`。`DefaultStyleKeyProperty.OverrideMetadata` 在**静态构造函数**中调用，确保每个类型只注册一次元数据。`Themes/Generic.xaml` 提供按类型键控的隐式样式；示例和测试还显式合并字典，使应用 XAML 可以访问命名 Metro 资源（`PhoneTextTitle1Style` 等）。
 
+主题的写法受两条 WPF 规则约束。(1) 库内 XAML 若要使用库自身的类型，`clr-namespace:` **不写** `assembly=`：`MarkupCompilePass1` 只能从编译的源码中认识本项目的类型，在 xmlns 里写程序集名会让干净构建报 `MC3074`。(2) 主题字典里的 `StaticResource` 是在**所属字典**（当该字典被当作 WPF theme 字典使用时则是**应用程序**）中解析的，因此 `Themes/Controls/*.xaml` 各自合并 `Theme/Dark.xaml`，动画关键帧的值使用字面量而不是资源查找，而库自己创建的页面（例如 `ListPickerPage`）会把自己的 `Resources` 合并 `Themes/Generic.xaml`——它在挂树之前就被解析。
+
 控件设计决策：
 
 - **WrapPanel**：原始布局算法和 `ItemHeight/ItemWidth/Orientation` 语义。

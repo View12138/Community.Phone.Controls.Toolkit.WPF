@@ -214,6 +214,8 @@ A transition whose storyboard ends up empty (for example feathering a page that 
 
 Implemented controls use WPF dependency properties, templates, and `VisualStateManager`. `DefaultStyleKeyProperty.OverrideMetadata` is called in **static constructors** to guarantee one metadata registration per type. `Themes/Generic.xaml` provides implicit styles keyed by type; the sample and tests also merge the dictionary explicitly so named Metro resources (`PhoneTextTitle1Style`, etc.) are available to application XAML.
 
+Two WPF rules shape how the theme is written. (1) A library XAML file that extends the library's own types declares `clr-namespace:` **without** `assembly=`: `MarkupCompilePass1` learns the project's types only from the compiled sources, so naming the assembly in the xmlns makes a clean build fail with `MC3074`. (2) A `StaticResource` inside a theme dictionary is resolved through the dictionary it belongs to (and, when the theme is used as WPF's theme dictionary, through the application), so the `Themes/Controls/*.xaml` files merge `Theme/Dark.xaml` themselves, animation keyframe values use literal values instead of a lookup, and a page the library creates on its own (for example `ListPickerPage`) merges `Themes/Generic.xaml` into its own `Resources` because it is parsed before it is attached to a tree.
+
 Design decisions per control:
 
 - **WrapPanel**: original layout algorithm and `ItemHeight/ItemWidth/Orientation` semantics.

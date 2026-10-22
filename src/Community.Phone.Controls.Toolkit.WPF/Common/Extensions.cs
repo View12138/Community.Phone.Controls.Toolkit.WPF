@@ -90,7 +90,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="uri">The uri</param>
         public static bool IsExternalNavigation(this Uri uri)
         {
-            return (ExternalAddress == uri.ToString());
+            return (null != uri) && (ExternalAddress == uri.ToString());
         }
 
         /// <summary>

@@ -441,7 +441,7 @@ namespace Microsoft.Phone.Controls
                 ProjectionService.SetProjection(element, projection);
             }
 
-            Storyboard.SetTarget(anim, projection);
+            Storyboard.SetTarget(anim, element);
             Storyboard.SetTargetProperty(anim, new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, PlaneProjection.RotationXProperty));
 
             Storyboard board = new Storyboard();

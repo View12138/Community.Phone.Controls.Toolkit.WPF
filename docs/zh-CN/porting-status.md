@@ -12,7 +12,7 @@
 | 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
 | ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**证据快照（2026-10-22）：** Release 构建 0 错误（22 个既有警告，全部位于 `LongListSelector`、`ViewportControl`、`WindowHelper`）· Release 与 Debug 下 **103/103 测试通过**（约 30 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）· `build\verify-package.ps1` 通过 · 示例冒烟：Controls 示例（含两个 list picker）加载不再抛动画异常，ListPicker 完整模式页面显示原版 `ApplicationBar`（完成/取消），Menus 示例绘制出移植版应用栏（图标、标签、菜单按钮与菜单）。
+**证据快照（2026-10-22）：** 删除库 `obj`/`bin` 后的干净 Release 构建 0 错误（22 个既有警告，全部位于 `LongListSelector`、`ViewportControl`、`WindowHelper`）· Release 与 Debug 下 **103/103 测试通过**（约 30 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）· `build\verify-package.ps1` 通过 · 此前的示例运行：Controls 示例（含两个 list picker）加载不再抛动画异常，ListPicker 完整模式页面显示原版 `ApplicationBar`（完成/取消），Menus 示例绘制出移植版应用栏。在 `ListPickerPage` 主题/`MC3074` 修复之后无法重复屏幕验证（交互式桌面不可用），这些路径由 `ListPickerPage` 相关测试覆盖。
 
 ---
 
