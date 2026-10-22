@@ -339,7 +339,7 @@ namespace Microsoft.Phone.Controls
 
             panel.Children.RemoveAt(index);
             panel.Children.Insert(index, host);
-            host.Child = element;
+            host.Content = element;
             info.Host = host;
             HostInfos.Add(element, info);
             return host;
@@ -355,7 +355,7 @@ namespace Microsoft.Phone.Controls
             DependencyObject parent = element.Parent;
             parent ??= VisualTreeHelper.GetParent(element);
 
-            if (parent is ProjectionHost host && ReferenceEquals(host.Child, element))
+            if (parent is ProjectionHost host && ReferenceEquals(host.Content, element))
             {
                 return host;
             }
@@ -382,7 +382,7 @@ namespace Microsoft.Phone.Controls
             HostInfos.Remove(element);
 
             ProjectionHost host = info.Host;
-            host.Child = null;
+            host.Content = null;
 
             int currentIndex = info.Parent.Children.IndexOf(host);
             if (currentIndex >= 0)

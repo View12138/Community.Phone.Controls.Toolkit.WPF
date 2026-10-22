@@ -455,7 +455,7 @@ namespace Microsoft.Phone.Controls
 
             ProjectionHost host = new ProjectionHost
             {
-                Child = this,
+                Content = this,
                 VerticalAlignment = IsFullScreen ? VerticalAlignment.Stretch : IsCenterScreen ? VerticalAlignment.Center : VerticalAlignment.Top
             };
             // Insert the message box.

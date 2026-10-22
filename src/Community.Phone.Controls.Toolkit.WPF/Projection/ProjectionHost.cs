@@ -22,23 +22,23 @@ namespace Microsoft.Phone.Controls
     /// content in a <see cref="ProjectionHost"/> is the supported way to apply
     /// a <see cref="Projection"/> while preserving hit testing and input.
     /// </remarks>
-    [ContentProperty("Child")]
+    [ContentProperty("Content")]
     public class ProjectionHost : FrameworkElement
     {
-        #region Child DependencyProperty
+        #region Content DependencyProperty
         /// <summary>
         /// Gets or sets the content to project.
         /// </summary>
-        public UIElement Child
+        public UIElement Content
         {
-            get { return (UIElement)GetValue(ChildProperty); }
-            set { SetValue(ChildProperty, value); }
+            get { return (UIElement)GetValue(ContentProperty); }
+            set { SetValue(ContentProperty, value); }
         }
         /// <summary>
-        /// Identifies the <see cref="Child"/> property.
+        /// Identifies the <see cref="Content"/> property.
         /// </summary>
-        public static readonly DependencyProperty ChildProperty =
-            DependencyProperty.Register("Child", typeof(UIElement), typeof(ProjectionHost), new PropertyMetadata(null, OnChildChanged));
+        public static readonly DependencyProperty ContentProperty =
+            DependencyProperty.Register("Content", typeof(UIElement), typeof(ProjectionHost), new PropertyMetadata(null, OnContentChanged));
         #endregion
 
         #region Projection DependencyProperty
@@ -162,7 +162,7 @@ namespace Microsoft.Phone.Controls
         public bool IsRenderingIn3D => _using3D;
 
         /// <inheritdoc />
-        protected override int VisualChildrenCount => _using3D || Child != null ? 1 : 0;
+        protected override int VisualChildrenCount => _using3D || Content != null ? 1 : 0;
 
         /// <inheritdoc />
         protected override Visual GetVisualChild(int index)
@@ -177,18 +177,18 @@ namespace Microsoft.Phone.Controls
                 return _viewport;
             }
 
-            if (index != 0 || Child == null)
+            if (index != 0 || Content == null)
             {
                 throw new ArgumentOutOfRangeException("index");
             }
 
-            return Child;
+            return Content;
         }
 
         /// <inheritdoc />
         protected override Size MeasureOverride(Size availableSize)
         {
-            UIElement child = Child;
+            UIElement child = Content;
             if (child == null)
             {
                 return new Size();
@@ -208,7 +208,7 @@ namespace Microsoft.Phone.Controls
         /// <inheritdoc />
         protected override Size ArrangeOverride(Size finalSize)
         {
-            UIElement child = Child;
+            UIElement child = Content;
             if (child != null)
             {
                 if (_using3D)
@@ -239,7 +239,7 @@ namespace Microsoft.Phone.Controls
             return finalSize;
         }
 
-        private static void OnChildChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             ((ProjectionHost)d).OnChildChanged((UIElement)e.OldValue, (UIElement)e.NewValue);
         }
@@ -377,7 +377,7 @@ namespace Microsoft.Phone.Controls
 
         private bool ShouldUse3D()
         {
-            if (Child == null)
+            if (Content == null)
             {
                 return false;
             }
@@ -393,7 +393,7 @@ namespace Microsoft.Phone.Controls
 
         private void Ensure3D()
         {
-            if (_using3D || Child == null)
+            if (_using3D || Content == null)
             {
                 return;
             }
@@ -405,7 +405,7 @@ namespace Microsoft.Phone.Controls
             // quad, so content that does not fill its layout slot (for
             // example a left-aligned CheckBox or a short TextBlock) would
             // otherwise be stretched across the projected plane.
-            _surface.Content = Child;
+            _surface.Content = Content;
             _visual3D.Visual = _surface;
             AddVisualChild(_viewport);
             _using3D = true;
@@ -427,9 +427,9 @@ namespace Microsoft.Phone.Controls
             RemoveVisualChild(_viewport);
             _using3D = false;
 
-            if (Child != null)
+            if (Content != null)
             {
-                AddVisualChild(Child);
+                AddVisualChild(Content);
             }
 
             InvalidateMeasure();
@@ -438,7 +438,7 @@ namespace Microsoft.Phone.Controls
 
         private void RemoveVisualChildIfNeeded()
         {
-            UIElement child = Child;
+            UIElement child = Content;
             if (child != null && !_using3D && ReferenceEquals(VisualTreeHelper.GetParent(child), this))
             {
                 RemoveVisualChild(child);
@@ -447,7 +447,7 @@ namespace Microsoft.Phone.Controls
 
         private void UpdateScene(Size hostSize)
         {
-            if (!_using3D || Child == null)
+            if (!_using3D || Content == null)
             {
                 return;
             }
@@ -460,7 +460,7 @@ namespace Microsoft.Phone.Controls
             Size planeSize = hostSize;
             if (planeSize.Width <= 0 || planeSize.Height <= 0)
             {
-                planeSize = Child.RenderSize;
+                planeSize = Content.RenderSize;
             }
 
             if (planeSize.Width <= 0 || planeSize.Height <= 0)

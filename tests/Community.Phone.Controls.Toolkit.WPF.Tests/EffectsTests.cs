@@ -158,7 +158,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     ProjectionHost buttonHost = ProjectionService.GetProjectionHost(button);
                     Assert.NotNull(buttonHost);
                     Assert.NotSame(pageHost, buttonHost);
-                    Assert.Same(button, buttonHost.Child);
+                    Assert.Same(button, buttonHost.Content);
                     Assert.Same(projection, buttonHost.Projection);
                     Assert.Null(pageHost.Projection);
 
@@ -292,8 +292,8 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     ProjectionHost secondHost = ProjectionService.GetProjectionHost(second);
                     Assert.NotNull(firstHost);
                     Assert.NotNull(secondHost);
-                    Assert.Same(first, firstHost.Child);
-                    Assert.Same(second, secondHost.Child);
+                    Assert.Same(first, firstHost.Content);
+                    Assert.Same(second, secondHost.Content);
                     Assert.Null(firstHost.Projection);
 
                     ITransition transition = new TurnstileFeatherTransition

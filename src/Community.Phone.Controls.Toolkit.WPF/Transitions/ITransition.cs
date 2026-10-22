@@ -14,53 +14,73 @@ namespace Microsoft.Phone.Controls
     public interface ITransition
     {
         /// <summary>
-        /// Occurs when the transition has completed playing.
+        /// Occurs when the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// has completed playing.
         /// </summary>
         event EventHandler Completed;
 
         /// <summary>
-        /// Gets the <see cref="ClockState"/> of the transition.
+        /// Gets the
+        /// <see cref="T:System.Windows.Media.Animation.ClockState"/>
+        /// of the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
+        /// <returns></returns>
         ClockState GetCurrentState();
 
         /// <summary>
-        /// Gets the current time of the transition.
+        /// Gets the current time of the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
+        /// <returns>The current time.</returns>
         TimeSpan GetCurrentTime();
 
         /// <summary>
-        /// Pauses the animation clock.
+        /// Pauses the animation clock associated with the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
         void Pause();
 
         /// <summary>
-        /// Resumes the animation clock.
+        /// Resumes the animation clock, or run-time state, associated with the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
         void Resume();
 
         /// <summary>
-        /// Moves the transition to the specified animation position.
+        /// Moves the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// to the specified animation position. The
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// performs the requested seek when the next clock tick occurs.
         /// </summary>
+        /// <param name="offset">The specified animation position.</param>
         void Seek(TimeSpan offset);
 
         /// <summary>
-        /// Moves the transition to the specified animation position
-        /// synchronously.
+        /// Moves the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// to the specified animation position immediately (synchronously).
         /// </summary>
+        /// <param name="offset">The specified animation position</param>
         void SeekAlignedToLastTick(TimeSpan offset);
 
         /// <summary>
-        /// Advances the current time to the end of the active period.
+        /// Advances the current time of the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>'s
+        /// clock to the end of its active period.
         /// </summary>
         void SkipToFill();
 
         /// <summary>
-        /// Starts the transition.
+        /// Initiates the set of animations associated with the
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
         void Begin();
 
         /// <summary>
-        /// Stops the transition and restores the animated element state.
+        /// Stops the <see cref="T:Microsoft.Phone.Controls.ITransition"/>.
         /// </summary>
         void Stop();
     }

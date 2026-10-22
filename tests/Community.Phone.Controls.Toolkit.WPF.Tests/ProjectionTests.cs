@@ -257,7 +257,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 200,
                     Height = 100,
-                    Child = content
+                    Content = content
                 };
                 PlaneProjection projection = new PlaneProjection { RotationY = 1 };
                 host.Projection = projection;
@@ -304,7 +304,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 200,
                     Height = 100,
-                    Child = content
+                    Content = content
                 };
                 PlaneProjection projection = new PlaneProjection();
                 ProjectionService.SetProjection(content, projection);
@@ -363,7 +363,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 200,
                     Height = 100,
-                    Child = content
+                    Content = content
                 };
                 PlaneProjection projection = new PlaneProjection();
                 host.Projection = projection;
@@ -408,7 +408,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 160,
                     Height = 80,
-                    Child = new Border { Background = Brushes.Lime, Width = 160, Height = 80 },
+                    Content = new Border { Background = Brushes.Lime, Width = 160, Height = 80 },
                     Projection = new PlaneProjection { RotationY = -25 }
                 };
                 host.Measure(new Size(160, 80));
@@ -435,14 +435,14 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 100,
                     Height = 80,
-                    Child = new Border { Background = Brushes.Red },
+                    Content = new Border { Background = Brushes.Red },
                     Projection = new PlaneProjection { RotationY = -30 }
                 };
                 ProjectionHost second = new ProjectionHost
                 {
                     Width = 100,
                     Height = 80,
-                    Child = new Border { Background = Brushes.Blue },
+                    Content = new Border { Background = Brushes.Blue },
                     Projection = new PlaneProjection { RotationX = 30 }
                 };
 
@@ -471,7 +471,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 200,
                     Height = 100,
-                    Child = button,
+                    Content = button,
                     Projection = new PlaneProjection { RotationY = -12 }
                 };
 
@@ -512,7 +512,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 160,
                     Height = 80,
-                    Child = content
+                    Content = content
                 };
 
                 host.Measure(new Size(160, 80));
@@ -550,7 +550,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 200,
                     Height = 400,
-                    Child = new Border { Background = Brushes.Red, Width = 200, Height = 400 },
+                    Content = new Border { Background = Brushes.Red, Width = 200, Height = 400 },
                     Projection = new PlaneProjection { RotationX = 4 }
                 };
 
@@ -591,7 +591,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = Width,
                     Height = Height,
-                    Child = new Border { Background = Brushes.Red, Width = Width, Height = Height },
+                    Content = new Border { Background = Brushes.Red, Width = Width, Height = Height },
                     Projection = new PlaneProjection
                     {
                         CenterOfRotationX = 0,
@@ -636,7 +636,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 160,
                     Height = 80,
-                    Child = content,
+                    Content = content,
                     Projection = new PlaneProjection { RotationX = 10 }
                 };
 
@@ -664,7 +664,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 160,
                     Height = 80,
-                    Child = content,
+                    Content = content,
                     Projection = new PlaneProjection { RotationY = -15 }
                 };
 
@@ -708,7 +708,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     ProjectionHost host = ProjectionService.GetProjectionHost(content);
                     Assert.NotNull(host);
-                    Assert.Same(content, host.Child);
+                    Assert.Same(content, host.Content);
                     Assert.Same(projection, host.Projection);
                     Assert.True(host.IsRenderingIn3D);
                     Assert.Same(projection, content.Projection);
@@ -717,7 +717,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     Assert.Null(ProjectionService.GetProjection(content));
                     Assert.Same(panel, VisualTreeHelper.GetParent(content));
-                    Assert.Null(host.Child);
+                    Assert.Null(host.Content);
                 }
                 finally
                 {
@@ -747,7 +747,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     ProjectionHost host = ProjectionService.GetProjectionHost(content);
                     Assert.NotNull(host);
-                    Assert.Same(content, host.Child);
+                    Assert.Same(content, host.Content);
                     Assert.Same(projection, host.Projection);
                 }
                 finally
@@ -815,7 +815,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     HorizontalAlignment = HorizontalAlignment.Left
                 });
 
-                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Child = content, Prefer3D = true };
+                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Content = content, Prefer3D = true };
                 host.Measure(new Size(200, 50));
                 host.Arrange(new Rect(0, 0, 200, 50));
                 host.UpdateLayout();
@@ -861,7 +861,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     HorizontalAlignment = HorizontalAlignment.Left
                 };
 
-                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Child = content, Prefer3D = true };
+                ProjectionHost host = new ProjectionHost { Width = 200, Height = 50, Content = content, Prefer3D = true };
                 host.Measure(new Size(200, 50));
                 host.Arrange(new Rect(0, 0, 200, 50));
                 host.UpdateLayout();

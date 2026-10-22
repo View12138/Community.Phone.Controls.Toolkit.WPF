@@ -6,7 +6,9 @@
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Defines the transitions used when a page is navigated to.
+    /// Has navigation-in
+    /// <see cref="T:Microsoft.Phone.Controls.TransitionElement"/>s
+    /// for the designer experiences.
     /// </summary>
     public class NavigationInTransition : NavigationTransition
     {

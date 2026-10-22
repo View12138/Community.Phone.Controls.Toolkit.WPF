@@ -8,59 +8,133 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Enables navigation transitions for <see cref="PhoneApplicationPage"/>s.
+    /// Enables navigation transitions for
+    /// <see cref="T:Microsoft.Phone.Controls.PhoneApplicationPage"/>s.
     /// </summary>
+    /// <QualityBand>Preview</QualityBand>
     [TemplatePart(Name = FirstTemplatePartName, Type = typeof(ProjectionHost))]
     [TemplatePart(Name = SecondTemplatePartName, Type = typeof(ProjectionHost))]
     public class TransitionFrame : PhoneApplicationFrame
     {
+        #region Constants and Statics
+        /// <summary>
+        /// The new
+        /// <see cref="T:System.Windows.Controls.ContentPresenter"/>
+        /// template part name.
+        /// </summary>
         private const string FirstTemplatePartName = "FirstContentPresenter";
+
+        /// <summary>
+        /// The old
+        /// <see cref="T:System.Windows.Controls.ContentPresenter"/>
+        /// template part name.
+        /// </summary>
         private const string SecondTemplatePartName = "SecondContentPresenter";
 
-        private ProjectionHost _firstContentPresenter;
-        private ProjectionHost _secondContentPresenter;
-        private ProjectionHost _newContentPresenter;
-        private ProjectionHost _oldContentPresenter;
+        /// <summary>
+        /// A single shared instance for setting BitmapCache on a visual.
+        /// </summary>
+        internal static readonly CacheMode BitmapCacheMode = new BitmapCache();
+        #endregion
 
+        #region Template Parts
+        /// <summary>
+        /// The first <see cref="T:System.Windows.Controls.ContentPresenter"/>.
+        /// </summary>
+        private ProjectionHost _firstContentPresenter;
+
+        /// <summary>
+        /// The second <see cref="T:System.Windows.Controls.ContentPresenter"/>.
+        /// </summary>
+        private ProjectionHost _secondContentPresenter;
+
+        /// <summary>
+        /// The new <see cref="T:System.Windows.Controls.ContentPresenter"/>.
+        /// </summary>
+        private ProjectionHost _newContentPresenter;
+
+        /// <summary>
+        /// The old <see cref="T:System.Windows.Controls.ContentPresenter"/>.
+        /// </summary>
+        private ProjectionHost _oldContentPresenter;
+        #endregion
+
+        /// <summary>
+        /// Indicates whether a navigation is forward.
+        /// </summary>
         private bool _isForwardNavigation;
+
+        /// <summary>
+        /// Determines whether to set the new content to the first or second
+        /// <see cref="T:System.Windows.Controls.ContentPresenter"/>.
+        /// </summary>
         private bool _useFirstAsNew;
+
+        /// <summary>
+        /// A value indicating whether the old transition has completed and the
+        /// new transition can begin.
+        /// </summary>
         private bool _readyToTransitionToNewContent;
+
+        /// <summary>
+        /// A value indicating whether the new content has been loaded and the
+        /// new transition can begin.
+        /// </summary>
         private bool _contentReady;
+
+        /// <summary>
+        /// A value indicating whether the exit transition is currently being performed.
+        /// </summary>
         private bool _performingExitTransition;
+
+        /// <summary>
+        /// A value indicating whether the navigation is cancelled.
+        /// </summary>
         private bool _navigationStopped;
-        private object _lastPresentedContent;
+
+        /// <summary>
+        /// The transition to use to move in new content once the old transition
+        /// is complete and ready for movement.
+        /// </summary>
         private ITransition _storedNewTransition;
+
+        /// <summary>
+        /// The stored NavigationIn transition instance to use once the old
+        /// transition is complete and ready for movement.
+        /// </summary>
         private NavigationInTransition _storedNavigationInTransition;
+
+        /// <summary>
+        /// The transition to use to complete the old transition.
+        /// </summary>
         private ITransition _storedOldTransition;
+
+        /// <summary>
+        /// The stored NavigationOut transition instance.
+        /// </summary>
         private NavigationOutTransition _storedNavigationOutTransition;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TransitionFrame"/> class.
+        /// Initialzies a new instance of the TransitionFrame class.
         /// </summary>
         public TransitionFrame()
+            : base()
         {
+            DefaultStyleKey = typeof(TransitionFrame);
             Navigating += OnNavigating;
             NavigationStopped += OnNavigationStopped;
         }
 
-        static TransitionFrame()
-        {
-            DefaultStyleKeyProperty.OverrideMetadata(
-                typeof(TransitionFrame),
-                new FrameworkPropertyMetadata(typeof(TransitionFrame)));
-        }
-
         /// <summary>
-        /// Occurs when a navigation transition could not be created or
-        /// started. The frame falls back to an untransitioned navigation.
+        /// Flips the logical content presenters to prepare for the next visual
+        /// transition.
         /// </summary>
-        public event EventHandler<TransitionFailedEventArgs> TransitionFailed;
-
         private void FlipPresenters()
         {
             _newContentPresenter = _useFirstAsNew ? _firstContentPresenter : _secondContentPresenter;
@@ -68,17 +142,35 @@ namespace Microsoft.Phone.Controls
             _useFirstAsNew = !_useFirstAsNew;
         }
 
+        /// <summary>
+        /// Handles the Navigating event of the frame, the immediate way to
+        /// begin a transition out before the new page has loaded or had its
+        /// layout pass.
+        /// </summary>
+        /// <param name="sender">The source object.</param>
+        /// <param name="e">The event arguments.</param>
         private void OnNavigating(object sender, NavigatingCancelEventArgs e)
         {
+            // If the current application is not the origin
+            // and destination of the navigation, ignore it.
+            // e.g. do not play a transition when the 
+            // application gets deactivated because the shell
+            // will animate the frame out automatically.
+            if (!e.IsNavigationInitiator)
+            {
+                return;
+            }
+
             _isForwardNavigation = e.NavigationMode != NavigationMode.Back;
 
-            UIElement oldElement = Content as UIElement;
+            var oldElement = Content as UIElement;
             if (oldElement == null)
             {
                 return;
             }
 
             EnsureLastTransitionIsComplete();
+
             FlipPresenters();
 
             TransitionElement oldTransitionElement = null;
@@ -86,26 +178,15 @@ namespace Microsoft.Phone.Controls
             ITransition oldTransition = null;
 
             navigationOutTransition = TransitionService.GetNavigationOutTransition(oldElement);
+
             if (navigationOutTransition != null)
             {
-                oldTransitionElement = _isForwardNavigation
-                    ? navigationOutTransition.Forward
-                    : navigationOutTransition.Backward;
+                oldTransitionElement = _isForwardNavigation ? navigationOutTransition.Forward : navigationOutTransition.Backward;
             }
-
             if (oldTransitionElement != null)
             {
-                try
-                {
-                    oldTransition = oldTransitionElement.GetTransition(oldElement);
-                }
-                catch (Exception exception)
-                {
-                    RaiseTransitionFailed(oldElement, exception, true);
-                    navigationOutTransition = null;
-                }
+                oldTransition = oldTransitionElement.GetTransition(oldElement);
             }
-
             if (oldTransition != null)
             {
                 EnsureStoppedTransition(oldTransition);
@@ -116,21 +197,9 @@ namespace Microsoft.Phone.Controls
 
                 _performingExitTransition = true;
 
-                try
-                {
-                    PerformTransition(navigationOutTransition, _oldContentPresenter, oldTransition);
-                    PrepareContentPresenterForCompositor(_oldContentPresenter);
-                }
-                catch (Exception exception)
-                {
-                    RaiseTransitionFailed(oldElement, exception, true);
-                    _performingExitTransition = false;
-                    _readyToTransitionToNewContent = true;
-                    oldTransition.Completed -= OnExitTransitionCompleted;
-                    CompleteTransition(navigationOutTransition, _oldContentPresenter, oldTransition);
-                    _storedNavigationOutTransition = null;
-                    _storedOldTransition = null;
-                }
+                PerformTransition(navigationOutTransition, _oldContentPresenter, oldTransition);
+
+                PrepareContentPresenterForCompositor(_oldContentPresenter);
             }
             else
             {
@@ -138,11 +207,18 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        /// <summary>
+        /// Handles the NavigationStopped event of the frame. Set a value indicating 
+        /// that the navigation is cancelled.
+        /// </summary>
         private void OnNavigationStopped(object sender, NavigationEventArgs e)
         {
             _navigationStopped = true;
         }
 
+        /// <summary>
+        /// Stops the last navigation transition if it's active and a new navigation occurs.
+        /// </summary>
         private void EnsureLastTransitionIsComplete()
         {
             _readyToTransitionToNewContent = false;
@@ -151,11 +227,13 @@ namespace Microsoft.Phone.Controls
 
             if (_performingExitTransition)
             {
-                Debug.Assert(_storedOldTransition != null || _storedNavigationOutTransition == null);
+                Debug.Assert(_storedOldTransition != null && _storedNavigationOutTransition != null);
 
+                // If the app calls GoBack on NavigatedTo, we want the old content to be null
+                // because you can't have the same content in two spots on the visual tree.
                 if (_oldContentPresenter != null)
                 {
-                    _oldContentPresenter.Child = null;
+                    _oldContentPresenter.Content = null;
                 }
 
                 if (_storedOldTransition != null)
@@ -170,6 +248,7 @@ namespace Microsoft.Phone.Controls
                 if (_storedNewTransition != null)
                 {
                     _storedNewTransition.Stop();
+
                     _storedNewTransition = null;
                     _storedNavigationInTransition = null;
                 }
@@ -178,41 +257,31 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        /// <summary>
+        /// Handles the completion of the exit transition, automatically 
+        /// continuing to bring in the new element's transition as well if it is
+        /// ready.
+        /// </summary>
+        /// <param name="sender">The source object.</param>
+        /// <param name="e">The event arguments.</param>
         private void OnExitTransitionCompleted(object sender, EventArgs e)
         {
-            if (!ReferenceEquals(sender, _storedOldTransition) || !_performingExitTransition)
-            {
-                return;
-            }
-
             _readyToTransitionToNewContent = true;
             _performingExitTransition = false;
 
             if (_navigationStopped)
             {
-                // Restore the old content presenter's interactivity if the
-                // navigation is cancelled. The presenter is reused, so it has
-                // to become interactive again.
+                // Restore the old content presenter's interactivity if the navigation is cancelled.
                 CompleteTransition(_storedNavigationOutTransition, _oldContentPresenter, _storedOldTransition);
                 _navigationStopped = false;
             }
             else
             {
-                // The old presenter is discarded here, so the original does
-                // not restore its interactivity. Only return it to the 2D
-                // render path so it is crisp again when it is reused.
-                CompleteTransition(_storedNavigationOutTransition, null, _storedOldTransition);
-
-                if (_oldContentPresenter != null)
-                {
-                    _oldContentPresenter.Prefer3D = false;
-                }
+                CompleteTransition(_storedNavigationOutTransition, /*_oldContentPresenter*/ null, _storedOldTransition);
+                _oldContentPresenter?.Prefer3D = false;
             }
 
-            if (_storedOldTransition != null)
-            {
-                _storedOldTransition.Completed -= OnExitTransitionCompleted;
-            }
+            _storedOldTransition?.Completed -= OnExitTransitionCompleted;
 
             _storedNavigationOutTransition = null;
             _storedOldTransition = null;
@@ -229,7 +298,13 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// When overridden in a derived class, is invoked whenever application 
+        /// code or internal processes (such as a rebuilding layout pass) call
+        /// <see cref="M:System.Windows.Controls.Control.ApplyTemplate"/>.
+        /// In simplest terms, this means the method is called just before a UI 
+        /// element displays in an application.
+        /// </summary>
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -239,21 +314,22 @@ namespace Microsoft.Phone.Controls
             _newContentPresenter = _secondContentPresenter;
             _oldContentPresenter = _firstContentPresenter;
             _useFirstAsNew = true;
+
             _readyToTransitionToNewContent = true;
-            _lastPresentedContent = null;
 
             if (Content != null)
             {
-                // Host the initial content in the presenter that is currently
-                // considered new. OnNavigating flips the presenters, so the
-                // initial content must already be in the presenter that will
-                // become the outgoing presenter when the first navigation
-                // starts.
                 OnContentChanged(null, Content);
             }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Called when the value of the
+        /// <see cref="P:System.Windows.Controls.ContentControl.Content"/>
+        /// property changes.
+        /// </summary>
+        /// <param name="oldContent">The old <see cref="T:System.Object"/>.</param>
+        /// <param name="newContent">The new <see cref="T:System.Object"/>.</param>
         protected override void OnContentChanged(object oldContent, object newContent)
         {
             base.OnContentChanged(oldContent, newContent);
@@ -263,17 +339,12 @@ namespace Microsoft.Phone.Controls
             UIElement oldElement = oldContent as UIElement;
             UIElement newElement = newContent as UIElement;
 
+            // Require the appropriate template parts plus a new element to
+            // transition to.
             if (_firstContentPresenter == null || _secondContentPresenter == null || newElement == null)
             {
                 return;
             }
-
-            if (ReferenceEquals(newElement, _lastPresentedContent))
-            {
-                return;
-            }
-
-            _lastPresentedContent = newElement;
 
             NavigationInTransition navigationInTransition = null;
             ITransition newTransition = null;
@@ -284,35 +355,24 @@ namespace Microsoft.Phone.Controls
                 TransitionElement newTransitionElement = null;
                 if (navigationInTransition != null)
                 {
-                    newTransitionElement = _isForwardNavigation
-                        ? navigationInTransition.Forward
-                        : navigationInTransition.Backward;
+                    newTransitionElement = _isForwardNavigation ? navigationInTransition.Forward : navigationInTransition.Backward;
                 }
-
                 if (newTransitionElement != null)
                 {
-                    try
-                    {
-                        newElement.UpdateLayout();
-                        newTransition = newTransitionElement.GetTransition(newElement);
-                        PrepareContentPresenterForCompositor(_newContentPresenter);
-                    }
-                    catch (Exception exception)
-                    {
-                        RaiseTransitionFailed(newElement, exception, false);
-                        navigationInTransition = null;
-                        newTransition = null;
-                    }
+                    newElement.UpdateLayout();
+
+                    newTransition = newTransitionElement.GetTransition(newElement);
+                    PrepareContentPresenterForCompositor(_newContentPresenter);
                 }
             }
 
             _newContentPresenter.Opacity = 0;
             _newContentPresenter.Visibility = Visibility.Visible;
-            _newContentPresenter.Child = newElement;
+            _newContentPresenter.Content = newElement;
 
             _oldContentPresenter.Opacity = 1;
             _oldContentPresenter.Visibility = Visibility.Visible;
-            _oldContentPresenter.Child = oldElement;
+            _oldContentPresenter.Content = oldElement;
 
             if (_readyToTransitionToNewContent)
             {
@@ -325,26 +385,29 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        /// <summary>
+        /// Transitions the new <see cref="T:System.Windows.UIElement"/>.
+        /// </summary>
+        /// <param name="newTransition">The <see cref="T:Microsoft.Phone.Controls.ITransition"/> 
+        /// for the new <see cref="T:System.Windows.UIElement"/>.</param>
+        /// <param name="navigationInTransition">The <see cref="T:Microsoft.Phone.Controls.NavigationInTransition"/> 
+        /// for the new <see cref="T:System.Windows.UIElement"/>.</param>
         private void TransitionNewContent(ITransition newTransition, NavigationInTransition navigationInTransition)
         {
             if (_oldContentPresenter != null)
             {
                 _oldContentPresenter.Visibility = Visibility.Collapsed;
-                _oldContentPresenter.Child = null;
+                _oldContentPresenter.Content = null;
             }
 
-            if (newTransition == null)
+            if (null == newTransition)
             {
                 RestoreContentPresenterInteractivity(_newContentPresenter);
                 return;
             }
 
-            if (_newContentPresenter != null && _newContentPresenter.Child != null)
+            if (_newContentPresenter != null && _newContentPresenter.Content != null)
             {
-                // Transitions that collect their targets from the visual tree
-                // (feathering) need the incoming page to be measured first.
-                // The page is only connected to the presenter on a now
-                // deferred layout pass, so force it before composing.
                 _newContentPresenter.UpdateLayout();
             }
 
@@ -358,44 +421,53 @@ namespace Microsoft.Phone.Controls
             _storedNavigationInTransition = null;
             _storedNewTransition = null;
 
-            try
-            {
-                PerformTransition(navigationInTransition, _newContentPresenter, newTransition);
-            }
-            catch (Exception exception)
-            {
-                RaiseTransitionFailed(_newContentPresenter == null ? null : _newContentPresenter.Child, exception, false);
-                RestoreContentPresenterInteractivity(_newContentPresenter);
-                _readyToTransitionToNewContent = true;
-            }
+            PerformTransition(navigationInTransition, _newContentPresenter, newTransition);
         }
 
+        /// <summary>
+        /// This checks to make sure that, if the transition not be in the clock
+        /// state of Stopped, that is will be stopped.
+        /// </summary>
+        /// <param name="transition">The transition instance.</param>
         private static void EnsureStoppedTransition(ITransition transition)
         {
-            if (transition != null && transition.GetCurrentState() != System.Windows.Media.Animation.ClockState.Stopped)
+            if (transition != null && transition.GetCurrentState() != ClockState.Stopped)
             {
                 transition.Stop();
             }
         }
 
+        /// <summary>
+        /// Performs a transition when given the appropriate components,
+        /// includes calling the appropriate start event and ensuring opacity
+        /// on the content presenter.
+        /// </summary>
+        /// <param name="navigationTransition">The navigation transition.</param>
+        /// <param name="presenter">The content presenter.</param>
+        /// <param name="transition">The transition instance.</param>
         private static void PerformTransition(NavigationTransition navigationTransition, ProjectionHost presenter, ITransition transition)
         {
             if (navigationTransition != null)
             {
                 navigationTransition.OnBeginTransition();
             }
-
             if (presenter != null && presenter.Opacity != 1)
             {
                 presenter.Opacity = 1;
             }
-
             if (transition != null)
             {
                 transition.Begin();
             }
         }
 
+        /// <summary>
+        /// Completes a transition operation by stopping it, restoring 
+        /// interactivity, and then firing the OnEndTransition event.
+        /// </summary>
+        /// <param name="navigationTransition">The navigation transition.</param>
+        /// <param name="presenter">The content presenter.</param>
+        /// <param name="transition">The transition instance.</param>
         private static void CompleteTransition(NavigationTransition navigationTransition, ProjectionHost presenter, ITransition transition)
         {
             if (transition != null)
@@ -411,26 +483,38 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter)
+        /// <summary>
+        /// Updates the content presenter for off-thread compositing for the
+        /// transition animation. Also disables interactivity on it to prevent
+        /// accidental touches.
+        /// </summary>
+        /// <param name="presenter">The content presenter instance.</param>
+        /// <param name="applyBitmapCache">A value indicating whether to apply
+        /// a bitmap cache.</param>
+        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter, bool applyBitmapCache = true)
         {
             if (presenter != null)
             {
-                // The host already rasterizes the content for the 3D pipeline,
-                // so an extra bitmap cache would only soften it. Prefer3D
-                // switches the render path now instead of on the first
-                // animated frame, which kept the first frame of every
-                // transition from matching the static page.
+                if (applyBitmapCache)
+                {
+                    presenter.CacheMode = BitmapCacheMode;
+                }
                 presenter.Prefer3D = true;
                 presenter.IsHitTestVisible = false;
             }
         }
 
+        /// <summary>
+        /// Restores the interactivity for the presenter post-animation, also
+        /// removes the BitmapCache value.
+        /// </summary>
+        /// <param name="presenter">The content presenter instance.</param>
         private static void RestoreContentPresenterInteractivity(ProjectionHost presenter)
         {
             if (presenter != null)
             {
-                presenter.Prefer3D = false;
                 presenter.CacheMode = null;
+                presenter.Prefer3D = false;
 
                 if (presenter.Opacity != 1)
                 {
@@ -440,44 +524,5 @@ namespace Microsoft.Phone.Controls
                 presenter.IsHitTestVisible = true;
             }
         }
-
-        private void RaiseTransitionFailed(UIElement element, Exception exception, bool isExit)
-        {
-            EventHandler<TransitionFailedEventArgs> handler = TransitionFailed;
-            if (handler != null)
-            {
-                handler(this, new TransitionFailedEventArgs(element, exception, isExit));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Provides data for the <see cref="TransitionFrame.TransitionFailed"/>
-    /// event.
-    /// </summary>
-    public class TransitionFailedEventArgs : EventArgs
-    {
-        internal TransitionFailedEventArgs(UIElement element, Exception exception, bool isExit)
-        {
-            Element = element;
-            Exception = exception;
-            IsExit = isExit;
-        }
-
-        /// <summary>
-        /// Gets the page or element whose transition failed.
-        /// </summary>
-        public UIElement Element { get; private set; }
-
-        /// <summary>
-        /// Gets the exception that caused the fallback.
-        /// </summary>
-        public Exception Exception { get; private set; }
-
-        /// <summary>
-        /// Gets a value indicating whether the failed transition was an exit
-        /// transition.
-        /// </summary>
-        public bool IsExit { get; private set; }
     }
 }

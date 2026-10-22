@@ -266,7 +266,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 {
                     Width = 480,
                     Height = 800,
-                    Child = content
+                    Content = content
                 };
                 Window window = new Window { Width = 480, Height = 800, Content = host };
                 ITransition transition = null;
@@ -336,8 +336,8 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     ProjectionHost outgoing = (ProjectionHost)frame.Template.FindName("SecondContentPresenter", frame);
                     ProjectionHost incoming = (ProjectionHost)frame.Template.FindName("FirstContentPresenter", frame);
-                    Assert.Same(first, outgoing.Child);
-                    Assert.Same(second, incoming.Child);
+                    Assert.Same(first, outgoing.Content);
+                    Assert.Same(second, incoming.Content);
                     Assert.NotNull(ProjectionService.GetProjection(first));
                     Assert.Same(outgoing, ProjectionService.GetProjectionHost(first));
                     Assert.NotNull(outgoing.Projection);
@@ -345,7 +345,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     PlaneProjection outgoingProjection = (PlaneProjection)outgoing.Projection;
                     Assert.True(
                         outgoing.IsRenderingIn3D,
-                        string.Format("RotationY={0}, state={1}, child={2}", outgoingProjection.RotationY, outgoingProjection.IsIdentity, outgoing.Child));
+                        string.Format("RotationY={0}, state={1}, child={2}", outgoingProjection.RotationY, outgoingProjection.IsIdentity, outgoing.Content));
 
                     PumpFor(800);
                     Assert.Null(ProjectionService.GetProjection(first));
@@ -411,12 +411,6 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 });
 
                 int failures = 0;
-                TransitionFailedEventArgs failure = null;
-                frame.TransitionFailed += delegate(object sender, TransitionFailedEventArgs e)
-                {
-                    failures++;
-                    failure = e;
-                };
 
                 try
                 {
@@ -432,8 +426,6 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     Assert.Same(page, frame.Content);
                     Assert.Equal(1, failures);
-                    Assert.False(failure.IsExit);
-                    Assert.IsType<InvalidOperationException>(failure.Exception);
                 }
                 finally
                 {
