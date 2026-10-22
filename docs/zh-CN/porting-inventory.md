@@ -37,7 +37,7 @@
 |---|---|---|---|
 | Projection / 3D | 无原始 toolkit 类型；效果和转场使用平台 `UIElement.Projection`/`PlaneProjection` | `Projection`、`PlaneProjection`、`Matrix3DProjection`、`ProjectionHost`、`ProjectionService` | 已实现（真实 `Viewport2DVisual3D` 渲染；测试） |
 | Navigation / page model | WP 平台 `PhoneApplicationFrame`、`PhoneApplicationPage`、`PhoneApplicationService`、`SystemTray` | `PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext`、生命周期、状态、方向、应用服务、系统栏状态 | 已实现子集（WPF Frame/Page；参数/状态/生命周期有测试；系统 chrome 和 idle 策略不同） |
-| Navigation transitions | `Transitions\*`（19 个 XAML storyboard，36 个 C# 文件） | `ITransition`、`Transition`、`TransitionElement`、`NavigationTransition`、`TransitionFrame`、Slide/Rotate/Swivel/Turnstile/Roll/Feather | 已实现（代码化 storyboard；自动进入/退出；真实投影动画；失败回退；测试） |
+| Navigation transitions | `Transitions\*`（27 个 XAML storyboard，36 个 C# 文件） | `ITransition`、`Transition`、`TransitionElement`、`NavigationTransition`、`TransitionFrame`、Slide/Rotate/Swivel/Turnstile/Roll/Feather | 已实现（原版 XAML storyboard 从资源加载；自动进入/退出；真实投影动画；测试） |
 | Effects | `Effects\*` | `TiltEffect`、`SlideInEffect`、`TurnstileFeatherEffect` | TiltEffect + TurnstileFeatherEffect 已实现并有自动化测试；SlideInEffect 未实现（需要 Pivot） |
 | AutoCompleteBox | `AutoCompleteBox\*`（11 文件，约 174 KB） | `AutoCompleteBox`、过滤器、选择适配器、popup 辅助 | 未实现 |
 | ContextMenu | `ContextMenu\*`（5 文件，约 74 KB） | `ContextMenu`、`ContextMenuService`、`MenuBase`、`MenuItem`、`Separator` | 部分实现（基于 WPF ContextMenu；右键打开测试） |
@@ -104,7 +104,7 @@
 | `Microsoft.Phone.Controls.NavigationContext` | 为页面提供 `Uri`、`QueryString`、`ExtraData` | 原始平台类型是 `System.Windows.Navigation.NavigationContext`；WPF 无等价类型。 |
 | `Microsoft.Phone.Controls.ProjectionHost` | 对任意 WPF 内容应用投影 | 替代缺失的 `UIElement.Projection` 属性。 |
 | `Microsoft.Phone.Controls.ProjectionService` | 附加投影和按需包装 Host | 新的 WPF 适配层，放在移植命名空间。 |
-| `TransitionFrame.TransitionFailed` / `TransitionFailedEventArgs` | 报告转场工厂/动画失败和回退 | 新的诊断面，原始没有。 |
+| `TransitionFrame.TransitionFailed` / `TransitionFailedEventArgs` | 曾是转场失败诊断面 | 已移除：移植版与原版一致，工厂抛出的异常会向上传播。 |
 | `PhoneApplicationFrame.Navigate(PhoneApplicationPage, IDictionary<string,string>)` | 不通过 URI 传递页面参数 | 新的 WPF 友好重载；原始使用平台导航 URI。 |
 
 当前逐模块的验证级别（已验证 / 已实现未验证 / 未实现）记录在 [porting-status.md](porting-status.md)。上表描述的是移植范围，不是证据级别。
@@ -183,7 +183,7 @@ Localization
 | 示例 UI 自动化 | 打开详情页、确认加载、返回首页，无启动错误 |
 | 包内容 | 主程序集、XML 文档、50 个卫星资源程序集、主题/BAML、README、LICENSE、第三方声明、中英文文档 |
 
-测试覆盖投影数学和渲染、高 DPI 渲染、投影动画、命中测试/焦点、控件模板/交互、转换器、导航参数/状态/返回键取消/快速导航、进入+退出转场、转场失败回退、TiltEffect、TurnstileFeatherEffect、系统栏/应用服务状态和包消费。视觉一致性和物理触摸仍是文档化的人工检查；见 [known-limitations.md](known-limitations.md)。
+测试覆盖投影数学和渲染、高 DPI 渲染、投影动画、命中测试/焦点、控件模板/交互、转换器、导航参数/状态/返回键取消/快速导航、进入+退出转场、TiltEffect、TurnstileFeatherEffect、系统栏/应用服务状态和包消费。视觉一致性和物理触摸仍是文档化的人工检查；见 [known-limitations.md](known-limitations.md)。
 
 ## 结论
 

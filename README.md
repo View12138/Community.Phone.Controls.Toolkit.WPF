@@ -129,7 +129,7 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 </phone:TransitionService.NavigationInTransition>
 ```
 
-Use `TransitionFrame`, not the plain `PhoneApplicationFrame`, for automatic entry/exit transitions. A broken custom transition is reported through `TransitionFrame.TransitionFailed` and falls back to an untransitioned, interactive navigation.
+Use `TransitionFrame`, not the plain `PhoneApplicationFrame`, for automatic entry/exit transitions. Each transition plays the original toolkit storyboard (`Transitions/Storyboards/*.xaml`, embedded as resources), so angles, timings and easing are the original ones.
 
 ## Build, test, pack
 

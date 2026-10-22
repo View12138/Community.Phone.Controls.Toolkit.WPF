@@ -8,26 +8,45 @@ using System.Windows;
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Provides slide transitions.
+    /// Provides slide <see cref="T:Microsoft.Phone.Controls.ITransition"/>s.
     /// </summary>
     public class SlideTransition : TransitionElement
     {
         /// <summary>
-        /// Identifies the <see cref="Mode"/> property.
+        /// The
+        /// <see cref="T:System.Windows.DependencyProperty"/>
+        /// for the
+        /// <see cref="T:Microsoft.Phone.Controls.SlideTransitionMode"/>.
         /// </summary>
         public static readonly DependencyProperty ModeProperty =
             DependencyProperty.Register("Mode", typeof(SlideTransitionMode), typeof(SlideTransition), null);
 
         /// <summary>
-        /// Gets or sets the transition mode.
+        /// The <see cref="T:Microsoft.Phone.Controls.SlideTransitionMode"/>.
         /// </summary>
         public SlideTransitionMode Mode
         {
-            get { return (SlideTransitionMode)GetValue(ModeProperty); }
-            set { SetValue(ModeProperty, value); }
+            get
+            {
+                return (SlideTransitionMode)GetValue(ModeProperty);
+            }
+            set
+            {
+                SetValue(ModeProperty, value);
+            }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// for a
+        /// <see cref="T:System.Windows.UIElement"/>.
+        /// Saves and clears the existing
+        /// <see cref="F:System.Windows.UIElement.RenderTransformProperty"/>
+        /// value before the start of the transition, then restores it after it is stopped or completed.
+        /// </summary>
+        /// <param name="element">The <see cref="T:System.Windows.UIElement"/>.</param>
+        /// <returns>The <see cref="T:Microsoft.Phone.Controls.ITransition"/>.</returns>
         public override ITransition GetTransition(UIElement element)
         {
             return Transitions.Slide(element, Mode);

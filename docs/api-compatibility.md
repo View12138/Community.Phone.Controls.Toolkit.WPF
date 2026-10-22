@@ -18,7 +18,7 @@ This page is a short entry point for sessions that open `docs/api-compatibility.
 
 1. Original `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` type names, members and defaults are preserved whenever WPF allows it.
 2. WPF has no `UIElement.Projection`; projected content must be wrapped in `ProjectionHost` or annotated with the `ProjectionService.Projection` attached property. `<Grid.Projection>` does not compile.
-3. Port-only APIs (`ProjectionHost`, `ProjectionService`, `TransitionFrame.TransitionFailed`, `PhoneApplicationFrame.Navigate(page, parameters)`, `ProjectionHost.Prefer3D`) are additive and documented here.
+3. Port-only APIs (`ProjectionHost`, `ProjectionService`, `PhoneApplicationFrame.Navigate(page, parameters)`, `ProjectionHost.Prefer3D`) are additive and documented here.
 4. Anything unimplemented is listed as unimplemented in [known-limitations.md](en/known-limitations.md) and in [porting-status.md](porting-status.md) — never silently stubbed.
 5. Every deviation needs a written rationale plus an alternative, so a migrating app can act on it.
 

@@ -36,7 +36,7 @@
 | `Microsoft.Phone.Maps.Toolkit.*` | 未实现 | E | 没有 WPF 地图提供程序。 |
 | `Microsoft.Phone.BackgroundTransfer` / `TransferControl` | 未实现 | E | 没有 WPF 等价服务。 |
 | `Windows.Phone.Speech.Recognition` / `SpeechTextBox` | 未实现 | E | 没有 WPF 等价语音服务。 |
-| 所有转场工厂 | 同名 | A/B | `TransitionFrame.TransitionFailed` 报告工厂/动画失败并回退。 |
+| 所有转场工厂 | 同名 | A/B | storyboard 直接使用原版 XAML 资源在运行时解析；角度、关键时间和缓动都来自原文件。工厂抛异常会向上传播，与原版一致（没有回退事件）。 |
 
 ## 投影与效果
 
@@ -67,7 +67,7 @@
 | `TurnstileFeatherTransition` | 同名 | A/B | `Mode`、`BeginTime`；使用包装目标。 |
 | `FeatheredTransition` | 同名 | A/B | 保留公共类型。 |
 
-原始 storyboard 已转换为代码，但时长、关键时间、角度和缓动均从原始 `Transitions/Storyboards/*.xaml` 复制（见功能审计）。
+原始 27 个 `Transitions/Storyboards/*.xaml` 以 WPF 资源形式随包发布并在运行时加载，因此时长、关键时间、角度和缓动都是原值。文件内唯一的改动是投影属性路径（`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)`），因为 WPF 没有 `UIElement.Projection`。
 
 ## 控件
 

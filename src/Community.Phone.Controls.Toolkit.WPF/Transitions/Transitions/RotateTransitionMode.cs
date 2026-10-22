@@ -10,21 +10,37 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public enum RotateTransitionMode
     {
-        /// <summary>Rotate in 180 degrees clockwise.</summary>
-        In180Clockwise,
-        /// <summary>Rotate in 180 degrees counterclockwise.</summary>
-        In180Counterclockwise,
-        /// <summary>Rotate in 90 degrees clockwise.</summary>
+        /// <summary>
+        /// The rotate in 90 degrees clockwise transition mode.
+        /// </summary>
         In90Clockwise,
-        /// <summary>Rotate in 90 degrees counterclockwise.</summary>
+        /// <summary>
+        /// The rotate in 90 degrees counterclockwise transition mode.
+        /// </summary>
         In90Counterclockwise,
-        /// <summary>Rotate out 180 degrees clockwise.</summary>
-        Out180Clockwise,
-        /// <summary>Rotate out 180 degrees counterclockwise.</summary>
-        Out180Counterclockwise,
-        /// <summary>Rotate out 90 degrees clockwise.</summary>
+        /// <summary>
+        /// The rotate in 180 degrees clockwise transition mode.
+        /// </summary>
+        In180Clockwise,
+        /// <summary>
+        /// The rotate in 180 degrees counterclockwise transition mode.
+        /// </summary>
+        In180Counterclockwise,
+        /// <summary>
+        /// The rotate out 90 degrees clockwise transition mode.
+        /// </summary>
         Out90Clockwise,
-        /// <summary>Rotate out 90 degrees counterclockwise.</summary>
-        Out90Counterclockwise
-    }
+        /// <summary>
+        /// The rotate out 90 degrees counterclockwise transition mode.
+        /// </summary>
+        Out90Counterclockwise,
+        /// <summary>
+        /// The rotate out 180 degrees clockwise transition mode.
+        /// </summary>
+        Out180Clockwise,
+        /// <summary>
+        /// The rotate out 180 degrees counterclockwise transition mode.
+        /// </summary>
+        Out180Counterclockwise
+    };
 }

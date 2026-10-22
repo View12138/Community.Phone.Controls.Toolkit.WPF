@@ -191,16 +191,9 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 需要这些转场时请使用 `TransitionFrame`（不是普通 `PhoneApplicationFrame`）。`TransitionFrame` 通过两个 `ProjectionHost` 部件 `FirstContentPresenter` 和 `SecondContentPresenter` 呈现页面。直接 `Frame.Navigate(page)` 会同时执行进入和退出转场。
 
-如果转场工厂或动画失败，Frame 会触发 `TransitionFrame.TransitionFailed`，并在不带该转场的情况下完成导航：
+如果转场工厂抛出异常，异常会从导航中向上抛出，行为与原版工具箱一致 —— 没有回退事件，因此请自行校验自定义 `TransitionElement` 实现。
 
-```csharp
-Frame.TransitionFailed += (sender, e) =>
-{
-    Log(e.Exception, e.IsExit, e.Element);
-};
-```
-
-页面保持可见和可交互；该事件适合记录或报告损坏的自定义转场。
+每个转场播放的都是原版 storyboard：工具箱从自身资源加载 `Transitions/Storyboards/<系列><模式>.xaml`，因此角度、关键时间和缓动保持不变。仅有的两个获准偏差是 turnstile 的两个常量（`CenterOfRotationX = -0.05`、时长系数 `1.2`），均在 `Transitions.cs` 中说明，可分别改回工具箱原值 `0` 和 `1`。
 
 ## 6. 控件迁移
 

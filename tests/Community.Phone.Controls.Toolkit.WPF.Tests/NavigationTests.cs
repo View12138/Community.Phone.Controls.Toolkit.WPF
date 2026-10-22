@@ -398,43 +398,6 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
-        public void TransitionFrame_FallsBackWhenTransitionFactoryThrows()
-        {
-            StaTest.Run(() =>
-            {
-                TransitionFrame frame = new TransitionFrame();
-                Window window = new Window { Width = 480, Height = 800, Content = frame };
-                TestPage page = new TestPage();
-                TransitionService.SetNavigationInTransition(page, new NavigationInTransition
-                {
-                    Forward = new ThrowingTransitionElement()
-                });
-
-                int failures = 0;
-
-                try
-                {
-                    window.Show();
-                    WpfTestHelper.PumpDispatcher();
-                    frame.ApplyTemplate();
-                    window.UpdateLayout();
-                    Assert.NotNull(frame.Template.FindName("FirstContentPresenter", frame));
-                    Assert.NotNull(frame.Template.FindName("SecondContentPresenter", frame));
-                    Assert.NotNull(TransitionService.GetNavigationInTransition(page));
-                    frame.Navigate(page);
-                    PumpFor(250);
-
-                    Assert.Same(page, frame.Content);
-                    Assert.Equal(1, failures);
-                }
-                finally
-                {
-                    window.Close();
-                }
-            });
-        }
-
-        [Fact]
         public void Frame_DetectsOrientationFromSize()
         {
             StaTest.Run(() =>
@@ -727,14 +690,6 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
             {
                 WpfTestHelper.PumpDispatcher();
                 System.Threading.Thread.Sleep(15);
-            }
-        }
-
-        private sealed class ThrowingTransitionElement : TransitionElement
-        {
-            public override ITransition GetTransition(UIElement element)
-            {
-                throw new InvalidOperationException("Intentional transition failure for tests.");
             }
         }
 

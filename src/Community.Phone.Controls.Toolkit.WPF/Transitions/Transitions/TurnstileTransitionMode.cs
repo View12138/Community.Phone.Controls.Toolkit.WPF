@@ -10,13 +10,21 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public enum TurnstileTransitionMode
     {
-        /// <summary>The turnstile forward in mode.</summary>
+        /// <summary>
+        /// The turnstile forward in transition mode.
+        /// </summary>
         ForwardIn,
-        /// <summary>The turnstile forward out mode.</summary>
+        /// <summary>
+        /// The turnstile forward out transition mode.
+        /// </summary>
         ForwardOut,
-        /// <summary>The turnstile backward in mode.</summary>
+        /// <summary>
+        /// The turnstile backward in transition mode.
+        /// </summary>
         BackwardIn,
-        /// <summary>The turnstile backward out mode.</summary>
+        /// <summary>
+        /// The turnstile backward out transition mode.
+        /// </summary>
         BackwardOut
-    }
+    };
 }

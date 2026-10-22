@@ -9,41 +9,68 @@ using System.Windows;
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Provides turnstile feather transitions.
+    /// Provides turnstile feather <see cref="T:Microsoft.Phone.Controls.ITransition"/>s.
     /// </summary>
     public class TurnstileFeatherTransition : TransitionElement
     {
         /// <summary>
-        /// Identifies the <see cref="Mode"/> property.
+        /// The
+        /// <see cref="T:System.Windows.DependencyProperty"/>
+        /// for the
+        /// <see cref="T:Microsoft.Phone.Controls.TurnstileTransitionMode"/>.
         /// </summary>
         public static readonly DependencyProperty ModeProperty =
             DependencyProperty.Register("Mode", typeof(TurnstileFeatherTransitionMode), typeof(TurnstileFeatherTransition), null);
 
         /// <summary>
-        /// Identifies the <see cref="BeginTime"/> property.
+        /// The <see cref="T:Microsoft.Phone.Controls.TurnstileTransitionMode"/>.
+        /// </summary>
+        public TurnstileFeatherTransitionMode Mode
+        {
+            get
+            {
+                return (TurnstileFeatherTransitionMode)GetValue(ModeProperty);
+            }
+            set
+            {
+                SetValue(ModeProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// The
+        /// <see cref="T:System.Windows.DependencyProperty"/>
+        /// for the time at which the transition should begin.
         /// </summary>
         public static readonly DependencyProperty BeginTimeProperty =
             DependencyProperty.Register("BeginTime", typeof(TimeSpan?), typeof(TurnstileFeatherTransition), new PropertyMetadata(TimeSpan.Zero));
 
         /// <summary>
-        /// Gets or sets the transition mode.
-        /// </summary>
-        public TurnstileFeatherTransitionMode Mode
-        {
-            get { return (TurnstileFeatherTransitionMode)GetValue(ModeProperty); }
-            set { SetValue(ModeProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the time at which the transition should begin.
+        /// The time at which the transition should begin.
         /// </summary>
         public TimeSpan? BeginTime
         {
-            get { return (TimeSpan?)GetValue(BeginTimeProperty); }
-            set { SetValue(BeginTimeProperty, value); }
+            get
+            {
+                return (TimeSpan?)GetValue(BeginTimeProperty);
+            }
+            set
+            {
+                SetValue(BeginTimeProperty, value);
+            }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// for a
+        /// <see cref="T:System.Windows.UIElement"/>.
+        /// Saves and clears the existing
+        /// <see cref="F:System.Windows.UIElement.ProjectionProperty"/>
+        /// value before the start of the transition, then restores it after it is stopped or completed.
+        /// </summary>
+        /// <param name="element">The <see cref="T:System.Windows.UIElement"/>.</param>
+        /// <returns>The <see cref="T:Microsoft.Phone.Controls.ITransition"/>.</returns>
         public override ITransition GetTransition(UIElement element)
         {
             return Transitions.TurnstileFeather(element, Mode, BeginTime);

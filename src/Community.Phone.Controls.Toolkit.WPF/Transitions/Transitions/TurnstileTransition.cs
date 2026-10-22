@@ -8,26 +8,45 @@ using System.Windows;
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Provides turnstile transitions.
+    /// Provides turnstile <see cref="T:Microsoft.Phone.Controls.ITransition"/>s.
     /// </summary>
     public class TurnstileTransition : TransitionElement
     {
         /// <summary>
-        /// Identifies the <see cref="Mode"/> property.
+        /// The
+        /// <see cref="T:System.Windows.DependencyProperty"/>
+        /// for the
+        /// <see cref="T:Microsoft.Phone.Controls.TurnstileTransitionMode"/>.
         /// </summary>
         public static readonly DependencyProperty ModeProperty =
             DependencyProperty.Register("Mode", typeof(TurnstileTransitionMode), typeof(TurnstileTransition), null);
 
         /// <summary>
-        /// Gets or sets the transition mode.
+        /// The <see cref="T:Microsoft.Phone.Controls.TurnstileTransitionMode"/>.
         /// </summary>
         public TurnstileTransitionMode Mode
         {
-            get { return (TurnstileTransitionMode)GetValue(ModeProperty); }
-            set { SetValue(ModeProperty, value); }
+            get
+            {
+                return (TurnstileTransitionMode)GetValue(ModeProperty);
+            }
+            set
+            {
+                SetValue(ModeProperty, value);
+            }
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// for a
+        /// <see cref="T:System.Windows.UIElement"/>.
+        /// Saves and clears the existing
+        /// <see cref="F:System.Windows.UIElement.ProjectionProperty"/>
+        /// value before the start of the transition, then restores it after it is stopped or completed.
+        /// </summary>
+        /// <param name="element">The <see cref="T:System.Windows.UIElement"/>.</param>
+        /// <returns>The <see cref="T:Microsoft.Phone.Controls.ITransition"/>.</returns>
         public override ITransition GetTransition(UIElement element)
         {
             return Transitions.Turnstile(element, Mode);

@@ -162,15 +162,32 @@ Navigation transition sequence:
 4. Entrance completion: stop/restore, restore interactivity, raise `EndTransition`.
 5. `NavigationStopped`: restore the old content and cancel stored transitions.
 
-`Transition` saves/restores `CacheMode` and `IsHitTestVisible`; `ProjectionTransition` also saves/restores the attached projection. Because WPF’s `Storyboard.GetCurrentState()` requires a containing object for controllable clocks, `Transition` tracks its own begun/completed state and returns `ClockState.Active` while the storyboard is running. `Completed` is raised at most once per run, and `Stop()` cancels any pending completion so `EndTransition` cannot fire twice. The animation itself is a normal WPF `Storyboard` with explicit targets, which was verified in tests by observing the animated `PlaneProjection.RotationY`.
+`Transition` saves/restores `CacheMode` and `IsHitTestVisible` and tracks its own begun/completed state. WPF's storyboard control API is stricter than Silverlight's:
 
-`TransitionFrame` also guards against duplicate `Navigating`/content-change notifications, clears stored transitions on rapid navigation, and raises `TransitionFailed` (with the exception, element, and exit/entry direction) if a transition factory or `Begin` fails. In that case the frame falls back to an untransitioned navigation and restores hit testing/cache state instead of leaving the page hidden or non-interactive.
+- `Storyboard.GetCurrentState()`/`GetCurrentTime()` and `Stop()`/`Pause()` **throw** when the storyboard has no clock yet, where Silverlight returned `Stopped`/`Zero`. `Transition` therefore tracks `IsBegun` and reports `ClockState.Stopped`/`TimeSpan.Zero` instead of querying a clock that does not exist; `Stop()` on a transition that never started is a no-op that only restores the element.
+- The storyboard is started as a **controllable** clock (`Begin(containingObject, true)`), because `Pause`/`Resume`/`Seek`/`SkipToFill` require interactive control in WPF; every control call passes the same containing object.
+- WPF raises `Timeline.Completed` again when a controllable clock is stopped or removed, so `Transition` raises `Completed` at most once per run; `Stop()` cancels any pending completion so `EndTransition` cannot fire twice (a nested completion used to double the event).
+- `Stop()` also removes the clock, returning the animated properties to their base values.
+- The animation cache is created per transition instead of being shared statically: a `Freezable` belongs to the dispatcher that created it, and a shared `BitmapCache` threw `ArgumentException` (`MediaSystem.AssertSameContext`) as soon as a transition ran on a second UI thread, which also made the cache unusable across WPF test threads.
+
+The animation itself is a normal WPF `Storyboard` with explicit targets, verified by observing the animated `PlaneProjection.RotationY` and by rendering a mid-transition frame (the page shows as a perspective trapezoid).
+
+`Transitions.ProjectionTransition` (port-only) clears the attached projection when a projected transition completes or is stopped, so an idle page returns to the plain 2D path instead of keeping an identity projection for the rest of its life. `TransitionFrame` does **not** apply a `BitmapCache` to its presenters: `Viewport2DVisual3D` already rasterizes the page, and a second cache only softens the animation.
+
+Two original behaviours had to be adapted:
+
+- The original `Navigating` handler ignores navigations that the application did not initiate (the shell animating the frame out on deactivation). WPF reports `IsNavigationInitiator == false` for every `Frame.Navigate` call and has no shell-driven navigation, so the port drops that guard; keeping it suppresses every transition.
+- The original `TransitionFrame` has no exception handling around the transition factories, and the port follows it: a throwing `TransitionElement` fails the navigation instead of being silently downgraded. The earlier port had a `TransitionFailed` event with an untransitioned fallback; it was removed so the frame behaves exactly like the original.
 
 ### 5.4 Transition families
 
-The original 19 XAML storyboards were re-expressed in `Transitions.cs` using `DoubleAnimation`/`DoubleAnimationUsingKeyFrames` with the same timings and easing functions. Storyboards target the `PlaneProjection` object directly, avoiding Silverlight property paths.
+The original storyboard XAML files (`Transitions/Storyboards/*.xaml`, 27 files) are embedded as WPF resources and loaded the way the original toolkit loaded them: `Application.GetResourceStream("/Community.Phone.Controls.Toolkit.WPF;component/Transitions/Storyboards/<Name>.xaml")`, cached as text, then parsed with `XamlReader.Load` — WPF needs an `XmlReader`/stream instead of a string. `Transitions.GetEnumStoryboard` maps `<family><mode>` to that file, `Storyboard.SetTarget(storyboard, element)` binds the animations to the page, and the factory assigns the projection (or the `RenderTransform` for Slide) before returning a `Transition`.
+
+The only edits to the storyboards are the property paths: Silverlight wrote `(UIElement.Projection).(PlaneProjection.RotationY)`; the port writes `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)` with `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"`, because `Projection` is an attached property on the projection host. Angles, key times and easing functions are the original values, and WPF resolves the prefixed path correctly.
 
 Families: Roll, Rotate (8 modes), Slide (8 modes), Swivel (6 modes), Turnstile (4 modes), TurnstileFeather (4 modes). `TransitionService` and `NavigationTransition`/`NavigationInTransition`/`NavigationOutTransition` preserve the original attached-property shape.
+
+The turnstile family keeps the port's two sanctioned constant deviations, both documented in `Transitions.cs`: `TurnstileCenterOfRotationX = -0.05` and `TurnstileDurationScale = 1.2`, the latter applied as `Storyboard.SpeedRatio` so the original key times stay untouched (set either constant back to `0`/`1` to restore the toolkit geometry and timing exactly).
 
 ## 6. Effects
 

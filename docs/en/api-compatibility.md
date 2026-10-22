@@ -54,7 +54,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `PhoneApplicationFrame` | same | B/C | WPF journal/`NavigationService`; orientation inferred from size. |
 | `PhoneApplicationPage` | same | B/C | `State`, orientation, events; lifecycle methods are frame-driven. |
 | `TransitionFrame` | same | B | Custom template with two `ProjectionHost` parts; automatic entry/exit transitions for direct page navigation. |
-| All transition factories | same | A/B | `TransitionFrame.TransitionFailed` reports a factory/animation failure and falls back to an untransitioned navigation. |
+| All transition factories | same | A/B | Storyboards are the original XAML resources, parsed at runtime; angles, key times and easing come from the original files. A throwing factory propagates, exactly like the original (no fallback event). |
 | `TransitionService.NavigationInTransition` | same | A | Attached property names preserved. |
 | `TransitionService.NavigationOutTransition` | same | A | Attached property names preserved. |
 | `NavigationInTransition` / `NavigationOutTransition` | same | A | Forward/Backward DPs. |
@@ -67,7 +67,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `TurnstileFeatherTransition` | same | A/B | `Mode`, `BeginTime`; uses wrappers for targets. |
 | `FeatheredTransition` | same | A/B | Public type preserved. |
 
-The original storyboards were converted to code, but the durations, key times, angles and easing functions were copied from the original `Transitions/Storyboards/*.xaml` (see the audit notes in the inventory).
+The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and are loaded at runtime, so the durations, key times, angles and easing functions are the original ones. The only change inside them is the projection property path (`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)`), because WPF has no `UIElement.Projection`.
 
 ## Controls
 

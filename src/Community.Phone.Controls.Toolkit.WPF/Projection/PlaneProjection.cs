@@ -252,5 +252,22 @@ namespace Microsoft.Phone.Controls
         {
             return new PlaneProjection();
         }
+
+        public static DependencyProperty GetDependencyProperty(string propertyName) => propertyName switch
+        {
+            "CenterOfRotationX" => CenterOfRotationXProperty,
+            "CenterOfRotationY" => CenterOfRotationYProperty,
+            "CenterOfRotationZ" => CenterOfRotationZProperty,
+            "GlobalOffsetX" => GlobalOffsetXProperty,
+            "GlobalOffsetY" => GlobalOffsetYProperty,
+            "GlobalOffsetZ" => GlobalOffsetZProperty,
+            "LocalOffsetX" => LocalOffsetXProperty,
+            "LocalOffsetY" => LocalOffsetYProperty,
+            "LocalOffsetZ" => LocalOffsetZProperty,
+            "RotationX" => RotationXProperty,
+            "RotationY" => RotationYProperty,
+            "RotationZ" => RotationZProperty,
+            _ => null,
+        };
     }
 }

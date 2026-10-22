@@ -10,21 +10,37 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public enum SlideTransitionMode
     {
-        /// <summary>Slide down and fade in.</summary>
-        SlideDownFadeIn,
-        /// <summary>Slide down and fade out.</summary>
-        SlideDownFadeOut,
-        /// <summary>Slide left and fade in.</summary>
-        SlideLeftFadeIn,
-        /// <summary>Slide left and fade out.</summary>
-        SlideLeftFadeOut,
-        /// <summary>Slide right and fade in.</summary>
-        SlideRightFadeIn,
-        /// <summary>Slide right and fade out.</summary>
-        SlideRightFadeOut,
-        /// <summary>Slide up and fade in.</summary>
+        /// <summary>
+        /// The slide up, fade in transition mode.
+        /// </summary>
         SlideUpFadeIn,
-        /// <summary>Slide up and fade out.</summary>
-        SlideUpFadeOut
-    }
+        /// <summary>
+        /// The slide up, fade out transition mode.
+        /// </summary>
+        SlideUpFadeOut,
+        /// <summary>
+        /// The slide down, fade in transition mode.
+        /// </summary>
+        SlideDownFadeIn,
+        /// <summary>
+        /// The slide down, fade out transition mode.
+        /// </summary>
+        SlideDownFadeOut,
+        /// <summary>
+        /// The slide left, fade in transition mode.
+        /// </summary>
+        SlideLeftFadeIn,
+        /// <summary>
+        /// The slide left, fade out transition mode.
+        /// </summary>
+        SlideLeftFadeOut,
+        /// <summary>
+        /// The slide right, fade in transition mode.
+        /// </summary>
+        SlideRightFadeIn,
+        /// <summary>
+        /// The slide right, fade out transition mode.
+        /// </summary>
+        SlideRightFadeOut
+    };
 }

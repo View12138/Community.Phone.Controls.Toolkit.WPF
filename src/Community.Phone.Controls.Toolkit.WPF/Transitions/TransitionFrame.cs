@@ -36,11 +36,6 @@ namespace Microsoft.Phone.Controls
         /// template part name.
         /// </summary>
         private const string SecondTemplatePartName = "SecondContentPresenter";
-
-        /// <summary>
-        /// A single shared instance for setting BitmapCache on a visual.
-        /// </summary>
-        internal static readonly CacheMode BitmapCacheMode = new BitmapCache();
         #endregion
 
         #region Template Parts
@@ -151,16 +146,11 @@ namespace Microsoft.Phone.Controls
         /// <param name="e">The event arguments.</param>
         private void OnNavigating(object sender, NavigatingCancelEventArgs e)
         {
-            // If the current application is not the origin
-            // and destination of the navigation, ignore it.
-            // e.g. do not play a transition when the 
-            // application gets deactivated because the shell
-            // will animate the frame out automatically.
-            if (!e.IsNavigationInitiator)
-            {
-                return;
-            }
-
+            // The original toolkit skips the transition when the navigation is
+            // not initiated by the application (e.g. the shell animating the
+            // frame out on deactivation). WPF reports IsNavigationInitiator as
+            // false for every Frame.Navigate call and has no shell-driven
+            // navigation, so there is nothing to filter out here.
             _isForwardNavigation = e.NavigationMode != NavigationMode.Back;
 
             var oldElement = Content as UIElement;
@@ -484,29 +474,26 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Updates the content presenter for off-thread compositing for the
-        /// transition animation. Also disables interactivity on it to prevent
-        /// accidental touches.
+        /// Prepares the content presenter for the transition animation: the 3D
+        /// render path is switched on before the first animated frame, and
+        /// interactivity is disabled to prevent accidental touches.
         /// </summary>
         /// <param name="presenter">The content presenter instance.</param>
-        /// <param name="applyBitmapCache">A value indicating whether to apply
-        /// a bitmap cache.</param>
-        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter, bool applyBitmapCache = true)
+        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter)
         {
             if (presenter != null)
             {
-                if (applyBitmapCache)
-                {
-                    presenter.CacheMode = BitmapCacheMode;
-                }
+                // The port does not apply a BitmapCache here: the presenter
+                // already rasterizes its content through Viewport2DVisual3D,
+                // and a second 1x cache only softens the animation.
                 presenter.Prefer3D = true;
                 presenter.IsHitTestVisible = false;
             }
         }
 
         /// <summary>
-        /// Restores the interactivity for the presenter post-animation, also
-        /// removes the BitmapCache value.
+        /// Restores the interactivity for the presenter post-animation and
+        /// returns it to the 2D render path.
         /// </summary>
         /// <param name="presenter">The content presenter instance.</param>
         private static void RestoreContentPresenterInteractivity(ProjectionHost presenter)

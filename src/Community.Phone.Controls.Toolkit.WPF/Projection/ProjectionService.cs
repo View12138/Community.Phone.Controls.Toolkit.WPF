@@ -364,8 +364,9 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Removes a host inserted by <see cref="EnsureProjectionHost"/> and
-        /// restores the original layout properties of the element.
+        /// Removes a host inserted by
+        /// <see cref="EnsureProjectionHost(FrameworkElement)"/> and restores the
+        /// original layout properties of the element.
         /// </summary>
         public static void ReleaseProjectionHost(FrameworkElement element)
         {

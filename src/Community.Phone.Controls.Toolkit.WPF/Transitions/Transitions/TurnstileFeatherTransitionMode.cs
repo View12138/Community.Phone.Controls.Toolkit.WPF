@@ -10,13 +10,24 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public enum TurnstileFeatherTransitionMode
     {
-        /// <summary>Feather forward in.</summary>
+        /// <summary>
+        /// The turnstile feather forward in transition mode.
+        /// </summary>
         ForwardIn,
-        /// <summary>Feather forward out.</summary>
+
+        /// <summary>
+        /// The turnstile feather forward out transition mode.
+        /// </summary>
         ForwardOut,
-        /// <summary>Feather backward in.</summary>
+
+        /// <summary>
+        /// The turnstile feather backward in transition mode.
+        /// </summary>
         BackwardIn,
-        /// <summary>Feather backward out.</summary>
+
+        /// <summary>
+        /// The turnstile feather backward out transition mode.
+        /// </summary>
         BackwardOut
-    }
+    };
 }

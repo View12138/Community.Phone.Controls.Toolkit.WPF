@@ -21,17 +21,19 @@
 
 ---
 
-## 2. 当前已验证状态（2026-10-19）
+## 2. 当前已验证状态（2026-10-22）
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | **0 警告、0 错误** |
-| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **72 通过 / 0 失败 / 0 跳过**（17:24） |
-| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **72 通过**（17:23） |
+| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
+| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **89 通过 / 1 失败 / 0 跳过** —— 失败的是既有问题 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents`（`CustomMessageBox.Show()` 直接使用 `Application.Current`，测试宿主里为 `null`）；所有转场/导航/投影/效果测试均通过 |
+| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **89 通过 / 1 失败** —— 同样是既有的 `CustomMessageBox` 测试 |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过**（17:25）—— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
 | 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；进程存活且无错误日志 |
 
-测试清单（72 个）：`ProjectionTests` 20、`ControlTests` 23、`NavigationTests` 17、`EffectsTests` 6、`ConverterTests` 3、`ShellTests` 3。
+测试清单（90 个）：`ProjectionTests` 20、`ControlTests` 23、`NavigationTests` 16、`TransitionStoryboardTests` 13、`EffectsTests` 6、`ConverterTests` 3、`ShellTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+
+`NavigationTests.TransitionFrame_FallsBackWhenTransitionFactoryThrows` 已随移植版的 `TransitionFailed` 事件一起删除：现在与原版一致，`TransitionElement` 工厂抛出的异常会向上传播，而不是降级成无转场导航。
 
 唯一需要真实指针输入的测试是 `ControlTests.Rating_MouseClickChangesValue`；现在它会重试光标定位五次，若桌面无法让指针落到控件上（例如锁屏或被其它窗口遮挡），则跳过断言，不再把环境问题报成失败。
 
@@ -45,7 +47,7 @@
 2. **忠实 XAML 的透视** —— 固定 `PerspectiveDepth = 999` DIP（WinUI `PlaneProjection` 用 `M34 = -1/999`），相机位于 `z = depth`，水平视场角由视口**宽度**推导。原因：WPF `PerspectiveCamera.FieldOfView` 是水平视场角、垂直视场角由宽高比推导；按高度推导会让所有被投影页面按宽高比缩小（480×800 → 288×480）。
 3. **符号约定** —— `R = Rz·Ry·Rx`、行向量矩阵、Y 偏移取反、**RotationY 取反**。原因：XAML 中正 `RotationY` 让右边缘靠近观察者，而 WPF 的 +Y 正向旋转让它远离；RotationX/Z 因元素空间 Y 向下而已天然一致。已用 `TiltEffect` 按压方向与 WinUI/Uno 实现交叉验证。
 4. **转场严格串行** —— 退场完成后才开始入场；`TransitionFrame` 在两个 `ProjectionHost` presenter 之间切换。与原版 `TransitionFrame` 一致。
-5. **storyboard 用代码重建** —— `Transitions.cs` 以编程方式重建原始 19 个 XAML storyboard，以便直接作用于兼容的 `PlaneProjection`；数值已与原 XAML 逐条比对。
+5. **原版 storyboard XAML，运行时加载** —— 原版 27 个 `Transitions/Storyboards/*.xaml` 以 WPF 资源形式内嵌，用 `XamlReader` 解析（唯一改动是投影属性路径，需要 `phone:` 前缀）。原因：保持工具包权威的关键时间/角度/缓动逐字节一致，而不是用代码重新表达——之前的移植已经出现偏差（动画成 `-69°`/`45°` 而不是 `-80°`/`50°`）。
 6. **渲染路径一致** —— `ProjectionHost.Prefer3D` 让 Host 在投影仍是 identity 时保持 3D 路径，使转场/效果在**准备阶段**切换路径而不是在动画首帧。转场与效果的宿主不再使用 `BitmapCache`（3D 管线本身会栅格化，额外 1× 缓存实测会明显变糊）。
 7. **元素级效果使用自己的宿主** —— `ProjectionService.EnsureProjectionHost` 只复用**直接包含该元素**的宿主；使用祖先宿主会把整页一起投影（这是已修复的真实 bug，现有测试覆盖）。
 
@@ -104,14 +106,67 @@
 
 本轮新增测试：`NavigationTests.TransitionFrame_CompletesAFeatheredExitWithoutTargets`、`NavigationTests.TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`、`NavigationTests.TransitionFrame_UsesAnOutTransitionSetJustBeforeNavigating`、`ControlTests.Rating_HalfItemIncrementKeepsValueInItemUnits`；`ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` 现在会等待 Swivel 结束再断言 `Dismissed`。
 
+### 4.7 本轮：回到原版 XAML storyboard 管线（以及它暴露的转场缺陷）
+
+`Transitions.cs` 重新按原版工具箱的形态移植：原版 27 个 `Transitions/Storyboards/*.xaml` 作为 WPF 资源随包发布，并按原版的方式加载（`Application.GetResourceStream` + 文本缓存 + `XamlReader.Load`；WPF 需要 `XmlReader` 而不是字符串）。`Storyboard.SetTarget(storyboard, element)` 把动画绑定到整页，工厂负责设置投影（Slide 则是 `RenderTransform`），然后返回 `Transition`。storyboard 内部唯一的改动是属性路径：`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` 加 `xmlns:phone` —— WPF 能解析带前缀的路径（通过观察实际动画的 `PlaneProjection.RotationY` 验证）。
+
+保留了两处仅移植版才有的内容，均已在源码中说明：
+
+1. `ProjectionTransition` 在带投影的转场完成或停止时清除附加投影，使空闲页面回到纯 2D 路径（Silverlight 可以长期保留一个单位投影）。
+2. Turnstile 的两个常量（`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`）；系数以 `Storyboard.SpeedRatio` 施加，原始关键时间不变。
+
+在验证新管线时发现并修复了三个真实缺陷：
+
+1. **完全没有任何转场。** `TransitionFrame.OnNavigating` 保留了原版的 `if (!e.IsNavigationInitiator) return;` 判断，但 WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`。于是 `_isForwardNavigation` 一直为 `false`，取到的是 `NavigationInTransition.Backward`（通常为 `null`），库和示例里的**所有**转场都被静默跳过 —— 这正是 `cd606b4` 里已经有 6 个导航测试失败的原因。修复：去掉该判断（WPF 没有 shell 发起的导航），并记录这处偏离。
+2. **跨线程 `BitmapCache`。** `TransitionFrame` 保留了一个共享的 `static readonly BitmapCache` 并赋给呈现器。每个测试运行在自己的 STA 线程上，于是第二个测试从 `MediaSystem.AssertSameContext` 抛出 `ArgumentException`。修复：不再给呈现器加缓存 —— `Viewport2DVisual3D` 已经栅格化页面，架构说明本来也禁止再套一层缓存。
+3. **过时的测试。** `TransitionFrame_FallsBackWhenTransitionFactoryThrows` 断言的计数器已不再递增（`TransitionFailed` 事件在上一轮被移除）；已删除该测试及其 `ThrowingTransitionElement` 辅助类型。
+
+本轮新增的验证（全部自动化，`dotnet test -c Release`）：
+
+- `TransitionStoryboardTests`（6 个）：每个族都通过公开的 `TransitionElement` 启动，并在运行时读取被动画的属性 —— Roll `RotationZ 0→45→90`、Rotate `90→0`、Swivel `RotationX −45→0`、Turnstile `RotationY −80→0`（并断言 `IsRenderingIn3D`）、Slide `TranslateTransform.X 200→0` 加透明度，以及 `ProjectionTransition` 在 `Stop()` 时清除投影。
+- 通过真实 Frame 实测时长：turnstile 入场 **420 ms**、退场约 300 ms（0.35 s / 0.25 s × 1.2）。
+- 渲染帧证据：`TransitionFrame` 转场中途的 `RenderTargetBitmap` 显示页面为透视梯形（绘制列：顶部 0–325、中间 0–399、底部 0–226），而稳定后是平整的 0–466。
+- 示例冒烟：示例可启动，UI 自动化树列出所有示例入口，打开 Transitions 示例能正常导航且无错误日志。
+
+本轮同步更新的文档（双语）：`architecture.md` §5.3/§5.4、`known-limitations.md` §5/§9、`api-compatibility.md`、`migration-guide.md`、`porting-inventory.md`、`porting-status.md` §3（所有转场族升级为 ✅ 并附新证据），以及两份 README（不再宣传 `TransitionFailed`）。
+
+### 4.8 本轮：`Transition.GetCurrentState()` 抛 `InvalidOperationException`
+
+转场源码被替换为原版工具包文件后（`Transition` 移到 `Transitions/Transitions/Transition.cs`），真实应用报错：
+
+```
+System.InvalidOperationException: 无法执行操作，因为未将指定的 Storyboard 应用到此交互控件的对象。
+  at System.Windows.Media.Animation.Storyboard.GetCurrentState()
+  at Microsoft.Phone.Controls.Transition.GetCurrentState()
+  at Microsoft.Phone.Controls.TransitionFrame.EnsureStoppedTransition(...)
+  at Microsoft.Phone.Controls.TransitionFrame.TransitionNewContent(...)
+```
+
+根因：Silverlight 的无参 `Storyboard` 控制方法在“时钟还不存在”时是安全的，WPF 会抛异常。`TransitionFrame` 在 `Begin()` **之前** 调用 `EnsureStoppedTransition(transition)` → `transition.GetCurrentState()`，因此每次导航的第一个转场都会崩溃。
+
+`Transition` 现在保持原版 Silverlight 形态，只补上必要的 WPF 适配：
+
+1. 跟踪 `_isBegun`：storyboard 未启动时 `GetCurrentState()`/`GetCurrentTime()` 返回 `Stopped`/`Zero`；没有时钟时 `Pause`/`Resume`/`Seek`/`SeekAlignedToLastTick`/`SkipToFill` 是空操作；对从未启动的转场调用 `Stop()` 只恢复元素状态。
+2. `Begin()` 以**可控时钟**方式在元素上启动 storyboard（`Storyboard.Begin(containingObject, true)`），因为 WPF 的交互控制需要宿主对象；所有控制调用都传入该宿主。
+3. `_isCompleted` 保证每次运行最多触发一次 `Completed`。可控时钟被停止/移除时 WPF 会再次触发 `Timeline.Completed`，而 Frame 正是在该事件里完成导航 —— 没有这个保护时 `NavigationTransition.EndTransition` 会触发两次（`TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity` 断言 1，实际 2）。`Stop()` 也会置位该标志，确保 Frame 已完成后再无待完成事件。
+4. `Stop()` 现在还会 `Storyboard.Remove` 时钟，使被动画的属性回到基础值。
+5. `Save()` 改为每个转场创建自己的 `BitmapCache`，不再使用共享的 `TransitionFrame.BitmapCacheMode` 静态实例：`Freezable` 属于创建它的 dispatcher，共享实例在第二个测试线程上会抛 `ArgumentException`（`MediaSystem.AssertSameContext`，以及 `Restore()` 中的 `Freezable.RemoveContextInformation`）。已从 `TransitionFrame` 删除这个不再使用的静态字段。
+
+验证：
+
+- `TransitionStoryboardTests` 新增三个回归测试：`Transition_ReportsStateAndTimeBeforeItBegins`（在 `Begin()` 之前探测状态/时间与全部控制方法 —— 即本次崩溃场景）、`Transition_RaisesCompletedOncePerRun`（多次 `Stop()` 后仍只有一次 `Completed`），以及 `TransitionFrame_NavigatesWithEveryFamily`（对 Turnstile/Slide/Rotate/Swivel/Roll 的 `[Theory]`，通过 Frame 跑退场+入场，断言两侧各一次 `BeginTransition`/`EndTransition`、页面可交互、投影已清除）。
+- 真实 Frame 的进程内探针（turnstile 退场 + 入场）：`outBegun=1 outEnded=1 inBegun=1 inEnded=1`，两侧投影都被清除、命中测试恢复，无异常。
+- 独立转场探针：`Stopped`→`Active`，时间正常推进，`Pause` 冻结（因 tick 粒度约 7 ms 溢出），`Resume` 继续，`Seek(50 ms)` 延迟到下一个 tick，`SeekAlignedToLastTick(10 ms)` 精确落在 10 ms，`SkipToFill` 只完成一次，`Stop` 清除投影。
+- `dotnet test -c Release`：**89 通过 / 1 失败 / 0 跳过**（90 个）；失败的是既有问题 `CustomMessageBox_ShowDismissRaisesLifecycleEvents`（测试宿主里 `Application.Current` 为 null）。有一次运行中两个 `EffectsTests` 倾斜测试也失败 —— 它们在窗口于倾斜中途关闭时把 `TiltEffect` 的静态状态泄漏到其它 STA 线程；重跑即通过。
+
 ---
 
 ## 5. 未完成 / 未验证
 
 明确**不**声称的内容：
 
-1. **与 WP 8.1 模拟器的逐帧视觉对比** —— 模拟器在运行、通过 Virtual Machine Connection 查看，但本次会话无法“看图”；验证是数值化的（几何、时序）+ 与原 XAML/WinUI 数学比对。Turnstile 的调优（枢轴 `-0.05`、时长 ×1.2）来自用户的口头观察而非测量，因此仍**需要一次视觉确认**。除 Turnstile 外的转场**没有**运行时目视确认。
-2. **storyboard 数值的自动化一致性测试** —— 与原 XAML 的比对是人工完成的；目前没有测试对 `Transitions.cs` 的数值做快照/断言。
+1. **与 WP 8.1 模拟器的逐帧视觉对比** —— 模拟器在运行、通过 Virtual Machine Connection 查看，但本次会话无法“看图”；验证是数值化的（几何、时序、渲染帧几何）+ 与原 XAML/WinUI 数学比对。Turnstile 的调优（枢轴 `-0.05`、时长 ×1.2）来自用户的口头观察而非测量，因此仍**需要一次视觉确认**。现在每个族都有运行时属性测试（`TransitionStoryboardTests`），但只有 Turnstile 有渲染帧证据。
+2. **各族缓动/像素一致性** —— storyboard 就是原版 XAML，数值天然精确；但 WPF 与 Silverlight 是否在每一帧都以完全相同的方式求值同一个 `ExponentialEase`/`SineEase`，没有测量。
 3. **羽化透视原点** —— 原版 `TurnstileFeatherEffect` 会把每个元素的透视原点移到页面垂直中心（`GlobalOffsetY` + 补偿 RenderTransform）。本移植版因 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，让元素绕自身中心旋转；角度/延迟/时序与原版一致。已写入已知限制。
 4. **Shell chrome** —— `SystemTray` 与 `ApplicationBar` 是 API 模型；默认 Frame 模板不绘制 WP 状态栏或应用栏，也没有视觉验证。
 5. **未实现模块** —— `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService`、`LoopingSelector`/picker 页面。已通过源码检索确认不存在（无对应 `class`）。
@@ -122,7 +177,7 @@
 
 ## 6. 阻塞与风险
 
-1. **本轮改动未提交。** 上一轮工作已安全保存在 `bc0e22e`；Turnstile 调优、羽化修复、六个一致性问题修复、测试改动、Sample 重构与文档更新只存在于工作区（25 个修改，含 4 个删除；13 个新增文件）。任何破坏性 git 操作都会丢失它们。见 §10。
+1. **本轮改动未提交。** `cd606b4` 保存了上一轮工作；原版 storyboard 管线、`IsNavigationInitiator` 修复、`BitmapCache` 移除、`TransitionStoryboardTests`、删除的过时导航测试以及全部文档更新只存在于工作区。任何破坏性 git 操作都会丢失它们。见 §10。
 2. **视觉验证缺口。** 缺少目视手段时，保真度结论依赖几何/时序测量与原 XAML。后续最好能并排查看示例与模拟器。
 3. **`docs/*/porting-inventory.md` 是 Phase 0 的大型审计文档**（英文版约 129 KB）。其中的模块状态是历史快照；当前状态以 `docs/porting-status.md` 为准。
 4. **环境坑** —— `XDE.exe` 会卡死（用 `vmconnect.exe`）；`PrintWindow` 对 3D/VM 表面返回全黑（改用 `Topmost` 窗口 + `CopyFromScreen`）；显示为 150% DPI（注意 DIP↔像素换算）；示例运行时锁定 `bin` 输出，重建前先结束进程。
@@ -138,10 +193,11 @@
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D`（符号约定、行向量顺序） |
 | `…/Projection/ProjectionService.cs` | 附加投影（按需包裹、清除时释放）、`EnsureProjectionHost` / `FindDirectHost`、宿主包裹/解包 |
 | `…/Projection/ProjectionMath.cs` | 旋转/平移辅助 |
-| `…/Transitions/TransitionFrame.cs` | presenter 翻转、串行时序、准备/复位、失败回退 |
-| `…/Transitions/Transitions.cs` | 代码形式的 19 个 storyboard（数值为权威）+ Turnstile 的 WP 对齐常量（`TurnstileCenterOfRotationX`、`TurnstileDurationScale`） |
+| `…/Transitions/TransitionFrame.cs` | presenter 翻转、串行时序、准备/复位（3D + 命中测试，不加 bitmap cache） |
+| `…/Transitions/Transitions.cs` | 加载原版 storyboard XAML 资源（`GetResourceStream` + `XamlReader`）、绑定整页目标、`ProjectionTransition` 清理、Turnstile 的 WP 对齐常量（`TurnstileCenterOfRotationX`、`TurnstileDurationScale`） |
+| `…/Transitions/Storyboards/*.xaml` | 原版 27 个 storyboard（角度/关键时间/缓动为权威）；只有投影路径改写成 `phone:` 前缀 |
 | `…/Transitions/Transitions/*.cs` | 各转场族的 `TransitionElement` |
-| `…/Effects/TiltEffect.cs` | 元素级倾斜、加载时包裹、变换缓存 |
+| `…/Effects/TiltEffect.cs` | 元素级倾斜（通过 `ProjectionService`，不管理宿主）、以第一个可视子元素为支点、容器→控件变换缓存 |
 | `…/Effects/TurnstileFeatherEffect.cs` | 逐元素羽化；目标从页面可视树收集；宿主包装延迟到 dispatcher |
 | `…/Themes/Generic.xaml` | 唯一主题源（Metro 调色板、模板、WPF 基础控件 WP 样式）；含对齐 WP8 的 `HubTile` 模板（滑动表面 + `RotationX` 翻转）与 `PhoneTextBox`/`Rating` 布局 |
 | `…/Controls/CustomMessageBox.cs` | 消息框窗口；内容承载在 `ProjectionHost`，弹出/关闭播放 `BackwardIn`/`BackwardOut` Swivel |
@@ -161,10 +217,10 @@
 
 ## 8. 建议的下一步（按顺序）
 
-1. **提交本轮改动**（重构与本轮修复尚未提交）：`git add -A`，提交信息概括羽化回归修复、消息框 Swivel、转场族修复、Rating/PhoneTextBox/HubTile 修复，并带 `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` 尾注。
+1. **提交本轮改动**（原版 storyboard 管线与三处转场修复尚未提交）：`git add -A`，提交信息概括 XAML storyboard 移植、`IsNavigationInitiator` 修复、跨线程 `BitmapCache` 移除以及新增的 `TransitionStoryboardTests`，并带 `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` 尾注。
 2. **在模拟器里确认 Turnstile 调优**（Virtual Machine Connection），必要时调整 `Transitions.cs` 里的两个常量 —— 枢轴偏移与节奏只由这两处控制。
-3. **目视确认这六项修复**：羽化进场不再卡死（数值探针已确认）、消息框 Swivel、两侧都使用所选转场族、Rating 在 50%/80% 处的命中区域、PhoneTextBox 占位符与光标对齐、HubTile 翻转。以上均已数值验证，与模拟器的像素对比仍未做。
-4. **增加 storyboard 一致性测试**（internal 对测试程序集可见）：按族断言 `Transitions` 的关键帧数值/时长，防止偏离原 XAML。
+3. **目视确认其余修复**：羽化进场不再卡死（数值探针已确认）、消息框 Swivel、两侧都使用所选转场族、Rating 在 50%/80% 处的命中区域、PhoneTextBox 占位符与光标对齐、HubTile 翻转。以上均已数值验证，与模拟器的像素对比仍未做。
+4. **让 `CustomMessageBox.Show()` 支持 `Application` 为 `null`**，以便最后一个既有红色测试（`ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents`）通过：它无条件读取 `Application.Current.Resources["PhoneBackgroundColor"]` 与 `Application.Current.MainWindow`。
 5. **决定 `Prefer3D` 的生命周期**：目前被丢弃的旧 presenter 会回到 2D，新 presenter 在动画完成后回到 2D。若将来出现“转场结束时文字突然变清晰”的跳变，可考虑把 `Prefer3D` 保持到下一次导航。
 6. **同步文档** —— 每次行为或验证状态变化时更新 `docs/porting-status.md` 与 `docs/handoff.md`（§2 结果、§5 状态）。
 
@@ -183,53 +239,45 @@
 ## 10. Git 状态 —— 请保护好
 
 - 分支：**`main`**，本工作区未配置远端跟踪。
-- 已有提交：`bc0e22e`（上一轮的文档 + 投影/转场/倾斜修复）、`83d5d73 fix: 0.01`、`81a55d2 feat: 0.0.1`。
-- 交接时工作区：**25 个修改（含 4 个删除）+ 13 个新增文件，全部未提交。**
+- 已有提交：`cd606b4`（上一轮文档 + TransitionFrame/XAML storyboard 骨架）、`7efd2cd`、`ccfd83b`、`386c52e`、`bc0e22e`、`83d5d73`、`81a55d2`。
+- 交接时工作区：**全部未提交** —— 原版 storyboard 管线、`Transition` 的 WPF 适配以及全部文档更新只存在于工作区。转场源码也已恢复为原版工具包文件（见下文），`Transition` 因此换了位置。
 
-**已修改/已删除（不可丢失）：**
+**已修改（不可丢失）：**
 
 ```
-.github/copilot-instructions.md
 README.md
 README_zh-CN.md
+docs/api-compatibility.md
+docs/en/api-compatibility.md
 docs/en/architecture.md
 docs/en/known-limitations.md
+docs/en/migration-guide.md
+docs/en/porting-inventory.md
 docs/handoff.md
 docs/porting-status.md
+docs/zh-CN/api-compatibility.md
 docs/zh-CN/architecture.md
 docs/zh-CN/handoff.md
 docs/zh-CN/known-limitations.md
+docs/zh-CN/migration-guide.md
+docs/zh-CN/porting-inventory.md
 docs/zh-CN/porting-status.md
-src/Community.Phone.Controls.Toolkit.WPF.Sample/App.xaml.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/FeatherPage.xaml
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/HomePage.xaml        （已删除）
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/HomePage.xaml.cs     （已删除）
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/DetailPage.xaml      （已删除）
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/DetailPage.xaml.cs   （已删除）
-src/Community.Phone.Controls.Toolkit.WPF/Controls/CustomMessageBox.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/HubTile.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/PhoneTextBox.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/Rating.cs
-src/Community.Phone.Controls.Toolkit.WPF/Effects/TurnstileFeatherEffect.cs
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transition.cs
+src/Community.Phone.Controls.Toolkit.WPF/Projection/PlaneProjection.cs
+src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionService.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Storyboards/*.xaml   （27 个中的 19 个：投影路径）
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transition.cs        （已删除，移动到 Transitions/Transitions/）
 src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionFrame.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionService.cs
 src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ControlTests.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/EffectsTests.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/*.cs     （原版工具包源码 + Transition.cs 中的 WPF 适配）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs        （删除过时的回退测试）
 ```
 
 **新增（未跟踪）：**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF.Sample/SampleNavigator.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MainPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/ControlsPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/ProjectionPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/TransitionsPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/TransitionTargetPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MenusPage.xaml(.cs)
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/Transition.cs
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs
 ```
 
 - **不要**执行 `git reset --hard`、`git checkout -- .`、`git clean -fd` 或强推。

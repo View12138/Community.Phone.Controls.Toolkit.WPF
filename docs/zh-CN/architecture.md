@@ -161,19 +161,32 @@ WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保
 4. 进入完成：停止/恢复，恢复交互，触发 `EndTransition`。
 5. `NavigationStopped`：恢复旧内容并取消已存转场。
 
-`Transition` 保存/恢复 `CacheMode` 和 `IsHitTestVisible`；`ProjectionTransition` 还保存/恢复附加投影。WPF 的 `Storyboard.GetCurrentState()` 需要可控时钟的宿主对象，因此 `Transition` 自己跟踪 begun/completed 状态，运行时返回 `ClockState.Active`。`Completed` 每次运行最多触发一次；`Stop()` 会取消待完成事件，避免 `EndTransition` 重复触发。动画本身是带显式目标的普通 WPF `Storyboard`，测试通过观察实际 `PlaneProjection.RotationY` 验证。
+`Transition` 保存/恢复 `CacheMode` 和 `IsHitTestVisible`，并自己跟踪 begun/completed 状态。WPF 的 storyboard 控制 API 比 Silverlight 严格：
 
-`TransitionFrame` 还会：
+- 时钟还不存在时，`Storyboard.GetCurrentState()`/`GetCurrentTime()`/`Stop()`/`Pause()` 会**抛异常**，而 Silverlight 返回 `Stopped`/`Zero`。因此 `Transition` 自己跟踪 `IsBegun`，直接返回 `ClockState.Stopped`/`TimeSpan.Zero`，而不去查询一个尚不存在的时钟；对从未启动的转场调用 `Stop()` 只是恢复元素状态，不做任何停止操作。
+- storyboard 以**可控时钟**启动（`Begin(containingObject, true)`），因为 WPF 的 `Pause`/`Resume`/`Seek`/`SkipToFill` 需要交互控制；所有控制调用都传入同一个宿主对象。
+- 可控时钟被停止或移除时，WPF 会再次触发 `Timeline.Completed`，因此 `Transition` 每次运行最多触发一次 `Completed`；`Stop()` 会取消待完成事件，避免 `EndTransition` 重复触发（早期嵌套完成会导致事件翻倍）。
+- `Stop()` 同时移除时钟，使被动画的属性回到基础值。
+- 动画缓存改为每个转场各自创建，不再共享静态实例：`Freezable` 属于创建它的 dispatcher，共享的 `BitmapCache` 在第二个 UI 线程上会抛 `ArgumentException`（`MediaSystem.AssertSameContext`），也因此让缓存无法跨 WPF 测试线程使用。
 
-- 防止重复的 `Navigating` / content-change 通知；
-- 快速导航时清理已存转场；
-- 在转场工厂或 `Begin` 失败时触发 `TransitionFailed`（包含异常、元素和退出/进入方向），回退到无转场导航，并恢复命中测试/Cache 状态，避免页面被隐藏或无法交互。
+动画本身是带显式目标的普通 WPF `Storyboard`，通过观察实际 `PlaneProjection.RotationY` 以及渲染转场中间帧（页面呈透视梯形）验证。
+
+`Transitions.ProjectionTransition`（仅移植版）在带投影的转场完成或停止时清除附加投影，使空闲页面回到纯 2D 路径，而不是长期保留一个单位投影。`TransitionFrame` **不**给呈现器加 `BitmapCache`：`Viewport2DVisual3D` 已经对页面做过栅格化，再套一层缓存只会让动画变模糊。
+
+原版有两处行为必须做适配：
+
+- 原版 `Navigating` 会忽略非应用发起的导航（例如应用停用时由 shell 播放的退场）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，也没有 shell 发起的导航，因此移植版去掉了该判断；保留它会屏蔽掉所有转场。
+- 原版 `TransitionFrame` 不捕获转场工厂的异常，移植版保持一致：抛出异常的 `TransitionElement` 会让导航失败，而不是被静默降级。早期移植版曾提供 `TransitionFailed` 事件和无转场回退，为与原版行为完全一致已移除。
 
 ### 5.4 转场系列
 
-原始 19 个 XAML storyboard 在 `Transitions.cs` 中用 `DoubleAnimation` / `DoubleAnimationUsingKeyFrames` 重新表达，时间、角度和缓动与原实现一致。Storyboard 直接以 `PlaneProjection` 对象为目标，避免 Silverlight 属性路径。
+原版的 27 个 storyboard XAML（`Transitions/Storyboards/*.xaml`）以 WPF 资源形式内嵌，并按原版工具箱的方式加载：`Application.GetResourceStream("/Community.Phone.Controls.Toolkit.WPF;component/Transitions/Storyboards/<Name>.xaml")` → 缓存文本 → `XamlReader.Load`（WPF 需要 `XmlReader`/流，不能直接传字符串）。`Transitions.GetEnumStoryboard` 把 `<系列><模式>` 映射到对应文件，`Storyboard.SetTarget(storyboard, element)` 把动画绑定到页面，工厂在返回 `Transition` 前设置投影（Slide 则是 `RenderTransform`）。
+
+storyboard 内部唯一的改动是属性路径：Silverlight 写 `(UIElement.Projection).(PlaneProjection.RotationY)`，移植版写 `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)`（`xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"`），因为 `Projection` 是投影宿主上的附加属性。角度、关键时间和缓动函数都是原值，WPF 能正确解析带前缀的路径。
 
 系列包括 Roll、Rotate（8 模式）、Slide（8 模式）、Swivel（6 模式）、Turnstile（4 模式）、TurnstileFeather（4 模式）。`TransitionService` 和 `NavigationTransition` / `NavigationInTransition` / `NavigationOutTransition` 保留原始附加属性形态。
+
+Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions.cs` 中说明）：`TurnstileCenterOfRotationX = -0.05` 与 `TurnstileDurationScale = 1.2`，后者以 `Storyboard.SpeedRatio` 施加，因此原始关键时间保持不变（把两个常量分别改回 `0`/`1` 即可精确还原原版几何与时长）。
 
 ## 6. 效果
 

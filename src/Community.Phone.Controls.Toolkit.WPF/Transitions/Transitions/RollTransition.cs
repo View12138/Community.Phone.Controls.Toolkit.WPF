@@ -8,11 +8,18 @@ using System.Windows;
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Provides roll transitions.
+    /// Provides roll <see cref="T:Microsoft.Phone.Controls.ITransition"/>s.
     /// </summary>
     public class RollTransition : TransitionElement
     {
-        /// <inheritdoc />
+        /// <summary>
+        /// Creates a new
+        /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
+        /// for a
+        /// <see cref="T:System.Windows.UIElement"/>.
+        /// </summary>
+        /// <param name="element">The <see cref="T:System.Windows.UIElement"/>.</param>
+        /// <returns>The <see cref="T:Microsoft.Phone.Controls.ITransition"/>.</returns>
         public override ITransition GetTransition(UIElement element)
         {
             return Transitions.Roll(element);

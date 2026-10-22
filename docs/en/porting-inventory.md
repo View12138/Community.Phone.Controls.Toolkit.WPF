@@ -164,7 +164,7 @@ These types do not exist with the same namespace in the original toolkit; they a
 | `Microsoft.Phone.Controls.NavigationContext` | Supplies `Uri`, `QueryString`, and `ExtraData` to pages | Original platform type is `System.Windows.Navigation.NavigationContext`; WPF has no equivalent. |
 | `Microsoft.Phone.Controls.ProjectionHost` | Applies a projection to arbitrary WPF content | Replaces the missing `UIElement.Projection` property. |
 | `Microsoft.Phone.Controls.ProjectionService` | Attached projection and on-demand host wrapping | New WPF adapter; namespaced with the port. |
-| `Microsoft.Phone.Controls.TransitionFrame.TransitionFailed` / `TransitionFailedEventArgs` | Reports a transition factory/animation failure and fallback | New diagnostic surface; not present in the original. |
+| `Microsoft.Phone.Controls.TransitionFrame.TransitionFailed` / `TransitionFailedEventArgs` | Was a transition-failure diagnostic surface | Removed: the port now behaves like the original, where a throwing factory propagates. |
 | `PhoneApplicationFrame.Navigate(PhoneApplicationPage, IDictionary<string,string>)` | Passes page parameters without a URI | New WPF-friendly overload; original used platform navigation URIs. |
 
 ## Module coverage
@@ -172,7 +172,7 @@ These types do not exist with the same namespace in the original toolkit; they a
 |---|---|---|---|
 | Projection / 3D | No original toolkit type; platform `UIElement.Projection`/`PlaneProjection` used by effects and transitions | Projection, PlaneProjection, Matrix3DProjection, ProjectionHost, ProjectionService | Implemented (real Viewport2DVisual3D rendering; tests) |
 | Navigation / page model | WP platform `PhoneApplicationFrame`, `PhoneApplicationPage`, `PhoneApplicationService`, `SystemTray` usage | PhoneApplicationFrame, PhoneApplicationPage, NavigationContext, lifecycle events, state, orientation, app service, system tray state | Implemented subset (WPF Frame/Page; params/state/lifecycle tested; system chrome and idle policy differ) |
-| Navigation transitions | `Transitions\*` (19 XAML storyboards, 36 C# files) | ITransition, Transition, TransitionElement, NavigationTransition, TransitionFrame, Slide/Rotate/Swivel/Turnstile/Roll/Feather | Implemented (programmatic storyboards; automatic entry/exit; real projection animation; failure fallback; tests) |
+| Navigation transitions | `Transitions\*` (27 XAML storyboards, 36 C# files) | ITransition, Transition, TransitionElement, NavigationTransition, TransitionFrame, Slide/Rotate/Swivel/Turnstile/Roll/Feather | Implemented (original XAML storyboards loaded from resources; automatic entry/exit; real projection animation; tests) |
 | Effects | `Effects\*` | TiltEffect, SlideInEffect, TurnstileFeatherEffect | TiltEffect + TurnstileFeatherEffect implemented with real projection and automated tests; SlideInEffect not implemented (requires Pivot) |
 | AutoCompleteBox | `AutoCompleteBox\*` (11 files, ~174 KB) | AutoCompleteBox, filters, selection adapters, popup helper | Not implemented |
 | ContextMenu | `ContextMenu\*` (5 files, ~74 KB) | ContextMenu, ContextMenuService, MenuBase, MenuItem, Separator | Partial (WPF ContextMenu-derived) |

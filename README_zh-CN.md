@@ -129,7 +129,7 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 </phone:TransitionService.NavigationInTransition>
 ```
 
-需要自动进入/退出转场时使用 `TransitionFrame`，而不是普通 `PhoneApplicationFrame`。自定义转场工厂或动画失败会通过 `TransitionFrame.TransitionFailed` 报告，并回退到无转场、仍可交互的导航。
+需要自动进入/退出转场时使用 `TransitionFrame`，而不是普通 `PhoneApplicationFrame`。每个转场播放的都是原版工具箱的 storyboard（`Transitions/Storyboards/*.xaml`，以资源形式内嵌），角度、时长和缓动与原版一致。
 
 ## 构建、测试与打包
 

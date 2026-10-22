@@ -191,16 +191,9 @@ The original page declarations work after changing the namespace:
 
 Use `TransitionFrame` (not `PhoneApplicationFrame`) if you want these transitions. `TransitionFrame` presents pages through two `ProjectionHost` parts named `FirstContentPresenter` and `SecondContentPresenter`. Direct `Frame.Navigate(page)` calls run both entry and exit transitions.
 
-If a transition factory or animation fails, the frame raises `TransitionFrame.TransitionFailed` and completes the navigation without that transition:
+If a transition factory throws, the exception propagates out of the navigation, exactly like the original toolkit — there is no fallback event, so validate custom `TransitionElement` implementations in your own code.
 
-```csharp
-Frame.TransitionFailed += (sender, e) =>
-{
-    Log(e.Exception, e.IsExit, e.Element);
-};
-```
-
-The page is left visible and interactive; the event is the place to log or report a broken custom transition.
+Every transition plays the original storyboard: the toolkit loads `Transitions/Storyboards/<Family><Mode>.xaml` from its own resources, so angles, key times and easing are unchanged. Two turnstile constants are the only sanctioned deviation (`CenterOfRotationX = -0.05` and a `1.2` duration scale); both are documented in `Transitions.cs` and can be reverted to the toolkit values `0` and `1`.
 
 ## 6. Control migration
 

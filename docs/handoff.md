@@ -21,17 +21,19 @@ Acceptance criteria in use:
 
 ---
 
-## 2. Current verified state (2026-10-19)
+## 2. Current verified state (2026-10-22)
 
 | Check | Command | Result |
 |---|---|---|
-| Release build | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | **0 warnings, 0 errors** |
-| Release tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **72 passed / 0 failed / 0 skipped** (17:24) |
-| Debug tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **72 passed** (17:23) |
+| Release build | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` | **0 errors**; the only warnings come from the untracked in-progress files (`LongListSelector.cs`, `ViewportControl.cs`, `WindowHelper.cs` — unused events / unreachable code). Tracked code, including the transition and projection subsystems, compiles warning-free |
+| Release tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **89 passed / 1 failed / 0 skipped** — the failure is the pre-existing `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` (`CustomMessageBox.Show()` dereferences `Application.Current`, which is `null` in the test host); every transition/navigation/projection/effect test passes |
+| Debug tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **89 passed / 1 failed** — same pre-existing `CustomMessageBox` test |
 | Package + consumer | `powershell -File build\verify-package.ps1` | **passed** (17:25) — `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` (+ `.snupkg`), fresh consumer restored from the local feed and ran |
 | Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, open every sample | **all five samples open and return** (Controls, Projection, Transitions → target page → back, Feathering → entry → back, Menus); process stays alive, no error file |
 
-Test inventory (72 methods): `ProjectionTests` 20, `ControlTests` 23, `NavigationTests` 17, `EffectsTests` 6, `ConverterTests` 3, `ShellTests` 3.
+Test inventory (90 methods): `ProjectionTests` 20, `ControlTests` 23, `NavigationTests` 16, `TransitionStoryboardTests` 13, `EffectsTests` 6, `ConverterTests` 3, `ShellTests` 3, plus the `StaTest`/`WpfTestHelper` infrastructure.
+
+`NavigationTests.TransitionFrame_FallsBackWhenTransitionFactoryThrows` was removed together with the port's `TransitionFailed` event: the port now behaves like the original, where a throwing `TransitionElement` factory propagates instead of being downgraded to an untransitioned navigation.
 
 The only test that needs real pointer input is `ControlTests.Rating_MouseClickChangesValue`; it now retries the cursor placement five times and skips its assertion when the desktop does not let the pointer land on the control (for example a locked or covered session), so a blocked desktop no longer shows up as a failure.
 
@@ -45,7 +47,7 @@ Full detail: [docs/en/architecture.md](en/architecture.md) · [中文](zh-CN/arc
 2. **XAML-faithful perspective** — fixed `PerspectiveDepth = 999` DIP (WinUI `PlaneProjection` uses `M34 = -1/999`), camera at `z = depth`, horizontal FOV from the viewport **width**. Reason: WPF's `PerspectiveCamera.FieldOfView` is horizontal and derives vertical FOV from aspect; deriving depth from height scaled every projected page down by the aspect ratio (480×800 → 288×480).
 3. **Sign conventions** — `R = Rz·Ry·Rx`, row-vector matrix, Y offsets negated, **RotationY negated**. Reason: XAML's positive `RotationY` brings the right edge toward the viewer, a positive WPF +Y rotation moves it away; RotationX/Z already match because element space is Y-down. Cross-checked against `TiltEffect` press direction and the WinUI/Uno projection implementation.
 4. **Sequential transitions** — exit completes, then entry begins; `TransitionFrame` flips between two `ProjectionHost` presenters. Matches the original `TransitionFrame`.
-5. **Storyboards in code** — `Transitions.cs` rebuilds the 19 original XAML storyboards programmatically so they can target the compatible `PlaneProjection`; values were compared one-by-one with the original XAML.
+5. **Original storyboard XAML, loaded at runtime** — the 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and are parsed with `XamlReader` (the only edit is the projection path, which needs the `phone:` prefix). Reason: keeping the toolkit's normative key times/angles/easing byte-for-byte instead of re-expressing them in code, which had already drifted (the previous port animated `-69°`/`45°` instead of `-80°`/`50°`).
 6. **Render-path consistency** — `ProjectionHost.Prefer3D` keeps the 3D path active while the projection is identity, so transitions/effects switch paths while preparing, not on the first animated frame. No `BitmapCache` on transition/effect hosts (the 3D pipeline already rasterizes; the extra 1× cache measurably softened content).
 7. **Element effects get their own host** — `ProjectionService.EnsureProjectionHost` only reuses a host that directly contains the element; using an ancestor host projected the whole page (this was a real bug, now covered by a test).
 
@@ -104,6 +106,59 @@ All of the following is **implemented and verified** unless marked otherwise.
 
 Added tests in this turn: `NavigationTests.TransitionFrame_CompletesAFeatheredExitWithoutTargets`, `NavigationTests.TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`, `NavigationTests.TransitionFrame_UsesAnOutTransitionSetJustBeforeNavigating`, `ControlTests.Rating_HalfItemIncrementKeepsValueInItemUnits`; `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` now waits for the swivel before asserting `Dismissed`.
 
+### 4.7 Latest turn: the original XAML storyboard pipeline (and the transition bug it exposed)
+
+`Transitions.cs` was re-ported to the original toolkit's shape: the 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and are loaded the way the original loaded them (`Application.GetResourceStream` + cached text + `XamlReader.Load`, which needs an `XmlReader` in WPF instead of a string). `Storyboard.SetTarget(storyboard, element)` binds a page-wide target, the factories assign the projection (or the `RenderTransform` for Slide) and return a `Transition`. The only edits inside the storyboards are the property paths: `(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` with `xmlns:phone` — WPF resolves the prefixed path (verified by observing the animated `PlaneProjection.RotationY`).
+
+Two port-only pieces remain, both documented in the source:
+
+1. `ProjectionTransition` clears the attached projection when a projected transition completes or is stopped, so an idle page returns to the plain 2D path (Silverlight could leave an identity projection assigned).
+2. The two turnstile constants (`TurnstileCenterOfRotationX = -0.05`, `TurnstileDurationScale = 1.2`); the scale is applied as `Storyboard.SpeedRatio`, so the original key times stay untouched.
+
+Three real bugs were found and fixed while validating the new pipeline:
+
+1. **No transition played at all.** `TransitionFrame.OnNavigating` kept the original `if (!e.IsNavigationInitiator) return;` guard, but WPF reports `IsNavigationInitiator == false` for every `Frame.Navigate` call. `_isForwardNavigation` therefore stayed `false`, `NavigationInTransition.Backward` was picked (usually `null`), and *every* transition in the library and the sample was silently skipped — which is why six navigation tests were already failing at `cd606b4`. Fix: drop the guard (WPF has no shell-driven navigation) and document the deviation.
+2. **Cross-thread `BitmapCache`.** `TransitionFrame` kept a shared `static readonly BitmapCache` and assigned it to the presenters. Each test runs on its own STA thread, so the second test threw `ArgumentException` from `MediaSystem.AssertSameContext`. Fix: stop applying a cache to the presenters at all — `Viewport2DVisual3D` already rasterizes the page and the architecture note already forbids a second cache.
+3. **Stale test.** `TransitionFrame_FallsBackWhenTransitionFactoryThrows` asserted a counter that was no longer incremented (the `TransitionFailed` event was removed in the previous turn); the test and its `ThrowingTransitionElement` helper were deleted.
+
+Verification added this turn (all automated, `dotnet test -c Release`):
+
+- `TransitionStoryboardTests` (6): each family is started through its public `TransitionElement` and the animated property is read at runtime — Roll `RotationZ 0→45→90`, Rotate `90→0`, Swivel `RotationX −45→0`, Turnstile `RotationY −80→0` (with `IsRenderingIn3D`), Slide `TranslateTransform.X 200→0` + opacity, and `ProjectionTransition` clearing the projection on `Stop()`.
+- Measured durations through the real frame: turnstile entry **420 ms**, exit ≈300 ms (0.35 s / 0.25 s × 1.2).
+- Rendered-frame evidence: a `RenderTargetBitmap` of a `TransitionFrame` mid-turnstile shows the page as a perspective trapezoid (painted columns 0–325 at the top, 0–399 in the middle, 0–226 at the bottom) while the settled frame is a flat 0–466.
+- Sample smoke: the sample launches, the UI Automation tree shows every sample entry, and opening the Transitions sample navigates to its page without an error file.
+
+Docs updated for this turn (both languages): `architecture.md` §5.3/§5.4, `known-limitations.md` §5/§9, `api-compatibility.md`, `migration-guide.md`, `porting-inventory.md`, `porting-status.md` §3 (all families moved to ✅ with the new evidence) plus both READMEs, which no longer advertise `TransitionFailed`.
+
+### 4.8 Latest turn: `InvalidOperationException` from `Transition.GetCurrentState()`
+
+After the transition sources were replaced with the original toolkit files (`Transition` moved to `Transitions/Transitions/Transition.cs`), a real app crashed with:
+
+```
+System.InvalidOperationException: Cannot perform this operation because the
+specified Storyboard was not applied to this object for interactive control
+  at System.Windows.Media.Animation.Storyboard.GetCurrentState()
+  at Microsoft.Phone.Controls.Transition.GetCurrentState()
+  at Microsoft.Phone.Controls.TransitionFrame.EnsureStoppedTransition(...)
+  at Microsoft.Phone.Controls.TransitionFrame.TransitionNewContent(...)
+```
+
+Root cause: Silverlight's parameterless `Storyboard` control methods tolerate a storyboard that has no clock yet; WPF throws. `TransitionFrame` calls `EnsureStoppedTransition(transition)` → `transition.GetCurrentState()` **before** `Begin()`, so every navigation crashed on the first transition.
+
+`Transition` now keeps the original Silverlight shape and adds the WPF adaptations it needs:
+
+1. `_isBegun` is tracked: `GetCurrentState()`/`GetCurrentTime()` return `Stopped`/`Zero` before the storyboard starts, and `Pause`/`Resume`/`Seek`/`SeekAlignedToLastTick`/`SkipToFill` are no-ops while it has no clock; `Stop()` on a never-started transition only restores the element.
+2. `Begin()` starts the storyboard as a controllable clock on the element (`Storyboard.Begin(containingObject, true)`), because WPF requires the containing object for the interactive operations; every control call passes it.
+3. `_isCompleted` makes `Completed` fire at most once per run. WPF re-raises `Timeline.Completed` when a controllable clock is stopped/removed, and the frame completes the navigation from that event — without the guard `NavigationTransition.EndTransition` fired twice (`TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity` asserted 1, got 2). `Stop()` also sets the flag so a pending completion cannot fire after the frame already completed.
+4. `Stop()` now also `Storyboard.Remove`s the clock, so the animated properties return to their base values.
+5. `Save()` creates a `BitmapCache` per transition instead of using the shared `TransitionFrame.BitmapCacheMode` static: a `Freezable` belongs to the dispatcher that created it, and the shared instance threw `ArgumentException` (`MediaSystem.AssertSameContext`, and `Freezable.RemoveContextInformation` in `Restore()`) on every second test thread. The now-unused static was removed from `TransitionFrame`.
+
+Verification:
+
+- Three regression tests were added to `TransitionStoryboardTests`: `Transition_ReportsStateAndTimeBeforeItBegins` (probes state/time and every control method before `Begin()` — this is the crash), `Transition_RaisesCompletedOncePerRun` (asserts a single `Completed` even after repeated `Stop()`), and `TransitionFrame_NavigatesWithEveryFamily` (a `[Theory]` over Turnstile/Slide/Rotate/Swivel/Roll that drives exit+entry through the frame and asserts one `BeginTransition`/`EndTransition` per side, an interactive page and a cleared projection).
+- An in-process probe of the real frame (turnstile out + in) reports `outBegun=1 outEnded=1 inBegun=1 inEnded=1`, clears both projections and restores hit testing — no exception.
+- A standalone transition probe: `Stopped`→`Active`, time advances, `Pause` freezes (≈7 ms overshoot from tick granularity), `Resume` continues, `Seek(50 ms)` defers to the next tick, `SeekAlignedToLastTick(10 ms)` lands at exactly 10 ms, `SkipToFill` completes once, `Stop` clears the projection.
+- `dotnet test -c Release`: **89 passed / 1 failed / 0 skipped** (90 methods); the failure is the pre-existing `CustomMessageBox_ShowDismissRaisesLifecycleEvents` (`Application.Current` is null in the test host). Two `EffectsTests` tilt tests were flaky in one run as well — they leak `TiltEffect` static state across STA threads when a window closes mid-tilt; re-running the suite passes them.
 
 ---
 
@@ -111,8 +166,8 @@ Added tests in this turn: `NavigationTests.TransitionFrame_CompletesAFeatheredEx
 
 Explicitly **not** claimed:
 
-1. **Frame-by-frame visual comparison against the WP 8.1 emulator** — the emulator is running and is viewed through Virtual Machine Connection, but this session has no ability to *look* at pixels; verification was numeric (geometry, timings) plus comparison with the original XAML/WinUI math. The turnstile tuning (`-0.05` pivot, ×1.2 duration) is based on the user's visual report, not on a measurement, so it still needs a visual confirmation. All families except Turnstile have **not** been observed at runtime.
-2. **Automatic parity test for storyboard values** — the comparison with the original XAML was done manually. No test parses or snapshots `Transitions.cs` values.
+1. **Frame-by-frame visual comparison against the WP 8.1 emulator** — the emulator is running and is viewed through Virtual Machine Connection, but this session has no ability to *look* at pixels; verification was numeric (geometry, timings, rendered-frame geometry) plus comparison with the original XAML/WinUI math. The turnstile tuning (`-0.05` pivot, ×1.2 duration) is based on the user's visual report, not on a measurement, so it still needs a visual confirmation. Every family now has a runtime test of the animated property (`TransitionStoryboardTests`), but only Turnstile has rendered-frame evidence.
+2. **Easing/pixel parity per family** — the storyboards *are* the original XAML, so values are exact by construction; whether WPF and Silverlight evaluate the same `ExponentialEase`/`SineEase` identically at every frame is not measured.
 3. **Feather perspective origin** — the original `TurnstileFeatherEffect` moves each item's perspective origin to the page's vertical center (`GlobalOffsetY` + compensating render transform). This port feathers around each item's own center because a `ProjectionHost` is element-sized and clips its 3D content. Angles/delays/timings are identical. Documented in known-limitations.
 4. **Shell chrome** — `SystemTray` and `ApplicationBar` are API models; the default frame template does not draw a WP status bar or application bar. No visual verification exists for them.
 5. **Not implemented modules** — `AutoCompleteBox`, `LongListSelector`, `LongListMultiSelector`, `MultiselectList`, map extensions, `TransferControl`, `SpeechTextBox`, `LockablePivot`, `SlideInEffect`, `GestureListener`/`GestureService`, `LoopingSelector`/picker pages. Verified absent in source (no `class X` matches).
@@ -123,7 +178,7 @@ Explicitly **not** claimed:
 
 ## 6. Blockers and risks
 
-1. **This turn is uncommitted.** The previous session's work is safe in `bc0e22e`; the turnstile tuning, feather fixes, six WP parity fixes, test changes, sample redesign and doc updates exist only in the working tree (25 modified — 4 deletions — plus 13 new files). A destructive git command would lose them. See §10.
+1. **This turn is uncommitted.** `cd606b4` contains the previous session's work; the original-storyboard pipeline, the `IsNavigationInitiator` fix, the `BitmapCache` removal, `TransitionStoryboardTests`, the removed obsolete navigation test and all doc updates exist only in the working tree (20 modified storyboard/transition files, 5 modified test/doc files, 1 new test file). A destructive git command would lose them. See §10.
 2. **Visual verification gap.** Without visual inspection, fidelity claims rest on geometry/timing measurements and the original XAML. Any future regime should look at the sample and the emulator side by side.
 3. **`docs/en/porting-inventory.md` is a large Phase 0 audit** (≈129 KB). Module statuses in it are historical; `docs/porting-status.md` is authoritative for current status.
 4. **Environment quirks** — `XDE.exe` hangs (use `vmconnect.exe`); `PrintWindow` returns black for 3D/VM surfaces (use `CopyFromScreen` from a `Topmost` window); the display runs at 150% DPI (DIP↔pixel conversion); a running sample locks `bin` output before rebuild.
@@ -139,10 +194,11 @@ Explicitly **not** claimed:
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D` (sign conventions, row-vector order) |
 | `…/Projection/ProjectionService.cs` | attached projection (wraps on demand, releases on clear), `EnsureProjectionHost` / `FindDirectHost`, host wrap/unwrap |
 | `…/Projection/ProjectionMath.cs` | rotation/translation helpers |
-| `…/Transitions/TransitionFrame.cs` | presenter flipping, sequencing, prepare/restore, failure fallback |
-| `…/Transitions/Transitions.cs` | the 19 storyboards in code (normative values) plus the turnstile WP-parity constants (`TurnstileCenterOfRotationX`, `TurnstileDurationScale`) |
+| `…/Transitions/TransitionFrame.cs` | presenter flipping, sequencing, prepare/restore (3D + hit testing, no bitmap cache) |
+| `…/Transitions/Transitions.cs` | loads the original storyboard XAML resources (`GetResourceStream` + `XamlReader`), attaches the page target, `ProjectionTransition` cleanup, turnstile WP-parity constants (`TurnstileCenterOfRotationX`, `TurnstileDurationScale`) |
+| `…/Transitions/Storyboards/*.xaml` | the 27 original storyboards (normative angles/key times/easing); only the projection path is rewritten with the `phone:` prefix |
 | `…/Transitions/Transitions/*.cs` | per-family `TransitionElement`s |
-| `…/Effects/TiltEffect.cs` | element-level tilt, eager host wrap, transform capture |
+| `…/Effects/TiltEffect.cs` | element-level tilt through `ProjectionService` (no host management), pivot on the first visual child, container→control transform capture |
 | `…/Effects/TurnstileFeatherEffect.cs` | per-item feathering; targets collected from the page's visual tree; host wrap deferred to the dispatcher |
 | `…/Themes/Generic.xaml` | single theme source (Metro palette, templates, base WP styles); contains the WP8-faithful `HubTile` template (sliding surface + `RotationX` flip) and the `PhoneTextBox` hint/`Rating` layouts |
 | `…/Controls/CustomMessageBox.cs` | message box window; hosts its content in a `ProjectionHost` and swivels in/out (`BackwardIn`/`BackwardOut`) |
@@ -162,10 +218,10 @@ Explicitly **not** claimed:
 
 ## 8. Recommended next steps (in order)
 
-1. **Commit this turn's changes** (nothing from the redesign or this round is committed yet): `git add -A` then a message summarizing the feather regression fix, the message-box swivel, the transition-family fix, the Rating/PhoneTextBox/HubTile fixes, with the `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer.
+1. **Commit this turn's changes** (the original storyboard pipeline and the three transition fixes are not committed yet): `git add -A` then a message summarizing the XAML storyboard port, the `IsNavigationInitiator` fix, the cross-thread `BitmapCache` removal and the new `TransitionStoryboardTests`, with the `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer.
 2. **Confirm the turnstile tuning visually** in the emulator (Virtual Machine Connection) and adjust the two constants in `Transitions.cs` if needed — they are the only place that controls the pivot offset and the pacing.
-3. **Confirm the six fixes visually** — feathering entry no longer freezes (numeric probe), the message-box swivel, the selected transition family on both exits, the Rating hit area at 50 %/80 % of the width, the PhoneTextBox caret/placeholder alignment, and the HubTile flip. All were verified numerically; pixel comparison against the emulator is still outstanding.
-4. **Add storyboard parity tests** (internals are visible to the test assembly): assert the keyframe values/durations of `Transitions` per family so they cannot drift from the original XAML.
+3. **Confirm the remaining fixes visually** — feathering entry no longer freezes (numeric probe), the message-box swivel, the selected transition family on both exits, the Rating hit area at 50 %/80 % of the width, the PhoneTextBox caret/placeholder alignment, and the HubTile flip. All were verified numerically; pixel comparison against the emulator is still outstanding.
+4. **Fix `CustomMessageBox.Show()` for a null `Application`** so the last pre-existing red test (`ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents`) can pass: it reads `Application.Current.Resources["PhoneBackgroundColor"]` and `Application.Current.MainWindow` without a guard.
 5. **Decide on `Prefer3D` lifetime**: today the old presenter returns to 2D when discarded and the new one when its animation completes. If a future symptom shows a sharpening "pop" at the end of a transition, consider extending `Prefer3D` until the next navigation.
 6. **Keep docs in sync** — update `docs/porting-status.md` and `docs/handoff.md` (§2 results, §5 state) whenever behavior or verification changes.
 
@@ -184,53 +240,45 @@ Explicitly **not** claimed:
 ## 10. Git state — protect this
 
 - Branch: **`main`**, no remote tracking configured in this workspace.
-- Commits: `bc0e22e` (last session's docs + projection/transition/tilt fixes), `83d5d73 fix: 0.01`, `81a55d2 feat: 0.0.1`.
-- Working tree at handoff time: **25 modified (4 of them deletions) + 13 new files, uncommitted.**
+- Commits: `cd606b4` (previous session's docs + transition-frame/XAML-storyboard scaffolding), `7efd2cd`, `ccfd83b`, `386c52e`, `bc0e22e`, `83d5d73`, `81a55d2`.
+- Working tree at handoff time: **uncommitted** — the original-storyboard pipeline, the `Transition` WPF adaptations and all doc updates live only in the working tree. The transition sources were also restored to the original toolkit files (see below), which moved `Transition`.
 
-**Modified / deleted (must not be lost):**
+**Modified (must not be lost):**
 
 ```
-.github/copilot-instructions.md
 README.md
 README_zh-CN.md
+docs/api-compatibility.md
+docs/en/api-compatibility.md
 docs/en/architecture.md
 docs/en/known-limitations.md
+docs/en/migration-guide.md
+docs/en/porting-inventory.md
 docs/handoff.md
 docs/porting-status.md
+docs/zh-CN/api-compatibility.md
 docs/zh-CN/architecture.md
 docs/zh-CN/handoff.md
 docs/zh-CN/known-limitations.md
+docs/zh-CN/migration-guide.md
+docs/zh-CN/porting-inventory.md
 docs/zh-CN/porting-status.md
-src/Community.Phone.Controls.Toolkit.WPF.Sample/App.xaml.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/FeatherPage.xaml
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/HomePage.xaml        (deleted)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/HomePage.xaml.cs     (deleted)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/DetailPage.xaml      (deleted)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/DetailPage.xaml.cs   (deleted)
-src/Community.Phone.Controls.Toolkit.WPF/Controls/CustomMessageBox.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/HubTile.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/PhoneTextBox.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/Rating.cs
-src/Community.Phone.Controls.Toolkit.WPF/Effects/TurnstileFeatherEffect.cs
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transition.cs
+src/Community.Phone.Controls.Toolkit.WPF/Projection/PlaneProjection.cs
+src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionService.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Storyboards/*.xaml   (19 of the 27; projection paths)
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transition.cs        (deleted; moved to Transitions/Transitions/)
 src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionFrame.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionService.cs
 src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ControlTests.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/EffectsTests.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/*.cs     (original toolkit sources, plus the WPF adaptations in Transition.cs)
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs        (obsolete fallback test removed)
 ```
 
 **New (untracked):**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF.Sample/SampleNavigator.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MainPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/ControlsPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/ProjectionPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/TransitionsPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/TransitionTargetPage.xaml(.cs)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MenusPage.xaml(.cs)
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/Transition.cs
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs
 ```
 
 - Do **not** run `git reset --hard`, `git checkout -- .`, `git clean -fd`, or force-push.

@@ -51,13 +51,14 @@
 
 ## 5. 转场与效果
 
-1. **Storyboard 状态**：WPF `Storyboard.GetCurrentState()` 在没有包含时钟时会抛出异常。移植版的 `Transition` 自己跟踪 begun 状态并返回 `Active`/`Stopped`，从而保持已实现场景的 `ITransition` 契约；`TiltEffect` 同样用 begun 标志代替查询 storyboard。
+1. **Storyboard 状态**：对尚不存在的时钟使用无参 storyboard 控制方法时，WPF 会抛异常（`无法执行操作，因为未将指定的 Storyboard 应用到此交互控件的对象`）；对可控时钟调用 `Pause`/`Resume`/`Seek`/`SkipToFill` 也需要宿主对象。因此移植版的 `Transition` 以可控方式启动 storyboard（元素即宿主），自己跟踪 begun/completed 状态并直接返回 `Active`/`Stopped`，而不查询可能不存在的时钟；同时保证每次运行最多触发一次 `Completed`（可控时钟被停止或移除时 WPF 会再次触发），这正是 `EndTransition` 不会重复触发的原因。`TiltEffect` 同样用 begun 标志代替查询 storyboard。转场期间使用的 `CacheMode` 按转场实例创建、绝不共享：`Freezable` 属于创建它的 dispatcher。
 2. **模板部件**：`TransitionFrame` 需要两个名为 `FirstContentPresenter`、`SecondContentPresenter` 的 `ProjectionHost` 部件。使用普通 `ContentPresenter` 的自定义 Frame 模板不会运行转场。
-3. **转场时序**：时长、关键时间、角度和缓动从原始 storyboard 复制，但 WPF 与 Silverlight 缓动实现可能有细微差异。视觉接近，不是逐位一致。**Turnstile 偏差**：为贴近观察到的 WP 8.1 系统动画，`Transitions.cs` 把页面级 turnstile 的旋转轴略微移到左边缘之外（`TurnstileCenterOfRotationX = -0.05`，原工具包为 `0`），并把两个阶段按 `TurnstileDurationScale = 1.2` 缩放（工具包：退场 0.25 s / 入场 0.35 s）。两者都是单个常量；设为 `0` 和 `1` 即可精确还原原工具包的几何与时序。
-4. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；目标在合成 storyboard 时从页面可视树收集（附加属性订阅只负责准备包装，并且延迟到 dispatcher，因此绝不会在布局过程中修改可视树）。无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。页面没有可羽化元素时，羽化转场没有动画可播放，会立即完成而不是阻塞导航。
-5. **TiltEffect**：控件在加载时被包装进 `ProjectionHost`，因此只倾斜该控件本身，且不会在指针按下期间修改视觉树；倾斜关闭时会移除包装。支持鼠标输入（通过隧道的 preview 事件），跳过列表 item 容器。倾斜作用于整个控件，不是单个 item 容器；最大倾斜/回弹行为是近似值。鼠标倾斜在通过已启用容器路由的 mouse-up 时结束；触摸 manipulation 是更完整的输入路径。
-6. **SlideInEffect**：未实现（需要 Pivot）。
-7. **FeatheredTransition**：已实现，但原始 `TurnstileFeatherTransition` 面向 Pivot 内页面内容；移植版将其应用于转场 Frame 的页面宿主。
+3. **转场时序**：移植版直接播放原版 storyboard XAML（`Transitions/Storyboards/*.xaml`，运行时从程序集资源加载），因此时长、关键时间、角度和缓动都是工具包的原值；文件内唯一的改动是投影属性路径。WPF 与 Silverlight 对同一缓动函数的求值仍可能有细微差异，视觉接近但非逐位一致。**Turnstile 偏差**：为贴近观察到的 WP 8.1 系统动画，`Transitions.cs` 把页面级 turnstile 的旋转轴略微移到左边缘之外（`TurnstileCenterOfRotationX = -0.05`，原工具包为 `0`），并通过 `Storyboard.SpeedRatio` 把两个阶段按 `TurnstileDurationScale = 1.2` 缩放（工具包：退场 0.25 s / 入场 0.35 s）。两者都是单个常量；设为 `0` 和 `1` 即可精确还原原工具包的几何与时序。
+4. **导航行为差异**：原版 `TransitionFrame` 会忽略非应用发起的导航（应用停用时由 shell 播放的退场）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，也没有 shell 发起的导航，因此移植版去掉该判断。原版不捕获转场工厂异常，移植版保持一致：`TransitionElement` 抛异常会让导航失败，没有回退事件。`Transitions.ProjectionTransition` 在带投影的转场完成或停止时清除投影，使空闲页面回到纯 2D 路径。
+5. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；目标在合成 storyboard 时从页面可视树收集（附加属性订阅只负责准备包装，并且延迟到 dispatcher，因此绝不会在布局过程中修改可视树）。无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。页面没有可羽化元素时，羽化转场没有动画可播放，会立即完成而不是阻塞导航。
+6. **TiltEffect**：通过 `ProjectionService` 设置倾斜投影，该服务会按需把普通控件包装进 `ProjectionHost`，并在倾斜投影清除后释放包装，因此只倾斜该控件本身，且不会在指针按下期间修改视觉树。旋转以控件的**第一个可视子元素**（模板根）为中心，与原工具包的 `GetChild(control, 0)` 一致，`CenterOfRotation` 相对布局槽表达。支持鼠标输入（通过隧道的 preview 事件），因此容器可以在不吞掉子按钮点击的情况下倾斜它；列表 item 容器会跳过。最大倾斜/回弹行为是近似值，触摸 manipulation 是更完整的输入路径。
+7. **SlideInEffect**：未实现（需要 Pivot）。
+8. **FeatheredTransition**：已实现，但原始 `TurnstileFeatherTransition` 面向 Pivot 内页面内容；移植版将其应用于转场 Frame 的页面宿主。
 
 ## 6. 控件
 
@@ -96,7 +97,7 @@
 以下内容尚未完全自动化：
 
 1. 与原始 WP 控件的视觉对比（当前环境没有 WP 模拟器/设备）。
-2. 完整转场 Frame 的逐帧视觉验证（导航测试验证投影状态变化，不验证渲染帧）。
+2. 与 WP 8.1 模拟器逐像素对比转场（导航测试验证投影状态变化，并验证转场中间帧渲染为透视梯形；时长已对照原始关键时间测量）。
 3. 应用栏和系统栏视觉（仅 API 测试；视觉呈现器待完成）。
 4. Rating（桌面鼠标点击）以及 ToggleSwitch/PhoneTextBox 交互已覆盖真实指针/键盘输入；TiltEffect 仍使用合成路由事件，且当前环境没有物理触摸设备。
 5. 日期/时间 picker 模态窗口交互（API/值测试；没有 UI 自动化）。
