@@ -242,7 +242,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Assert.Equal(1, outBegun);
                     Assert.Same(second, frame.Content);
 
-                    PumpFor(1000);
+                    Assert.True(WpfTestHelper.PumpUntil(() => outEnded == 1 && inEnded == 1), "the entry transition did not complete");
                     Assert.Equal(1, outEnded);
                     Assert.Equal(1, inBegun);
                     Assert.Equal(1, inEnded);
@@ -329,7 +329,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     window.UpdateLayout();
 
                     frame.Navigate(first);
-                    PumpFor(650);
+                    Assert.True(WpfTestHelper.PumpUntil(() => ReferenceEquals(frame.Content, first) && first.IsHitTestVisible));
                     frame.Navigate(second);
                     PumpFor(80);
                     Assert.Equal(1, outBegun);
@@ -347,7 +347,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                         outgoing.IsRenderingIn3D,
                         string.Format("RotationY={0}, state={1}, child={2}", outgoingProjection.RotationY, outgoingProjection.IsIdentity, outgoing.Content));
 
-                    PumpFor(800);
+                    Assert.True(WpfTestHelper.PumpUntil(() => ProjectionService.GetProjection(first) == null && second.IsHitTestVisible));
                     Assert.Null(ProjectionService.GetProjection(first));
                     Assert.True(second.IsHitTestVisible);
                 }
@@ -384,7 +384,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     frame.Navigate(first);
                     PumpFor(50);
                     frame.Navigate(second);
-                    PumpFor(1200);
+                    Assert.True(WpfTestHelper.PumpUntil(() => ReferenceEquals(frame.Content, second) && second.IsHitTestVisible && ProjectionService.GetProjection(second) == null));
 
                     Assert.Same(second, frame.Content);
                     Assert.True(second.IsHitTestVisible);
@@ -459,7 +459,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Assert.True(presenter.Prefer3D);
                     Assert.True(presenter.IsRenderingIn3D);
 
-                    PumpFor(800);
+                    Assert.True(WpfTestHelper.PumpUntil(() => ProjectionService.GetProjection(page) == null && !presenter.Prefer3D));
                     Assert.Null(ProjectionService.GetProjection(page));
                     Assert.True(page.IsHitTestVisible);
                     Assert.False(presenter.Prefer3D, "The presenter should return to the 2D render path when it is idle.");
@@ -500,7 +500,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     PumpFor(60);
 
                     frame.Navigate(second);
-                    PumpFor(500);
+                    Assert.True(WpfTestHelper.PumpUntil(() => second.IsHitTestVisible && ProjectionService.GetProjectionHost(second) != null));
 
                     Assert.Same(second, frame.Content);
                     ProjectionHost presenter = ProjectionService.GetProjectionHost(second);
@@ -620,7 +620,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                         projection.RotationY > 0,
                         "The turnstile exit should rotate the outgoing page; RotationY=" + projection.RotationY);
 
-                    PumpFor(600);
+                    Assert.True(WpfTestHelper.PumpUntil(() => second.IsHitTestVisible));
                     Assert.Same(second, frame.Content);
                     Assert.True(second.IsHitTestVisible);
                 }
@@ -655,7 +655,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Assert.NotEqual(ClockState.Stopped, transition.GetCurrentState());
                     Assert.NotNull(ProjectionService.GetProjection(element));
 
-                    PumpFor(900);
+                    Assert.True(WpfTestHelper.PumpUntil(() => transition.GetCurrentState() == ClockState.Stopped));
                     Assert.Equal(ClockState.Stopped, transition.GetCurrentState());
                     Assert.Null(ProjectionService.GetProjection(element));
                 }

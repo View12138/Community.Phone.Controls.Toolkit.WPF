@@ -25,7 +25,7 @@
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`、`ExtraData`。 |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | 同名 | B | 映射到 WPF 应用/窗口生命周期。 |
 | `Microsoft.Phone.Shell.SystemTray` | 同名 | B | API/状态已实现；视觉 chrome 尚未完成。 |
-| `Microsoft.Phone.Shell.ApplicationBar` | 同名 | B | API 模型；默认视觉呈现器尚未完成。 |
+| `Microsoft.Phone.Shell.ApplicationBar`（含 `IApplicationBar`、`IApplicationBarIconButton`、`IApplicationBarMenuItem`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 同名 | A/B | 保留原版 API 形状（最多 4 个图标按钮、最多 50 个菜单项、文本/图标校验、`StateChanged`）；应用栏由 frame 承载的 `ApplicationBarPresenter` 绘制，并像原版一样为页面预留空间。 |
 | `Microsoft.Phone.Controls.TransitionFrame` | 同名 | B | 模板部件是 `ProjectionHost`，不是 `ContentPresenter`。 |
 | `Microsoft.Phone.Controls.ITransition` 及转场类型 | 同名 | A/B | 相同 API 面；使用 WPF Storyboard 和状态跟踪。 |
 | `Microsoft.Phone.Controls.ContextMenu` | 同名 | B/C | 继承 WPF `ContextMenu`。 |
@@ -81,7 +81,7 @@
 | `RecurringDaysPicker` | 已实现 | A/B | 星期列表、多选、摘要 | 基于移植的 `ListPicker`；使用本地化星期名。 |
 | `ExpanderView` | 已实现 | B | `Expander`、`ExpanderTemplate`、`NonExpandableHeader`、`HasItems`、`IsExpanded`、`Expanded`/`Collapsed` | WPF `HeaderedItemsControl`；简化高度动画；部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas`。 |
 | `HubTile` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`Size`；`HubTileService` | 定时器驱动循环；动画时序近似。 |
-| `ListPicker` | 已实现 | B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`FullModeHeader`、`FullModeItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`Open()`、`SelectionChanged` | 使用 Popup/模态 Window，而不是 `ListPickerPage`。 |
+| `ListPicker` | 已实现 | A/B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`FullModeHeader`、`FullModeItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`Open()`、`SelectionChanged`、`ListPickerMode` | 完整模式导航到原版 `ListPickerPage`（pack URI 来自 `PickerPageUri`），点 `Done`/返回时提交选择；页面操作用原版 `ApplicationBar`（勾/叉图标按钮）。普通模式与原版一致，对模板 Canvas 做高度动画。 |
 | `LongListSelector`（WP7） | 未实现 | E | — | 大型虚拟化 Silverlight 控件。 |
 | `LongListMultiSelector`（WP8） | 未实现 | E | — | 依赖 WP8 列表基础设施。 |
 | Maps 扩展 | 未实现 | E | — | 无 WPF 地图提供程序。 |
@@ -141,7 +141,7 @@
 | `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 panel 的直接子元素），清除投影时自动解包。 |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | 可用。 |
 | 使用 `shell:SystemTray.IsVisible` 的原始 `PhoneApplicationPage` XAML | 使用移植 `shell` 命名空间可解析；视觉 chrome 有限。 |
-| 原始 `shell:ApplicationBar` XAML | 可解析；保留 API 状态；视觉呈现器待完成。 |
+| 原始 `shell:ApplicationBar` XAML | 可用：应用栏（含菜单、最小化模式与为页面预留的空间）由 frame chrome（`ApplicationBarPresenter`）渲染。 |
 | 原始 `phone:PhoneApplicationPage` 的 `SupportedOrientations`/`Orientation` | 可解析并保留；不会强制旋转桌面窗口。 |
 | `phone:LongListSelector`、`phone:AutoCompleteBox`、地图、语音、传输 XAML | 当前 preview 不支持。 |
 

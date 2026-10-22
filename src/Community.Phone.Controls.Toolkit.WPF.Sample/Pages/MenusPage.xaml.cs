@@ -8,15 +8,12 @@ namespace PhoneToolkitSample.Pages
 {
     public partial class MenusPage : PhoneApplicationPage
     {
-        private readonly ApplicationBar _applicationBar;
+        private string _lastAction = "none";
+        private bool _isMenuOpen;
 
         public MenusPage()
         {
             InitializeComponent();
-
-            _applicationBar = new ApplicationBar { IsVisible = true };
-            _applicationBar.MenuItems.Add(new ApplicationBarMenuItem { Text = "about" });
-            ApplicationBar = _applicationBar;
 
             Loaded += OnLoaded;
         }
@@ -26,8 +23,53 @@ namespace PhoneToolkitSample.Pages
             UpdateShellStatus();
         }
 
+        private void OnBarStateChanged(object sender, ApplicationBarStateChangedEventArgs e)
+        {
+            _isMenuOpen = e.IsMenuVisible;
+            UpdateShellStatus();
+        }
+
+        private void OnDoneClick(object sender, EventArgs e)
+        {
+            _lastAction = "done";
+            UpdateShellStatus();
+        }
+
+        private void OnAddClick(object sender, EventArgs e)
+        {
+            _lastAction = "add";
+            UpdateShellStatus();
+        }
+
+        private void OnDeleteClick(object sender, EventArgs e)
+        {
+            _lastAction = "delete";
+            UpdateShellStatus();
+        }
+
+        private void OnAboutClick(object sender, EventArgs e)
+        {
+            _lastAction = "about";
+            UpdateShellStatus();
+            MessageBox.Show("The application bar menu item was clicked.", "ApplicationBar");
+        }
+
+        private void OnMinimizeClick(object sender, EventArgs e)
+        {
+            ToggleApplicationBarMode();
+        }
+
+        private void OnHideBarClick(object sender, EventArgs e)
+        {
+            _lastAction = "hide app bar";
+            PageBar.IsVisible = false;
+            UpdateShellStatus();
+        }
+
         private void OnContextMenuCopy(object sender, RoutedEventArgs e)
         {
+            _lastAction = "context menu copy";
+            UpdateShellStatus();
             MessageBox.Show("ContextMenu item clicked.", "ContextMenu");
         }
 
@@ -44,6 +86,9 @@ namespace PhoneToolkitSample.Pages
 
             messageBox.Dismissed += (s, args) =>
             {
+                _lastAction = "message box " + args.Result.ToString().ToLower(CultureInfo.CurrentCulture);
+                UpdateShellStatus();
+
                 if (args.Result == CustomMessageBoxResult.RightButton)
                 {
                     MessageBox.Show("The right button was selected.", "CustomMessageBox");
@@ -55,13 +100,36 @@ namespace PhoneToolkitSample.Pages
 
         private void OnToggleApplicationBar(object sender, RoutedEventArgs e)
         {
-            _applicationBar.IsVisible = !_applicationBar.IsVisible;
+            PageBar.IsVisible = !PageBar.IsVisible;
             UpdateShellStatus();
+        }
+
+        private void OnToggleApplicationBarMode(object sender, RoutedEventArgs e)
+        {
+            ToggleApplicationBarMode();
         }
 
         private void OnToggleSystemTray(object sender, RoutedEventArgs e)
         {
             SystemTray.SetIsVisible(this, !SystemTray.GetIsVisible(this));
+            UpdateShellStatus();
+        }
+
+        private void OnGoBack(object sender, RoutedEventArgs e)
+        {
+            if (Frame != null)
+            {
+                Frame.GoBack();
+            }
+        }
+
+        private void ToggleApplicationBarMode()
+        {
+            PageBar.Mode = PageBar.Mode == ApplicationBarMode.Minimized
+                ? ApplicationBarMode.Default
+                : ApplicationBarMode.Minimized;
+
+            _lastAction = "mode " + PageBar.Mode.ToString().ToLower(CultureInfo.CurrentCulture);
             UpdateShellStatus();
         }
 
@@ -74,21 +142,16 @@ namespace PhoneToolkitSample.Pages
 
             ShellStatus.Text = string.Format(
                 CultureInfo.CurrentCulture,
-                "ApplicationBar.IsVisible = {0}, buttons = {1}, menu items = {2}{3}SystemTray.IsVisible = {4}, opacity = {5:F2}",
-                _applicationBar.IsVisible,
-                _applicationBar.Buttons.Count,
-                _applicationBar.MenuItems.Count,
+                "ApplicationBar: IsVisible = {0}, Mode = {1}, buttons = {2}, menu items = {3}, menu open = {4}{5}SystemTray: IsVisible = {6}, opacity = {7:F2}{5}Last action: {8}",
+                PageBar.IsVisible,
+                PageBar.Mode,
+                PageBar.Buttons.Count,
+                PageBar.MenuItems.Count,
+                _isMenuOpen,
                 Environment.NewLine,
                 SystemTray.GetIsVisible(this),
-                SystemTray.Opacity);
-        }
-
-        private void OnGoBack(object sender, RoutedEventArgs e)
-        {
-            if (Frame != null)
-            {
-                Frame.GoBack();
-            }
+                SystemTray.Opacity,
+                _lastAction);
         }
     }
 }

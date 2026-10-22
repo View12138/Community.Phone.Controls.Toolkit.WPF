@@ -12,7 +12,7 @@ English · [中文](zh-CN/porting-status.md)
 | 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
 | ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
 
-**Evidence snapshot (2026-10-19 17:24):** Release build 0 warnings / 0 errors · 72/72 tests pass (Debug and Release) · `build/verify-package.ps1` passes · sample UI-automation smoke passes (including the feathering sample round trip).
+**Evidence snapshot (2026-10-22):** Release build 0 errors (22 pre-existing warnings, all in `LongListSelector`, `ViewportControl` and `WindowHelper`) · **103/103 tests pass** in Release and Debug (about 30 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer) · `build/verify-package.ps1` passes · sample smoke runs: the Controls sample (both list pickers) loads without an animation exception, the ListPicker full-mode page shows the original `ApplicationBar` (check/cancel), and the Menus sample draws the ported application bar (icons, labels, menu button and menu).
 
 ---
 
@@ -40,7 +40,7 @@ English · [中文](zh-CN/porting-status.md)
 | Tombstoning / real WP lifecycle | ⛔ Not implemented | `State` is an in-memory dictionary; see `known-limitations.md` §2 |
 | `PhoneApplicationService` state API | ✅ Verified | `SystemTrayAndApplicationServiceExposeState`; idle/deactivation policy is not implemented |
 | `SystemTray` (state API) | ✅ Verified | `SystemTrayStatePublishesPropertyChanges`; **visual chrome is not drawn** |
-| `ApplicationBar` (commands/clicks) | ✅ Verified | `ApplicationBarButtonsRaiseClicksAndExecuteCommands`, `ApplicationBarDisabledItemsDoNotRaiseEvents`; **no visual presenter** in the frame template |
+| `ApplicationBar` (API, chrome and menu) | ✅ Verified | `ApplicationBarItemsRaiseClicksThroughTheirViews`, `…DisabledItemsDoNotRaiseEvents`, `…EnforcesItemLimitsAndValidation`, `…MenuAcceptsTheMaximumNumberOfItems`, `…ReservedHeightFollowsTheOriginalRule`, `ApplicationBarPresenterOpensAndClosesTheMenu`, `PhoneApplicationFrameHostsThePageApplicationBar`, `…HidesTheBarWhenThePageHasNone`, `…RejectsForeignApplicationBarImplementations`; the bar is drawn by `ApplicationBarPresenter` in the frame template and the sample uses it (`MenusPage`) |
 | `NavigationContext` query/extra data | ✅ Verified | `Frame_NavigationContextCarriesParameters` |
 
 ## 3. Transitions
@@ -72,10 +72,10 @@ English · [中文](zh-CN/porting-status.md)
 | `ToggleSwitch` + `ToggleSwitchButton` | ✅ Verified | `ToggleSwitch_HasTemplateAndDependencyProperties`, `…_AnimatesThumbTranslation`, `…_SwitchButtonDrivesEvents` |
 | `Rating` | ✅ Verified | `Rating_CreatesConfiguredNumberOfItems`, `…_MouseClickChangesValue`, `…_ValueChangesRaiseEventAndUpdateItems`, `…_HalfItemIncrementKeepsValueInItemUnits`. Half increments now store the value in item units (documented deviation: the toolkit filled twice as many items as the pointer indicated) |
 | `PhoneTextBox` | ✅ Verified (behaviour) | `PhoneTextBox_ShowsHintWhenEmpty`, `…_TemplatePartsAndTwoWayText`, `…_InnerEditorIsVisibleAndReceivesFocus`. The hint now starts where the caret does (measured: 12 px) and is hidden while focused or during an IME composition; hint animation visuals unverified |
-| `ListPicker` / `ListPickerItem` | ✅ Verified (behaviour) | `ListPicker_SelectionRoundTrips`, `…_PopupSelectsItemAndCloses`, `…_OpenFailsWithoutItems`. Popup styling vs WP not compared |
+| `ListPicker` / `ListPickerItem` | ✅ Verified (behaviour) | `ListPicker_SelectionRoundTrips`, `…_ExpandedModeSelectsItemAndCollapses`, `…_OpenWithoutItemsExpands`, `…_FullModeWithoutFrameStaysUsable`, `…_FullModeNavigatesToPickerPageAndCommitsSelection`, `…_PageWithPickersLoadsWithoutAnimationErrors`, `…_HighlightedVisualStateUsesBrushResources`, `…_FullModePageUsesTheApplicationBarForSingleSelection`, `…_FullModePageCommitsFromTheApplicationBarDoneButton` (the page's original app bar, its localized texts, its library icons and the done→commit flow). Pixel styling vs WP not compared |
 | `ExpanderView` | 🟡 Implemented / unverified | `ExpanderView_TogglesAndRaisesEvents` covers behaviour; height animation and the header rule's spacing are visual-only |
 | `HubTile` / `HubTileService` | 🟡 Implemented / unverified | `HubTile_PropertiesAndGroupFreeze`; the template now follows the WP8 original (sliding surface + `RotationX` flip, verified numerically with a probe: `0→180→0`, panels swapped at 185 ms), pixel fidelity unverified |
-| `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`; the dialog swivels in (`BackwardIn`) and out (`BackwardOut`) with the real projection pipeline (probe: `RotationX −45°→0°` on show, `0°→42°` on dismiss before the window closes) |
+| `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`; the dialog swivels in (`BackwardIn`) and out (`BackwardOut`) with the real projection pipeline (probe: `RotationX −45°→0°` on show, `0°→42°` on dismiss before the window closes). `Show()` also works in a host without an `Application` (it falls back to the theme colours and a default size), which is how the test drives it |
 | `ContextMenu` / `ContextMenuService` | ✅ Verified | `ContextMenuService_AttachesMenu`, `ContextMenu_OpensAndCloses` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ Verified (behaviour) | `DateTimePickers_HaveExpectedDefaultsAndFormatting`, `DateTimePickers_FormatValuesAndRaiseValueChanged`, `RecurringDaysPicker_SummarizesWeekdays`. Picker *pages* and `LoopingSelector` are not ported (WPF dialogs are used) |
 | `PerformanceProgressBar` | 🟡 Implemented / unverified | Styled in `Generic.xaml`, shown in the sample; no dedicated test, relative animation rewriting not ported |

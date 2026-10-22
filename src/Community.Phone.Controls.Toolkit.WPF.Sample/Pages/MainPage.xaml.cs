@@ -43,6 +43,9 @@ namespace PhoneToolkitSample.Pages
                 case "menus":
                     target = new MenusPage();
                     break;
+                case "ListPicker":
+                    target = new ListPickerSample();
+                    break;
                 case "CustomMessageBox":
                     target = new CustomMessageBoxSample();
                     break;

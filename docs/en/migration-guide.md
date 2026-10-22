@@ -225,7 +225,7 @@ These controls preserve their public surface; change `toolkit:` to `phone:` and 
 | `ContextMenu` | Derives from WPF `ContextMenu`; open with right-click. `ContextMenuService.ContextMenu` is the attached property. |
 | `CustomMessageBox` | Construct and call `Show()`. It is hosted in a WPF `Window`; `Dismiss()` raises the same events. |
 | `DatePicker` / `TimePicker` | `Value`, `ValueString`, `ValueChanged`, `Header` are preserved. The picker UI is a WPF modal window, not the WP picker page; `PickerPageUri` is retained but not navigated. |
-| `ListPicker` | Normal popup and full-mode modal window are supported. `PickerPageUri` is retained but not navigated. |
+| `ListPicker` | Normal (expanded) mode is unchanged; full mode navigates to `ListPickerPage` through the host frame, using the pack URI in `PickerPageUri`. The page declares its Done/Cancel actions in an `ApplicationBar` with check/cancel icon buttons, exactly like the original (shown for multiple selection, hidden for single selection). |
 | `ExpanderView` | Template parts are `Presenter`, `ExpanderPanel`, `ItemsCanvas`; height animation is performed in code. |
 | `HubTile` | Timer-driven state cycle; `HubTileService.FreezeGroup/UnfreezeGroup` are supported. |
 | `PhoneTextBox` | The inner TextBox uses a two-way text binding; hint/action/length indicator behavior is preserved. |
@@ -262,7 +262,7 @@ Targets must be wrappable by a `ProjectionHost`. A target inside a `ListBoxItem`
 
 ## 8. System tray and application bar
 
-`SystemTray.IsVisible` is an attached property and the state object is implemented. The default frame template does not yet paint full Windows Phone system chrome. `ApplicationBar` and its buttons/menu items are modeled, but the default visual presenter is not part of the frame template in this preview. If you need these visuals immediately, host them in your own WPF chrome and use the API objects for state/commands.
+`ApplicationBar` is fully ported: declare it in XAML (`<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></phone:PhoneApplicationPage.ApplicationBar>`) or assign it in code, and the frame draws it at the bottom of the page, reserving the page space. Icon buttons need an `IconUri` (application-relative, for example `/Images/appbar.save.rest.png`) and a `Text`; a bar accepts at most 4 icon buttons and 50 menu items, and its items raise `Click`. `SystemTray.IsVisible` is an attached property and the state object is implemented, but the default frame template still does not paint the full Windows Phone status bar; host that chrome yourself if you need it.
 
 ## 9. Resource and theme migration
 

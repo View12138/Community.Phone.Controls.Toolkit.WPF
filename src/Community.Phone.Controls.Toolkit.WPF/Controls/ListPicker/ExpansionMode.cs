@@ -10,9 +10,14 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public enum ExpansionMode
     {
-        /// <summary>Allows all items to be visible on the page.</summary>
+        /// <summary>
+        /// Allows all items to be visible on the page.
+        /// </summary>
         ExpansionAllowed,
-        /// <summary>Requires all items to be displayed in a full screen popup.</summary>
+
+        /// <summary>
+        /// Requires all items to be displayed in a full screen popup.
+        /// </summary>
         FullScreenOnly
     }
 }

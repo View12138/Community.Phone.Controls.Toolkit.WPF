@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
+using Microsoft.Phone.Shell;
 
 namespace Microsoft.Phone.Controls
 {
@@ -17,6 +18,17 @@ namespace Microsoft.Phone.Controls
     /// </summary>
     public class PhoneApplicationFrame : Frame
     {
+        /// <summary>
+        /// The name of the template part that reserves room for the
+        /// application bar.
+        /// </summary>
+        private const string ApplicationBarHostPartName = "ApplicationBarHost";
+
+        /// <summary>
+        /// The name of the template part that draws the application bar.
+        /// </summary>
+        private const string ApplicationBarPartName = "ApplicationBar";
+
         /// <summary>
         /// Identifies the <see cref="Orientation"/> property.
         /// </summary>
@@ -87,7 +99,7 @@ namespace Microsoft.Phone.Controls
         /// <summary>
         /// Gets the application bar for the current page.
         /// </summary>
-        public object ApplicationBar
+        public IApplicationBar ApplicationBar
         {
             get
             {
@@ -95,6 +107,16 @@ namespace Microsoft.Phone.Controls
                 return page == null ? null : page.ApplicationBar;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the element that reserves room for the application bar.
+        /// </summary>
+        private FrameworkElement _applicationBarHost;
+
+        /// <summary>
+        /// Gets or sets the presenter that draws the application bar.
+        /// </summary>
+        private ApplicationBarPresenter _applicationBarPresenter;
 
         /// <summary>
         /// Gets a value indicating whether the current orientation is portrait.
@@ -145,6 +167,59 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
+        /// Applies the template and hooks up the application bar chrome.
+        /// </summary>
+        public override void OnApplyTemplate()
+        {
+            if (_applicationBarPresenter != null)
+            {
+                _applicationBarPresenter.ReservedHeightChanged -= OnApplicationBarReservedHeightChanged;
+                _applicationBarPresenter.ApplicationBar = null;
+            }
+
+            base.OnApplyTemplate();
+
+            _applicationBarHost = GetTemplateChild(ApplicationBarHostPartName) as FrameworkElement;
+            _applicationBarPresenter = GetTemplateChild(ApplicationBarPartName) as ApplicationBarPresenter;
+
+            if (_applicationBarPresenter != null)
+            {
+                _applicationBarPresenter.ReservedHeightChanged += OnApplicationBarReservedHeightChanged;
+            }
+
+            UpdateApplicationBarChrome();
+        }
+
+        /// <summary>
+        /// Pushes the current page's application bar into the chrome.
+        /// </summary>
+        internal void UpdateApplicationBarChrome()
+        {
+            if (_applicationBarPresenter != null)
+            {
+                _applicationBarPresenter.ApplicationBar = ApplicationBar;
+            }
+
+            ApplyApplicationBarReservedHeight();
+        }
+
+        private void ApplyApplicationBarReservedHeight()
+        {
+            if (_applicationBarHost == null)
+            {
+                return;
+            }
+
+            double height = _applicationBarPresenter == null ? 0 : _applicationBarPresenter.ReservedHeight;
+            _applicationBarHost.Height = height;
+        }
+
+        private void OnApplicationBarReservedHeightChanged(object sender, EventArgs e)
+        {
+            ApplyApplicationBarReservedHeight();
+        }
+
+        /// <summary>
         /// Gets the persisted state dictionary for a page.
         /// </summary>
         internal IDictionary<string, object> GetState(Page page)
@@ -183,6 +258,7 @@ namespace Microsoft.Phone.Controls
                 }
 
                 _pendingNavigationExtraData = null;
+                UpdateApplicationBarChrome();
                 return;
             }
 
@@ -198,6 +274,8 @@ namespace Microsoft.Phone.Controls
             object extraData = _pendingNavigationExtraData ?? e.ExtraData;
             page.NavigationContext = NavigationContext.FromNavigationEventArgs(e.Uri, extraData);
             _pendingNavigationExtraData = null;
+
+            UpdateApplicationBarChrome();
 
             page.RaiseNavigatedTo(e);
         }
@@ -218,8 +296,7 @@ namespace Microsoft.Phone.Controls
         }
 
         private static void OnOrientationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            PhoneApplicationFrame frame = (PhoneApplicationFrame)d;
+        {            PhoneApplicationFrame frame = (PhoneApplicationFrame)d;
             PageOrientation orientation = (PageOrientation)e.NewValue;
 
             PhoneApplicationPage page = frame.Content as PhoneApplicationPage;

@@ -13,6 +13,7 @@
 - **转场**：`TransitionFrame`、`ITransition`、`NavigationInTransition` / `NavigationOutTransition`，以及 Roll、Rotate、Slide、Swivel、Turnstile、TurnstileFeather 系列（原 19 个 storyboard）。
 - **效果**：`TiltEffect`、`TurnstileFeatherEffect`，基于真实投影管线。
 - **控件**：`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ExpanderView`、`ListPicker`、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`RecurringDaysPicker`、`PerformanceProgressBar`，以及相关转换器和辅助类。
+- **Shell**：`Microsoft.Phone.Shell.ApplicationBar` 移植了原版 API（`IApplicationBar`、图标按钮、菜单项、`Mode`、`StateChanged`、4/50 上限与 item 校验），由 frame 的 `ApplicationBarPresenter` 绘制；`SystemTray` 仍是 API/状态模型。`ListPicker` 完整模式页面的「完成/取消」使用真实 `ApplicationBar`。
 - **本地化**：50 个真实文化加中性资源，由原始 designer/资源生成。
 - **主题**：Metro 调色板、字体、文本样式、Frame 模板和控件模板位于 `Themes/Generic.xaml`。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。
 
@@ -152,8 +153,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 
 ## 验证状态
 
-- Release 构建：0 warnings，0 errors（2026-10-19 重新验证）。
-- 自动化测试：72 passed，0 failed（覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 鼠标输入，以及 PhoneTextBox 焦点与编辑。
+- Release 构建：0 errors（2026-10-22 重新验证）；仅有的警告来自未跟踪的进行中 `LongListSelector`/`ViewportControl`/`WindowHelper` 文件。
+- 自动化测试：Release 与 Debug 下均 103 passed，0 failed（约 30 秒；覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）以及 `ListPicker` 完整模式页面的应用栏。
 - 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
 - 示例：启动成功；UI 自动化逐个打开全部示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus）并每次返回示例索引，未产生启动错误。
 - 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。

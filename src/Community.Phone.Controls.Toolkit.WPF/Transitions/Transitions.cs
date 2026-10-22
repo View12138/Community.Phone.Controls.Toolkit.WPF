@@ -58,6 +58,12 @@ namespace Microsoft.Phone.Controls
         private static Dictionary<string, string> _storyboardXamlCache;
 
         /// <summary>
+        /// Guards the storyboard XAML cache, which is shared by every thread
+        /// that creates a transition (the test suite runs on several).
+        /// </summary>
+        private static readonly object StoryboardXamlCacheLock = new object();
+
+        /// <summary>
         /// Creates a
         /// <see cref="T:Microsoft.Phone.Controls.ITransition"/>
         /// for a transition family, transition mode, and
@@ -100,24 +106,28 @@ namespace Microsoft.Phone.Controls
         /// <returns>The <see cref="T:System.Windows.Media.Storyboard"/>.</returns>
         private static Storyboard GetStoryboard(string name)
         {
-            if (_storyboardXamlCache == null)
-            {
-                _storyboardXamlCache = new Dictionary<string, string>();
-            }
             string xaml = null;
-            if (_storyboardXamlCache.ContainsKey(name))
+            lock (StoryboardXamlCacheLock)
             {
-                xaml = _storyboardXamlCache[name];
-            }
-            else
-            {
-                string path = "/" + StoryboardAssemblyName + ";component/Transitions/Storyboards/" + name + ".xaml";
-                Uri uri = new Uri(path, UriKind.Relative);
-                StreamResourceInfo streamResourceInfo = Application.GetResourceStream(uri);
-                using (StreamReader streamReader = new StreamReader(streamResourceInfo.Stream))
+                if (_storyboardXamlCache == null)
                 {
-                    xaml = streamReader.ReadToEnd();
-                    _storyboardXamlCache[name] = xaml;
+                    _storyboardXamlCache = new Dictionary<string, string>();
+                }
+
+                if (_storyboardXamlCache.ContainsKey(name))
+                {
+                    xaml = _storyboardXamlCache[name];
+                }
+                else
+                {
+                    string path = "/" + StoryboardAssemblyName + ";component/Transitions/Storyboards/" + name + ".xaml";
+                    Uri uri = new Uri(path, UriKind.Relative);
+                    StreamResourceInfo streamResourceInfo = Application.GetResourceStream(uri);
+                    using (StreamReader streamReader = new StreamReader(streamResourceInfo.Stream))
+                    {
+                        xaml = streamReader.ReadToEnd();
+                        _storyboardXamlCache[name] = xaml;
+                    }
                 }
             }
             // WPF's XamlReader loads from a stream rather than a string.

@@ -23,6 +23,7 @@
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<EnablePackageValidation>false</EnablePackageValidation>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<RootNamespace>Microsoft.Phone.Controls</RootNamespace>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -37,6 +38,10 @@
 		<None Include="..\..\THIRD-PARTY-NOTICES_zh-CN.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\docs\en\*.md" Pack="true" PackagePath="docs\en\" />
 		<None Include="..\..\docs\zh-CN\*.md" Pack="true" PackagePath="docs\zh-CN\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Content\*.png" />
 	</ItemGroup>
 
 	<ItemGroup>

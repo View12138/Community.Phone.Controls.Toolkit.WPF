@@ -225,7 +225,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 | `ContextMenu` | 继承 WPF `ContextMenu`；右键打开。`ContextMenuService.ContextMenu` 是附加属性。 |
 | `CustomMessageBox` | 构造后调用 `Show()`；由 WPF `Window` 承载，`Dismiss()` 触发相同事件。 |
 | `DatePicker` / `TimePicker` | 保留 `Value`、`ValueString`、`ValueChanged`、`Header`。picker UI 是 WPF 模态窗口，不是 WP picker page；`PickerPageUri` 保留但不导航。`ValueStringFormat` 是复合格式字符串，例如 `"{0:yyyy-MM-dd}"`。 |
-| `ListPicker` | 支持普通 Popup 和完整模式模态 Window。`PickerPageUri` 保留但不导航。 |
+| `ListPicker` | 普通（展开）模式行为不变；完整模式通过宿主 frame 导航到 `ListPickerPage`，使用 `PickerPageUri` 中的 pack URI。页面的「完成/取消」与原版一致，声明在 `ApplicationBar` 里（勾/叉图标按钮；多选时显示、单选时隐藏）。 |
 | `ExpanderView` | 模板部件是 `Presenter`、`ExpanderPanel`、`ItemsCanvas`；高度动画在代码中完成。 |
 | `HubTile` | 定时器驱动状态循环；支持 `HubTileService.FreezeGroup/UnfreezeGroup`。 |
 | `PhoneTextBox` | 内部 TextBox 使用双向文本绑定；保留 hint/action/length indicator 行为。 |
@@ -262,7 +262,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 ## 8. 系统栏与应用栏
 
-`SystemTray.IsVisible` 是附加属性，状态对象已实现，但默认 Frame 模板尚未绘制完整的 Windows Phone 系统 chrome。`ApplicationBar` 及其按钮/菜单项已建模，但当前预览不包含默认视觉呈现器。如果需要这些视觉，请在应用自己的 WPF chrome 中承载，并使用 API 对象维护状态/命令。
+`ApplicationBar` 已完整移植：可以在 XAML 中声明（`<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></phone:PhoneApplicationPage.ApplicationBar>`），也可以在代码中赋值；frame 会在页面底部绘制它并为页面预留空间。图标按钮需要 `IconUri`（应用相对路径，例如 `/Images/appbar.save.rest.png`）和 `Text`；一个应用栏最多 4 个图标按钮和 50 个菜单项，其 item 会触发 `Click`。`SystemTray.IsVisible` 是附加属性，状态对象已实现，但默认 Frame 模板仍未绘制完整的 Windows Phone 状态栏；需要时请自行承载该 chrome。
 
 ## 9. 资源与主题迁移
 

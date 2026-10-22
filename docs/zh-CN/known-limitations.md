@@ -34,7 +34,7 @@
 ## 3. Shell chrome
 
 1. **系统栏**：`SystemTray.IsVisible`、`SystemTray.ProgressIndicator`、`SystemTray.Opacity`、`SystemTray.BackgroundColor`、`SystemTray.ForegroundColor` 及状态变化事件以 API 模型实现。默认 Frame 模板**不会**绘制完整的 Windows Phone 状态栏（信号、电池、时钟、全屏行为）。需要视觉 chrome 的应用应自行渲染。
-2. **应用栏**：`ApplicationBar`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`IsVisible`、`IsMenuEnabled`、`BackgroundColor`、`ForegroundColor`、`Opacity` 以及命令/点击事件已建模。当前预览的 Frame 模板**不包含**默认视觉呈现器；`Mode`/`StateChanged` 也不存在。示例使用普通 WPF 按钮演示命令接线。
+2. **应用栏**：已移植原版 `Microsoft.Phone.Shell` API —— `IApplicationBar`、`ApplicationBar`（最多 4 个图标按钮、最多 50 个菜单项、文本/图标校验、`Opacity` 截断、`Mode`、`StateChanged`）、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode` 与 `ApplicationBarStateChangedEventArgs`。frame 通过 `ApplicationBarPresenter`（替代原生合成器的移植新增类型）绘制应用栏：图标按钮及标签、菜单按钮、菜单浮层、最小化模式、颜色/透明度，以及为页面预留的空间（不可见或半透明时浮在页面之上，与原版一致）。差异：应用栏属于 frame 的 chrome，因此不随页面转场动画进入；默认颜色使用 Metro chrome 颜色（原生默认值无法从托管代码观察）；菜单以 WPF `Popup` 打开；图标 URI 按应用资源解析，缺失图标时按钮不显示图片而不是报错。
 3. **主题颜色**：提供 Metro 颜色和文本样式资源，但没有自动明/暗主题切换和 WP accent 颜色集成。应用可以覆盖资源键。
 4. **屏幕尺寸**：不强制 WP 布局常量（800×480、480×800、768×1280 等）。示例使用桌面窗口尺寸。
 
@@ -64,7 +64,7 @@
 
 1. **视觉保真度**：控件模板用 WPF 原语近似 Metro 外观。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。部分专用 WPF chrome（例如 WPF `DatePicker` 内的原生日历）和 WP 专用视觉状态仍有差异；功能 API 优先。
 2. **`CustomMessageBox`**：由 WPF `Window` 承载，是独立顶层窗口而不是页内浮层。保留 `Dismiss()` 和结果/事件契约。内容承载在 `ProjectionHost` 中，弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel；由于是独立窗口，Swivel 期间看不到其后的页面。
-3. **`ListPicker`**：普通模式使用 WPF `Popup`，列表项使用 WP 悬停/选中样式；完整模式使用模态 `Window`。不会导航到 `ListPickerPage`，因此 `PickerPageUri`、完整模式页面生命周期和 WP 转场行为未复刻。支持 `SelectedItems` 和 `SelectionMode`。
+3. **`ListPicker`**：移植了原版 WP8 源码，包括普通模式对模板 Canvas 的高度/位移动画，以及完整模式导航到 `ListPickerPage`——完整模式通过宿主 `PhoneApplicationFrame` 推入页面（`PickerPageUri` 中的 pack URI），点 `Done` 或离开页面时提交选择。差异：页面的操作按钮使用原版 `ApplicationBar`（勾/叉图标按钮 + 本地化的 `done`/`cancel` 文本，多选时显示、单选时隐藏，图标来自工具包自带的 `Content/ApplicationBar.*.png` 资源），页面转场使用移植的 Turnstile 投影，并且高度动画要等选中项完成测量后才开始（WPF 不允许以未设置的原点（NaN）对 `Height` 做动画，Silverlight 允许）。支持 `SelectedItems`、`SelectionMode` 和多选摘要。
 4. **`DatePicker`/`TimePicker`**：在模态窗口中使用 WPF `DatePicker`/小时分钟选择器。未复刻 WP 的 looping selector、picker page 转场和日期时间 picker 应用栏。支持 `ValueStringFormat`、`ValueString`、`ValueChanged` 和 `Header`。`ValueStringFormat` 是复合格式字符串（例如 `"{0:yyyy-MM-dd}"`）。
 5. **`ExpanderView`**：高度动画简化；任意嵌套内容的布局可能与 WP 不同。保留原始 `ItemsCanvas`/`ExpanderPanel` 部件名。展开区使用 18 像素内容缩进，避免竖线与文本相贴。
 6. **`HubTile`**：模板遵循 WP8 原版 —— 一块高度为瓦片两倍的表面用 `TranslateTransform` 在标题带、图片与背面之间滑动，翻转是真实的 `PlaneProjection.RotationX` 动画（`0→180`、`180→360`），并在表面侧立时切换正反面。两处 WPF 差异：背面用 `ScaleTransform ScaleY=-1` 预镜像（视觉等价于原版 `PlaneProjection RotationX=180`，但更省），翻转期间宿主切到 `Prefer3D`。像素保真度未验证。支持 `HubTileService` 组冻结/解冻。
@@ -98,8 +98,8 @@
 
 1. 与原始 WP 控件的视觉对比（当前环境没有 WP 模拟器/设备）。
 2. 与 WP 8.1 模拟器逐像素对比转场（导航测试验证投影状态变化，并验证转场中间帧渲染为透视梯形；时长已对照原始关键时间测量）。
-3. 应用栏和系统栏视觉（仅 API 测试；视觉呈现器待完成）。
-4. Rating（桌面鼠标点击）以及 ToggleSwitch/PhoneTextBox 交互已覆盖真实指针/键盘输入；TiltEffect 仍使用合成路由事件，且当前环境没有物理触摸设备。
+3. 应用栏和系统栏视觉：应用栏的呈现器已能渲染（栏高、槽位尺寸、颜色、菜单弹层与预留空间规则由 `ShellTests` 覆盖，ListPicker 完整模式页面的应用栏由两个专门测试覆盖），但未与 WP 8.1 截图逐像素对比；`SystemTray` 仍只是 API 模型，没有任何绘制。
+4. 输入通过路由事件注入而非操作系统：没有任何测试依赖真实桌面指针（`Rating` 测试直接调用控件内部的命中测试路径），也没有物理触摸设备，因此 TiltEffect、manipulation 和拖动行为仅由合成事件覆盖。
 5. 日期/时间 picker 模态窗口交互（API/值测试；没有 UI 自动化）。
 6. 全部 50 个打包文化（验证资源存在；代表性文化有转换器测试）。
 7. 高 DPI、多显示器、软件渲染 3D 行为。

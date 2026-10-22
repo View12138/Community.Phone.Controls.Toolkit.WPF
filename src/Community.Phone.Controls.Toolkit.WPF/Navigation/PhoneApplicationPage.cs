@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
+using Microsoft.Phone.Shell;
 
 namespace Microsoft.Phone.Controls
 {
@@ -43,9 +44,9 @@ namespace Microsoft.Phone.Controls
         public static readonly DependencyProperty ApplicationBarProperty =
             DependencyProperty.Register(
                 "ApplicationBar",
-                typeof(object),
+                typeof(IApplicationBar),
                 typeof(PhoneApplicationPage),
-                new PropertyMetadata(null));
+                new PropertyMetadata(null, OnApplicationBarPropertyChanged));
 
         private PhoneApplicationFrame _frame;
         private readonly IDictionary<string, object> _localState = new Dictionary<string, object>();
@@ -102,12 +103,26 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Gets or sets the application bar associated with the page.
+        /// Gets or sets the application bar associated with the page. Like the
+        /// original, only the toolkit's <see cref="ApplicationBar"/> can be
+        /// assigned.
         /// </summary>
-        public object ApplicationBar
+        public IApplicationBar ApplicationBar
         {
-            get { return GetValue(ApplicationBarProperty); }
-            set { SetValue(ApplicationBarProperty, value); }
+            get
+            {
+                return (IApplicationBar)GetValue(ApplicationBarProperty);
+            }
+
+            set
+            {
+                if (value != null && !(value is ApplicationBar))
+                {
+                    throw new InvalidOperationException("PhoneApplicationPage only accepts the ApplicationBar implementation of IApplicationBar");
+                }
+
+                SetValue(ApplicationBarProperty, value);
+            }
         }
 
         /// <summary>
@@ -199,6 +214,15 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        protected virtual void OnBackKeyPress(CancelEventArgs e)
+        {
+            EventHandler<CancelEventArgs> handler = BackKeyPress;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
         internal void RaiseNavigatedTo(NavigationEventArgs e)
         {
             OnNavigatedTo(e);
@@ -212,6 +236,12 @@ namespace Microsoft.Phone.Controls
         internal void RaiseNavigatedFrom(NavigationEventArgs e)
         {
             OnNavigatedFrom(e);
+        }
+
+        private static void OnApplicationBarPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            PhoneApplicationPage page = (PhoneApplicationPage)d;
+            page._frame?.UpdateApplicationBarChrome();
         }
 
         private static void OnOrientationPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

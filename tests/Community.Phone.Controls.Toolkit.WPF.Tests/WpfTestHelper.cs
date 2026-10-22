@@ -70,5 +70,45 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 frame);
             Dispatcher.PushFrame(frame);
         }
+
+        /// <summary>
+        /// Pumps the dispatcher until the condition holds, so tests wait for the
+        /// observable result instead of a fixed duration. Returns <c>false</c>
+        /// when the timeout expires.
+        /// </summary>
+        public static bool PumpUntil(Func<bool> condition, int timeoutMilliseconds = 3000)
+        {
+            if (condition == null)
+            {
+                throw new ArgumentNullException("condition");
+            }
+
+            DateTime end = DateTime.UtcNow.AddMilliseconds(timeoutMilliseconds);
+            while (DateTime.UtcNow < end)
+            {
+                if (condition())
+                {
+                    return true;
+                }
+
+                PumpDispatcher();
+                System.Threading.Thread.Sleep(10);
+            }
+
+            return condition();
+        }
+
+        /// <summary>
+        /// Pumps the dispatcher for a fixed duration.
+        /// </summary>
+        public static void PumpFor(int milliseconds)
+        {
+            DateTime end = DateTime.UtcNow.AddMilliseconds(milliseconds);
+            while (DateTime.UtcNow < end)
+            {
+                PumpDispatcher();
+                System.Threading.Thread.Sleep(10);
+            }
+        }
     }
 }

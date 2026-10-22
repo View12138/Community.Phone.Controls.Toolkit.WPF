@@ -142,12 +142,19 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 - `GoBack()` 先触发 `PhoneApplicationPage.BackKeyPress`。
 - `Navigate(PhoneApplicationPage, IDictionary<string,string>)` 传递导航参数，与 URI 查询字符串合并为 `NavigationContext`，在 `OnNavigatedTo` 前赋给页面。
 - 页面状态按页面实例保存在 Frame 中，返回到同一实例后仍然存在。
+- 应用栏 chrome：模板承载 `ApplicationBarHost`（按应用栏高度预留的行）与 `ApplicationBar`（`ApplicationBarPresenter`）。`Navigated` 把新页面的应用栏推给呈现器；页面处于活动状态时修改 `ApplicationBar` 也会转发到呈现器。
 
 WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保护虚方法，因此移植版在 `PhoneApplicationPage` 中声明这些虚方法，并由 Frame 触发。这样保留了 API 和确定顺序，但如果页面放在移植 Frame 之外，WPF 自身不会调用它们。
 
 ### 5.2 `PhoneApplicationPage`
 
-继承 WPF `Page`，增加 `State`、`NavigationContext`、`Orientation`、`SupportedOrientations`、`ApplicationBar`、`NavigatedTo`、`NavigatingFrom`、`NavigatedFrom`、`BackKeyPress`、`OrientationChanged`。`NavigationContext` 暴露 `Uri`、`ExtraData` 和大小写不敏感的 `QueryString` 字典。
+继承 WPF `Page`，增加 `State`、`NavigationContext`、`Orientation`、`SupportedOrientations`、`ApplicationBar`、`NavigatedTo`、`NavigatingFrom`、`NavigatedFrom`、`BackKeyPress`、`OrientationChanged`。`NavigationContext` 暴露 `Uri`、`ExtraData` 和大小写不敏感的 `QueryString` 字典。`ApplicationBar` 与原版一样是 `IApplicationBar` 类型，且只接受移植版的 `ApplicationBar` 实现（其它实现会抛异常）。
+
+### 5.2.1 应用栏
+
+`Microsoft.Phone.Shell` 移植了原版托管 API（`IApplicationBar`、`ApplicationBar`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`）及其基础设施：`ApplicationBarItemList<T>` 保留每个列表的上限（4 个图标按钮、50 个菜单项）和原始异常，item 容器负责校验文本/图标/启用状态并派发点击，`ApplicationBar` 保留“只有可见且完全不透明的应用栏才预留页面空间”这条原版规则。
+
+Windows Phone 由合成器绘制应用栏；移植版由新增的 `ApplicationBarPresenter` 绘制，并由 frame 模板承载（见 5.1）。呈现器订阅应用栏及其 item，构建图标按钮视图（96×72 槽位，48×48 图标 + 12 px 标签）、菜单按钮（右上角三个点）以及行高 48 px 的 `Popup` 菜单。颜色来自 `BackgroundColor`/`ForegroundColor`，透明度来自 `Opacity`；frame 用呈现器的 `ReservedHeight` 设置 `ApplicationBarHost.Height`，因此半透明或隐藏的应用栏会浮在页面之上而不是压缩页面。
 
 ### 5.3 `TransitionFrame`
 
@@ -214,7 +221,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 - **PhoneTextBox**：内部 TextBox 使用双向 `Text` 绑定（WPF `TemplateBinding` 是单向的），保留 hint、action icon 和长度指示。
 - **ExpanderView**：基于 WPF `HeaderedItemsControl`；部件 `Presenter`、`ExpanderPanel`、`ItemsCanvas`；高度动画在代码中完成，因为 WPF 无法直接取得 Silverlight 模板部件。
 - **HubTile**：定时器驱动 `Expanded → Semiexpanded → Collapsed → Expanded → Flipped` 状态循环；`HubTileService` 支持冻结组。
-- **ListPicker**：保留原依赖属性面；普通模式使用 Popup，完整模式使用模态 Window；`PickerPageUri` 保留但不导航。
+- **ListPicker**：移植原版 WP8 实现——普通模式对模板 Canvas 做高度/位移动画，完整模式通过宿主 frame 导航到 `ListPickerPage`（pack URI 来自 `PickerPageUri`）；页面的「完成/取消」使用原版 `ApplicationBar`（勾/叉图标按钮，图标来自库的 `Content` 资源，仅多选时显示）。
 - **ContextMenu/MenuItem/Separator/ContextMenuService**：继承 WPF 菜单类型；右键打开。
 - **CustomMessageBox**：`ContentControl` API，`Show()`/`Dismiss()` 由 WPF Window 承载。
 - **DatePicker/TimePicker**：保留 Value/ValueString/Header/PickerPageUri API，用 WPF 日期/时间 UI 在模态 Window 中实现。
@@ -239,4 +246,4 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 - **示例运行**：示例作为真实 WPF 进程启动；启动错误写入 `%TEMP%\community-phone-toolkit-sample-error.txt`，并检查窗口稳定。
 - **包消费**：`build/verify-package.ps1` 打包、隔离还原、零警告构建并运行全新消费工程。
 
-需要窗口或 WPF Dispatcher 的测试通过 `StaTest.Run` 在专用 STA 线程上运行；动画通过真实的 dispatcher 消息泵推进，而不是只断言静态属性。
+需要窗口或 WPF Dispatcher 的测试通过 `StaTest.Run` 在专用 STA 线程上运行；动画通过真实的 dispatcher 消息泵推进，而不是只断言静态属性。等待改为条件轮询（`WpfTestHelper.PumpUntil(predicate, timeout)`）而非固定 sleep，且没有测试依赖操作系统指针或物理输入设备。测试并行化保持关闭：多组测试驱动共享的 WPF 单例（主题字典、`Popup`、storyboard XAML 缓存），并行运行会死锁。

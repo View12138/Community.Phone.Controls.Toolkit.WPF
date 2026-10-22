@@ -1,13 +1,17 @@
 using System;
 using System.Collections;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Phone.Controls;
+using Microsoft.Phone.Controls.LocalizedResources;
+using Microsoft.Phone.Shell;
 using PhoneWrapPanel = Microsoft.Phone.Controls.WrapPanel;
 using PhoneContextMenu = Microsoft.Phone.Controls.ContextMenu;
 using PhoneContextMenuService = Microsoft.Phone.Controls.ContextMenuService;
@@ -93,55 +97,29 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
-        public void Rating_MouseClickChangesValue()
+        public void Rating_PointerPositionUpdatesValue()
         {
             StaTest.Run(() =>
             {
                 Rating rating = new Rating { Width = 200, Height = 40, RatingItemCount = 5, Value = 1 };
-                Window window = new Window
-                {
-                    Width = 300,
-                    Height = 160,
-                    Left = 120,
-                    Top = 120,
-                    WindowStartupLocation = WindowStartupLocation.Manual,
-                    ShowInTaskbar = false,
-                    Topmost = true,
-                    Content = rating
-                };
+                Window window = new Window { Width = 300, Height = 160, Content = rating };
                 try
                 {
                     window.Show();
-                    window.Activate();
-                    PumpFor(150);
+                    WpfTestHelper.PumpDispatcher();
+                    window.UpdateLayout();
 
-                    // Real pointer input depends on this machine's desktop
-                    // (a lock screen or another window on top blocks it), so
-                    // retry a few times and skip the assertion when the
-                    // pointer cannot be placed over the control.
-                    Point point = rating.PointToScreen(new Point(150, 20));
-                    Point local = default(Point);
-                    for (int attempt = 0; attempt < 5; attempt++)
-                    {
-                        SetCursorPos((int)point.X, (int)point.Y);
-                        PumpFor(80);
-                        local = Mouse.GetPosition(rating);
-                        if (local.X > 50)
-                        {
-                            break;
-                        }
-                    }
-
-                    if (local.X <= 50)
-                    {
-                        return;
-                    }
-
-                    mouse_event(MouseLeftDown, 0, 0, 0, UIntPtr.Zero);
-                    mouse_event(MouseLeftUp, 0, 0, 0, UIntPtr.Zero);
-                    PumpFor(200);
-
+                    // Same computation the mouse handlers run, without depending on
+                    // the OS pointer (a locked or covered desktop used to make this
+                    // test skip or fail).
+                    rating.UpdateValueFromMouse(new Point(150, 20));
                     Assert.Equal(4, rating.Value);
+
+                    rating.UpdateValueFromMouse(new Point(190, 20));
+                    Assert.Equal(5, rating.Value);
+
+                    rating.UpdateValueFromMouse(new Point(10, 20));
+                    Assert.Equal(1, rating.Value);
                 }
                 finally
                 {
@@ -431,63 +409,332 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
-        public void ListPicker_PopupSelectsItemAndCloses()
+        public void ListPicker_ExpandedModeSelectsItemAndCollapses()
         {
             StaTest.Run(() =>
             {
-                ListPicker picker = new ListPicker { Width = 320, Height = 60 };
+                ListPicker picker = new ListPicker { Width = 320 };
                 picker.Items.Add("one");
                 picker.Items.Add("two");
                 picker.Items.Add("three");
 
                 WpfTestHelper.ApplyDefaultStyle(picker);
                 Window window = new Window { Width = 400, Height = 300, Content = picker };
-                Popup popup = null;
                 try
                 {
                     window.Show();
-                    WpfTestHelper.Layout(picker, 320, 60);
-
-                    popup = (Popup)picker.Template.FindName("PickerPopup", picker);
-                    ListBox list = (ListBox)picker.Template.FindName("PickerListBox", picker);
-                    Assert.NotNull(popup);
-                    Assert.NotNull(list);
+                    WpfTestHelper.Layout(picker, 320, 200);
 
                     int changes = 0;
                     picker.SelectionChanged += delegate { changes++; };
 
                     Assert.True(picker.Open());
-                    Assert.True(popup.IsOpen);
+                    Assert.Equal(ListPickerMode.Expanded, picker.ListPickerMode);
 
-                    list.SelectedIndex = 1;
+                    picker.SelectedIndex = 1;
                     WpfTestHelper.PumpDispatcher();
 
                     Assert.Equal(1, picker.SelectedIndex);
                     Assert.Equal("two", picker.SelectedItem);
-                    Assert.False(popup.IsOpen);
+                    Assert.Equal(ListPickerMode.Normal, picker.ListPickerMode);
                     Assert.Equal(1, changes);
                 }
                 finally
                 {
-                    if (popup != null)
-                    {
-                        popup.IsOpen = false;
-                    }
-
                     window.Close();
                 }
             });
         }
 
         [Fact]
-        public void ListPicker_OpenFailsWithoutItems()
+        public void ListPicker_FullModeWithoutFrameStaysUsable()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker();
+                for (int i = 0; i < 6; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                WpfTestHelper.ApplyDefaultStyle(picker);
+                WpfTestHelper.Layout(picker);
+
+                Assert.True(picker.Open());
+                Assert.Equal(ListPickerMode.Normal, picker.ListPickerMode);
+                Assert.Equal(0, picker.SelectedIndex);
+            });
+        }
+
+        [Fact]
+        public void ListPicker_FullModeNavigatesToPickerPageAndCommitsSelection()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320 };
+                for (int i = 0; i < 7; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    WpfTestHelper.PumpDispatcher();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ListPickerPage page = frame.Content as ListPickerPage;
+                    Assert.NotNull(page);
+                    Assert.Equal(7, page.Items.Count);
+                    Assert.Equal(SelectionMode.Single, page.SelectionMode);
+                    Assert.Equal(6, page.Items.IndexOf("item 6"));
+
+                    // The page must stay open until the user acts on it (it must not navigate away on its own).
+                    WpfTestHelper.PumpFor(600);
+
+                    Assert.Same(page, frame.Content);
+                    Assert.Equal(ListPickerMode.Full, picker.ListPickerMode);
+
+                    page.SelectedItem = "item 5";
+                    frame.NavigationService.GoBack();
+                    WpfTestHelper.PumpDispatcher();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.Same(hostPage, frame.Content);
+                    Assert.Equal("item 5", picker.SelectedItem);
+                    Assert.Equal(5, picker.SelectedIndex);
+                    Assert.Equal(ListPickerMode.Normal, picker.ListPickerMode);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_FullModePageUsesTheApplicationBarForSingleSelection()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320 };
+                for (int i = 0; i < 7; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    ApplicationBar bar = page.ApplicationBar as ApplicationBar;
+                    Assert.NotNull(bar);
+                    Assert.Equal(2, bar.Buttons.Count);
+
+                    // Single selection commits on tap, so the original hides the done/cancel bar.
+                    Assert.False(bar.IsVisible);
+
+                    ApplicationBarPresenter presenter =
+                        (ApplicationBarPresenter)frame.Template.FindName("ApplicationBar", frame);
+                    Assert.Same(bar, presenter.ApplicationBar);
+                    Assert.Equal(Visibility.Collapsed, presenter.Visibility);
+
+                    // The page's own bar replaces whatever the host page had.
+                    Assert.Equal(0, ((FrameworkElement)frame.Template.FindName("ApplicationBarHost", frame)).Height);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_FullModePageCommitsFromTheApplicationBarDoneButton()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320, SelectionMode = SelectionMode.Multiple };
+                for (int i = 0; i < 7; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    ApplicationBar bar = page.ApplicationBar as ApplicationBar;
+                    Assert.NotNull(bar);
+
+                    Assert.True(bar.IsVisible);
+
+                    ApplicationBarIconButton done = (ApplicationBarIconButton)bar.Buttons[0];
+                    ApplicationBarIconButton cancel = (ApplicationBarIconButton)bar.Buttons[1];
+                    Assert.Equal(ControlResources.DateTimePickerDoneText, done.Text);
+                    Assert.Equal(ControlResources.DateTimePickerCancelText, cancel.Text);
+                    Assert.True(done.IsEnabled);
+
+                    ApplicationBarPresenter presenter =
+                        (ApplicationBarPresenter)frame.Template.FindName("ApplicationBar", frame);
+                    Assert.Same(bar, presenter.ApplicationBar);
+                    Assert.Equal(Visibility.Visible, presenter.Visibility);
+                    Assert.Equal(72, presenter.ActualHeight);
+
+                    // The check/cancel icons ship as library resources and must resolve.
+                    List<ApplicationBarIconButtonView> views = presenter.ButtonElements.OfType<ApplicationBarIconButtonView>().ToList();
+                    Assert.Equal(2, views.Count);
+                    foreach (ApplicationBarIconButtonView view in views)
+                    {
+                        Image icon = ((Grid)view.Child).Children.OfType<Image>().First();
+                        Assert.NotNull(icon.Source);
+                    }
+
+                    page.Picker.SelectedItems.Add("item 3");
+                    done.ClickEvent();
+
+                    Assert.True(WpfTestHelper.PumpUntil(() => ReferenceEquals(frame.Content, hostPage)));
+                    Assert.Equal(ListPickerMode.Normal, picker.ListPickerMode);
+                    Assert.Contains("item 3", picker.SelectedItems.Cast<object>());
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_OpenWithoutItemsExpands()
         {
             StaTest.Run(() =>
             {
                 ListPicker picker = new ListPicker();
                 WpfTestHelper.ApplyDefaultStyle(picker);
                 WpfTestHelper.Layout(picker);
-                Assert.False(picker.Open());
+                Assert.True(picker.Open());
+                Assert.Equal(ListPickerMode.Expanded, picker.ListPickerMode);
+            });
+        }
+
+        [Fact]
+        public void ListPicker_PageWithPickersLoadsWithoutAnimationErrors()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Header = "Transition family", Margin = new Thickness(0, 0, 0, 16) };
+                picker.Items.Add("Turnstile");
+                picker.Items.Add("Slide");
+                picker.Items.Add("Rotate");
+                RecurringDaysPicker daysPicker = new RecurringDaysPicker { Header = "Repeats", Margin = new Thickness(0, 0, 0, 16) };
+
+                StackPanel panel = new StackPanel();
+                panel.Children.Add(picker);
+                panel.Children.Add(daysPicker);
+
+                PhoneApplicationPage page = new PhoneApplicationPage
+                {
+                    Content = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }
+                };
+                WpfTestHelper.ApplyTheme(page);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(page);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        WpfTestHelper.PumpDispatcher();
+                    }
+
+                    Canvas host = picker.Template.FindName("ItemsPresenterHost", picker) as Canvas;
+                    Assert.NotNull(host);
+                    Assert.False(double.IsNaN(host.Height));
+                    Assert.True(host.Height > 0);
+
+                    // Multiple selection collapses the items presenter and shows the summary text instead.
+                    Canvas daysHost = daysPicker.Template.FindName("ItemsPresenterHost", daysPicker) as Canvas;
+                    Assert.NotNull(daysHost);
+                    Assert.Equal(Visibility.Collapsed, daysHost.Visibility);
+
+                    Assert.True(picker.ActualHeight > 40);
+                    Assert.True(daysPicker.ActualHeight > 40);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_HighlightedVisualStateUsesBrushResources()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320 };
+                picker.Items.Add("one");
+
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                Window window = new Window { Width = 480, Height = 800, Content = picker };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(VisualStateManager.GoToState(picker, "Highlighted", false));
+                    for (int i = 0; i < 5; i++)
+                    {
+                        WpfTestHelper.PumpDispatcher();
+                    }
+
+                    Border border = picker.Template.FindName("Border", picker) as Border;
+                    Assert.NotNull(border);
+                    SolidColorBrush background = Assert.IsType<SolidColorBrush>(border.Background);
+                    Assert.Equal(Colors.White, background.Color);
+                }
+                finally
+                {
+                    window.Close();
+                }
             });
         }
 
@@ -514,14 +761,22 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     result = e.Result;
                 };
 
+                // Show() is modal: it runs a nested dispatcher loop, so the
+                // dismissal is driven by a timer that only ticks inside it. The
+                // dialog must also work without an Application (test host).
+                DispatcherTimer dismissTimer = new DispatcherTimer(DispatcherPriority.Background, box.Dispatcher);
+                dismissTimer.Interval = TimeSpan.FromMilliseconds(150);
+                dismissTimer.Tick += delegate
+                {
+                    dismissTimer.Stop();
+                    box.Dismiss();
+                };
+
+                dismissTimer.Start();
                 box.Show();
-                WpfTestHelper.PumpDispatcher();
-                box.Dismiss();
 
-                // The message box swivels out before the window closes, so the
-                // dismissed event arrives after the transition.
-                PumpFor(700);
-
+                // Show() returns once the close transition completed and the
+                // window closed, so the events have already been raised.
                 Assert.Equal(1, dismissing);
                 Assert.Equal(1, dismissed);
                 Assert.Equal(CustomMessageBoxResult.None, result);
@@ -650,15 +905,6 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 System.Threading.Thread.Sleep(10);
             }
         }
-
-        private const uint MouseLeftDown = 0x0002;
-        private const uint MouseLeftUp = 0x0004;
-
-        [DllImport("user32.dll")]
-        private static extern bool SetCursorPos(int x, int y);
-
-        [DllImport("user32.dll")]
-        private static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
 
         [Fact]
         public void RecurringDaysPicker_SummarizesWeekdays()

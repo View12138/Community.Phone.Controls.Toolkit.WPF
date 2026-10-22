@@ -26,16 +26,16 @@
 | 检查项 | 命令 | 结果 |
 |---|---|---|
 | Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental` | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
-| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **89 通过 / 1 失败 / 0 跳过** —— 失败的是既有问题 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents`（`CustomMessageBox.Show()` 直接使用 `Application.Current`，测试宿主里为 `null`）；所有转场/导航/投影/效果测试均通过 |
-| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **89 通过 / 1 失败** —— 同样是既有的 `CustomMessageBox` 测试 |
-| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过**（17:25）—— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
-| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；进程存活且无错误日志 |
+| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **103 通过 / 0 失败 / 0 跳过**，约 30 秒 —— 所有转场/导航/投影/效果/ListPicker/应用栏测试均通过，包括此前失败的 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
+| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **103 通过 / 0 失败** |
+| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
+| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；Controls 页（含两个 list picker）加载时不再抛动画异常，`RecurringDaysPicker` 能打开完整模式 `ListPickerPage`（标题 `REPEATS`、七行星期、原版 `ApplicationBar` 的「完成/取消」图标按钮），点「完成」返回 Controls 页；Menus 页绘制出移植版应用栏（图标、标签、菜单按钮与菜单）；进程存活且无错误日志 |
 
-测试清单（90 个）：`ProjectionTests` 20、`ControlTests` 23、`NavigationTests` 16、`TransitionStoryboardTests` 13、`EffectsTests` 6、`ConverterTests` 3、`ShellTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+测试清单（103 个用例、99 个方法）：`ControlTests` 29、`ProjectionTests` 25、`NavigationTests` 16、`TransitionStoryboardTests` 9 方法 / 13 用例、`EffectsTests` 7、`ShellTests` 10、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
 
 `NavigationTests.TransitionFrame_FallsBackWhenTransitionFactoryThrows` 已随移植版的 `TransitionFailed` 事件一起删除：现在与原版一致，`TransitionElement` 工厂抛出的异常会向上传播，而不是降级成无转场导航。
 
-唯一需要真实指针输入的测试是 `ControlTests.Rating_MouseClickChangesValue`；现在它会重试光标定位五次，若桌面无法让指针落到控件上（例如锁屏或被其它窗口遮挡），则跳过断言，不再把环境问题报成失败。
+已没有任何测试依赖操作系统指针。原 `ControlTests.Rating_MouseClickChangesValue`（移动物理光标，桌面不允许时自行跳过）改为 `Rating_PointerPositionUpdatesValue`，直接调用控件 `internal` 的 `UpdateValueFromMouse`，因此锁屏、被遮挡或虚拟化的桌面既不会造成失败，也不会被静默跳过。五个 `TransitionFrame_NavigatesWithEveryFamily` 用例以及效果/导航的等待不再固定 sleep 2000–3000 ms，而是通过 `WpfTestHelper.PumpUntil(condition, timeout)` 轮询可观察状态 —— 这也是测试耗时从约 45 秒降到约 30 秒的原因。
 
 ---
 
@@ -159,6 +159,58 @@ System.InvalidOperationException: 无法执行操作，因为未将指定的 Sto
 - 独立转场探针：`Stopped`→`Active`，时间正常推进，`Pause` 冻结（因 tick 粒度约 7 ms 溢出），`Resume` 继续，`Seek(50 ms)` 延迟到下一个 tick，`SeekAlignedToLastTick(10 ms)` 精确落在 10 ms，`SkipToFill` 只完成一次，`Stop` 清除投影。
 - `dotnet test -c Release`：**89 通过 / 1 失败 / 0 跳过**（90 个）；失败的是既有问题 `CustomMessageBox_ShowDismissRaisesLifecycleEvents`（测试宿主里 `Application.Current` 为 null）。有一次运行中两个 `EffectsTests` 倾斜测试也失败 —— 它们在窗口于倾斜中途关闭时把 `TiltEffect` 的静态状态泄漏到其它 STA 线程；重跑即通过。
 
+### 4.9 本轮：移植原版 WP8 `ListPicker`
+
+早期简化版 `ListPicker`（WPF `Popup` + 完整模式模态 `Window`）已替换为**原版 WP8 源码**（`Controls/ListPicker/{ListPicker,ListPickerItem,ListPickerMode,ExpansionMode}.cs`、`ListPickerPage.xaml(.cs)`）与原版样式 `Themes/Controls/ListPicker.xaml`。`Themes/Generic.xaml` 不再自带 ListPicker 样式，改为合并 `Controls/ListPicker.xaml`。
+
+WPF 适配（每条都是 WPF 的要求，不改变行为）：
+
+1. 用 `ProjectionService`/`PlaneProjection` 替代 `UIElement.Projection`：页面的项目/标题入场动画直接给 `PlaneProjection` 对象做动画，元素本身仍由投影宿主承载。
+2. `Tap`/`GestureEventArgs` → `OnMouseLeftButtonUp` + 鼠标进入/离开高亮；item 容器的处理器设置 `e.Handled`，因此普通模式下控件自身的处理器仍会展开选择器。
+3. `Application.Current.RootVisual` → `Window.GetWindow(this)`（带视觉树回退），应用与测试里都能找到 frame。
+4. `OnBackKeyPress` 重写 → 移植层的 `BackKeyPress` 事件（`e.Cancel = true`）；页面「完成/取消」走关闭动画后 `NavigationService.GoBack()`。
+5. 不使用 `Extensions.RegisterNotification`：它每次调用都注册一个附加依赖属性，第二个 `ListPicker` 实例就会抛异常；改用 `IsEnabledChanged` 覆盖同样的通知。
+6. `SelectionChangedEventArgs` 需要 `RoutedEvent`（`Selector.SelectionChangedEvent`），`ManipulationContainer` 需转成 `UIElement` 才能 `TransformToVisual`；新增 `Common/ItemsControlExtensions.GetItemsInViewPort` 供页面使用。
+7. 主题文件：局部合并 `Dark.xaml`（拆分主题字典里的 `StaticResource` 彼此不可见），页面模板根属性使用 `DynamicResource`（同字典内前向引用）。
+8. `PhoneTextBoxEditBackgroundColor` 是 `Color`，WPF 不接受用它给 `Border.Background` 做关键帧动画，因此高亮状态改用 `PhoneTextBoxEditBackgroundBrush`。
+9. 完整模式创建 `ListPickerPage` 实例并交给 `Frame.Navigate(object)`（在 frame 的延迟/转场导航下更稳）；`PickerPageUri` 仍指向该页的 pack URI。打开期间宿主页的转场属性被保存并清空，与原版「弹出导航不做转场」一致。
+
+两个只有在跑示例时才暴露的运行时缺陷，均已补回归测试：
+
+- **首个渲染 tick 抛 `AnimationException`**：`SizeForAppropriateView` 在选中项尚未测量时就启动 canvas `Height` 动画，`DoubleAnimation` 没有起点、canvas 高度是 `Auto`（`NaN`）。Silverlight 容忍这种情况，WPF 直接抛异常。现在只有在高度动画的 from/to 都是真实数值时才启动故事板（`ListPicker_PageWithPickersLoadsWithoutAnimationErrors` 在修复前以该异常失败）。
+- **鼠标悬停时抛 `AnimationException`**：高亮状态用 `Color` 资源给 `Background` 做动画（`ListPicker_HighlightedVisualStateUsesBrushResources` 在修复前失败）。
+
+测试：`ListPicker_SelectionRoundTrips`、`…_ExpandedModeSelectsItemAndCollapses`、`…_OpenWithoutItemsExpands`、`…_FullModeWithoutFrameStaysUsable`、`…_FullModeNavigatesToPickerPageAndCommitsSelection`（现在还会断言页面在用户操作前保持打开）、`…_PageWithPickersLoadsWithoutAnimationErrors`、`…_HighlightedVisualStateUsesBrushResources`。
+
+人工证据（示例 + UI 自动化）：Controls 页两个 picker 加载不再抛异常；点击 picker 展开、再点项目提交选择（宿主页绑定文本随之变化）；`RecurringDaysPicker` 打开完整模式页（`REPEATS` 标题、七行星期复选框、「完成/取消」命令栏 —— 自 §4.11 起为原版 `ApplicationBar`），点「完成」返回 Controls 页且无错误日志。
+
+本轮同步更新的文档（双语）：`api-compatibility.md`（控件行）、`known-limitations.md` §6.3、`architecture.md` §5、`migration-guide.md` §6、`porting-status.md`（ListPicker 测试名 + 证据快照）。
+
+### 4.10 本轮：移植原版 `Microsoft.Phone.Shell.ApplicationBar`
+
+之前只有 `DependencyObject` 形式的 API 模型、没有呈现器。现在按反编译源码（`D:\repos\repo-other\WindowsPhone\Microsoft.Phone\Microsoft.Phone.Shell`）移植原版形状并适配 WPF，且真正绘制出来：
+
+- **公共面**（`Shell/`）：`IApplicationBar`、`IApplicationBarIconButton`、`IApplicationBarMenuItem`、`ApplicationBar`（`[ContentProperty("Buttons")]`、`IsVisible` 默认 `true`、`Opacity` 截断到 0..1、`IsMenuEnabled`、`BackgroundColor`、`ForegroundColor`、`Mode`、`DefaultSize` 72、`MiniSize` 30、`Buttons`、`MenuItems`、`StateChanged`）、`ApplicationBarIconButton`（`IconUri`、`Text`、`IsEnabled`、`Click`）、`ApplicationBarMenuItem`（`Text`、`IsEnabled`、`Click`）、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`。删除了移植自造的 `ApplicationBarItem` 基类与 `Command`/`CommandParameter`/`RaiseClick`：原版没有这些，命令通过 `Click` 接线。
+- **基础设施**：`ApplicationBarItemList<T>`（原版 `IList` 实现，4/50 上限与原版异常消息）、`ApplicationBarItemContainer` + 图标/菜单容器 + 工厂（校验文本：非空、单行、去空白、≤255 字符；挂到应用栏后必须有图标；在 UI 线程派发点击），以及原版“预留空间”规则（可见、不透明度为 1、背景 alpha 为 255 或 0）。
+- **WPF chrome**：新增 `ApplicationBarPresenter` 取代原生合成器（加法 API，已写入文档）。它绘制 72 DIP（最小化 30）的应用栏：96×72 图标槽（48×48 图标在上、12 px 标签在下）、右上角三点菜单按钮，以及行高 48 px 的 `Popup` 菜单；颜色/透明度跟随应用栏，禁用项变暗，支持键盘激活。图标 URI 按应用资源解析，缺失图标时按钮不显示图片。
+- **Frame 接线**：两个 frame 模板都增加 `ApplicationBarHost`（按 `ReservedHeight` 预留的行）与 `ApplicationBar`（呈现器）。`PhoneApplicationFrame.OnApplyTemplate` 取得部件，`Navigated` 把新页面的应用栏推给呈现器；`PhoneApplicationPage.ApplicationBar`（改为 `IApplicationBar`，与原版一样拒绝其它实现）在页面活动期间转发变更。半透明或隐藏的应用栏浮在页面之上而不是压缩页面。
+- **示例**：`MenusPage` 在 XAML 中声明应用栏（3 个图标按钮 + 3 个菜单项），`Images/appbar.*.rest.png` 是随资源打包的生成图标。
+
+验证：`ShellTests`（10 个测试）覆盖点击、禁用项、上限与校验、预留高度规则、菜单打开/关闭与 `StateChanged`、frame 承载（host 与呈现器 72 DIP、页面布局在应用栏之上）、无应用栏以及拒绝外部实现；整包已全绿（见 §4.11）。示例像素证据：应用栏位于 frame 底部、高 72 DIP、颜色 `#1F1F1F`，三个槽位内有白色图标与标签，右上角有三个点；打开菜单并点击 `minimize` 后应用栏收起到 30 DIP 最小化模式，页面状态文本同步更新。
+
+本轮同步更新的文档（双语）：`api-compatibility.md`（shell 映射 + XAML 行）、`known-limitations.md` §3.2、`architecture.md` §5.1/§5.2.1、`migration-guide.md` §6、`porting-status.md`（ApplicationBar 行 + 证据快照）。
+
+### 4.11 本轮：`ListPickerPage` 回到原版 `ApplicationBar`，并修好测试回路
+
+- **`ListPickerPage` 重新使用移植版 `ApplicationBar`。** 临时的 `CommandArea` `StackPanel`（手写的完成/取消条）已删除。`ListPickerPage.xaml` 现在声明 `<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar IsVisible="False">`，其中两个 `ApplicationBarIconButton` 指向 `Content/ApplicationBar.Check.png` 与 `Content/ApplicationBar.Cancel.png`（库资源，pack URI 为 `/Community.Phone.Controls.Toolkit.WPF;component/Content/...`）；代码后台就是 WP8 原版逻辑：`OnLoaded` 遍历 `ApplicationBar.Buttons`，用不区分大小写的 `DONE`/`CANCEL` 匹配，套上本地化的 `appbar_done`/`appbar_cancel` 文本并挂 `Click` 到 `Done_Click`/`Cancel_Click`；`OnNavigatedTo` 设置 `ApplicationBar.IsVisible = SelectionMode != SelectionMode.Single`。因此单选模式下 frame 完全不预留应用栏高度。
+- **`CustomMessageBox.Show()` 不再需要 `Application`。** 主题背景色改为资源查找并回退到 `Colors.Black`，容忍 `MainWindow` 为 `null`，`OnWindowContentRendered` 对空 owner 做了保护，所以在普通窗口（或测试宿主）里也能显示。测试还必须在 `ShowDialog()` 的嵌套 dispatcher 循环**内部**关闭对话框，因此改用 `DispatcherTimer` 安排关闭。
+- **测试回路的提速与确定性。** 新增 `WpfTestHelper.PumpUntil(predicate, timeout)` / `PumpFor`，并把占用时间最多的固定等待改为条件轮询：五个 `TransitionFrame_NavigatesWithEveryFamily`（5 × 3000 ms）、2000 ms 的倾斜测试以及八个 `NavigationTests` 等待。测试耗时从约 45 秒降到约 30 秒。`Rating` 测试不再移动物理光标（`Rating.UpdateValueFromMouse` 改为 `internal`；`Rating_PointerPositionUpdatesValue` 直接调用），因此没有任何测试依赖桌面是否允许指针落点。
+- **并行化是有意保持关闭的。** 删掉 `[assembly: CollectionBehavior(DisableTestParallelization = true)]` 后整轮会挂起（>600 s），因为多组测试驱动共享的 WPF 单例（主题字典、`Popup`、storyboard XAML 缓存）；属性保留并附注释。真正有竞态的两个缓存（`Transitions._storyboardXamlCache`、`ApplicationBarIconLoader.Cache`）也顺手加了锁。
+
+验证：两个新测试 —— `ListPicker_FullModePageUsesTheApplicationBarForSingleSelection`（应用栏隐藏、两个按钮、呈现器折叠、host 行高 0）与 `ListPicker_FullModePageCommitsFromTheApplicationBarDoneButton`（应用栏可见、呈现器 72 DIP、本地化文本、两个图标能从 pack URI 解析、点「完成」提交选择并返回宿主页面）。整包 **103/103**，Release 与 Debug 均通过。示例证据（UI 自动化 + 像素）：`RecurringDaysPicker` 页面显示 `REPEATS`、七行星期，frame 底部的应用栏为 `#1F1F1F`，`完成`/`取消` 两个标签（该次运行屏幕像素 y≈1258）上方各有白色图标（中心 x≈683 与 x≈827）；点击「完成」槽位返回 Controls 页。
+
+本轮同步更新的文档（双语）：`known-limitations.md`（ListPicker 页面 chrome 现在使用真实 `ApplicationBar`）、`api-compatibility.md`（ListPicker 行）、`architecture.md` §9（条件等待）、`porting-status.md`（证据快照 + ListPicker/CustomMessageBox 行）。
+
 ---
 
 ## 5. 未完成 / 未验证
@@ -168,16 +220,16 @@ System.InvalidOperationException: 无法执行操作，因为未将指定的 Sto
 1. **与 WP 8.1 模拟器的逐帧视觉对比** —— 模拟器在运行、通过 Virtual Machine Connection 查看，但本次会话无法“看图”；验证是数值化的（几何、时序、渲染帧几何）+ 与原 XAML/WinUI 数学比对。Turnstile 的调优（枢轴 `-0.05`、时长 ×1.2）来自用户的口头观察而非测量，因此仍**需要一次视觉确认**。现在每个族都有运行时属性测试（`TransitionStoryboardTests`），但只有 Turnstile 有渲染帧证据。
 2. **各族缓动/像素一致性** —— storyboard 就是原版 XAML，数值天然精确；但 WPF 与 Silverlight 是否在每一帧都以完全相同的方式求值同一个 `ExponentialEase`/`SineEase`，没有测量。
 3. **羽化透视原点** —— 原版 `TurnstileFeatherEffect` 会把每个元素的透视原点移到页面垂直中心（`GlobalOffsetY` + 补偿 RenderTransform）。本移植版因 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，让元素绕自身中心旋转；角度/延迟/时序与原版一致。已写入已知限制。
-4. **Shell chrome** —— `SystemTray` 与 `ApplicationBar` 是 API 模型；默认 Frame 模板不绘制 WP 状态栏或应用栏，也没有视觉验证。
+4. **Shell chrome** —— `ApplicationBar` 现在由 frame（`ApplicationBarPresenter`）绘制，但 `SystemTray` 仍是纯 API 模型，没有绘制 WP 状态栏。应用栏不随页面转场动画进入，菜单是 WPF `Popup` 而不是原生表面，WP8 的精确度量（菜单滑入、省略号位置）是近似而非逐像素比对。
 5. **未实现模块** —— `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService`、`LoopingSelector`/picker 页面。已通过源码检索确认不存在（无对应 `class`）。
 6. **示例覆盖缺口** —— 重构后的示例展示投影、全部转场族、羽化、所有已实现控件、ContextMenu、CustomMessageBox 以及 shell 状态（ApplicationBar/SystemTray API）；**未**展示 `Matrix3DProjection`，也没有真实 shell chrome（本来就没有绘制）。
-7. **未做像素级验证的视觉细节** —— ListPicker 弹出层样式是否与 WP 一致、ExpanderView 高度动画、PhoneTextBox 水印动画、HubTile 像素保真度：行为有测试（含 HubTile 翻转旋转量与 PhoneTextBox 占位符原点），像素保真度没有。
+7. **未做像素级验证的视觉细节** —— ListPicker 展开模式样式以及完整模式页面的 `ApplicationBar`（现在就是移植版的真实应用栏，但其图标/文本精确度量未与 WP8 逐像素比对）、ExpanderView 高度动画、PhoneTextBox 水印动画、HubTile 像素保真度：行为有测试（含 HubTile 翻转旋转量与 PhoneTextBox 占位符原点），像素保真度没有。
 
 ---
 
 ## 6. 阻塞与风险
 
-1. **本轮改动未提交。** `cd606b4` 保存了上一轮工作；原版 storyboard 管线、`IsNavigationInitiator` 修复、`BitmapCache` 移除、`TransitionStoryboardTests`、删除的过时导航测试以及全部文档更新只存在于工作区。任何破坏性 git 操作都会丢失它们。见 §10。
+1. **本轮改动未提交。** HEAD 是 `4c62a43`；原版 WP8 `ListPicker` 移植（`Controls/ListPicker/`、`Themes/Controls/ListPicker.xaml`、`Common/ItemsControlExtensions.cs`）、`ApplicationBar` 移植（`Shell/ApplicationBar*`）、frame/页面/模板接线、测试与示例改动以及全部文档更新只存在于工作区。任何破坏性 git 操作都会丢失它们。见 §10。
 2. **视觉验证缺口。** 缺少目视手段时，保真度结论依赖几何/时序测量与原 XAML。后续最好能并排查看示例与模拟器。
 3. **`docs/*/porting-inventory.md` 是 Phase 0 的大型审计文档**（英文版约 129 KB）。其中的模块状态是历史快照；当前状态以 `docs/porting-status.md` 为准。
 4. **环境坑** —— `XDE.exe` 会卡死（用 `vmconnect.exe`）；`PrintWindow` 对 3D/VM 表面返回全黑（改用 `Topmost` 窗口 + `CopyFromScreen`）；显示为 150% DPI（注意 DIP↔像素换算）；示例运行时锁定 `bin` 输出，重建前先结束进程。
@@ -204,10 +256,15 @@ System.InvalidOperationException: 无法执行操作，因为未将指定的 Sto
 | `…/Controls/HubTile.cs` | 状态机；驱动标题位移、翻转（`Prefer3D`）与 3 秒脉冲 |
 | `…/Controls/Rating.cs` | 以“星”为单位的命中测试（`AllowHalfItemIncrement` 除以 2）、裁剪遮罩 |
 | `…/Controls/PhoneTextBox.cs` | 占位符可见性（焦点 + 输入法合成）、内部编辑器、长度提示 |
+| `…/Shell/ApplicationBar.cs`（含 `IApplicationBar*`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 原版 `Microsoft.Phone.Shell` API 与状态 |
+| `…/Shell/ApplicationBarItemList.cs`、`ApplicationBarItemContainer*.cs`、`BoolEventArgs.cs` | item 列表上限/异常、逐项校验与点击派发 |
+| `…/Shell/ApplicationBarPresenter.cs`、`ApplicationBarItemView.cs`、`ApplicationBarIconButtonView.cs`、`ApplicationBarMenuItemView.cs` | WPF chrome：应用栏、图标槽、菜单按钮、菜单浮层、图标加载 || `…/Controls/ListPicker/ListPicker.cs` | 原版 WP8 控件：普通/展开模式 canvas 高度动画、完整模式页面导航、frame 查找、WPF 鼠标/返回键/选择适配 |
+| `…/Controls/ListPicker/ListPickerPage.xaml(.cs)` | 原版完整模式页面：项目/标题入场动画经 `ProjectionService`，使用原版 `ApplicationBar`（check/cancel 图标按钮，图标来自 `Content/ApplicationBar.*.png`） |
+| `…/Themes/Controls/ListPicker.xaml` | 原版 `ListPicker`/`ListPickerItem` 样式（由 `Generic.xaml` 合并，内含 `Dark.xaml`，并设置 `PickerPageUri`） |
 | `src/…Sample/SampleNavigator.cs` | 为每个示例同时设置出站/入站转场，保证两侧使用同一转场族（修复“退场不是羽化”一类问题） |
 | `src/…Sample/Pages/MainPage.xaml` | 示例索引，对应原版 `PhoneToolkitSample8` 的主页 |
 | `src/…Sample/Pages/{Controls,Projection,Transitions,TransitionTarget,Feather,Menus}Page.xaml` | 每个示例一个页面 |
-| `tests/Community.Phone.Controls.Toolkit.WPF.Tests/` | xUnit 套件（WPF 用 `StaTest`）；internal 对测试可见 |
+| `tests/Community.Phone.Controls.Toolkit.WPF.Tests/` | xUnit 套件（WPF 用 `StaTest`）；internal 对测试可见；等待可观察状态用 `WpfTestHelper.PumpUntil`/`PumpFor`（不用固定 sleep） |
 | `build/verify-package.ps1` | 打包 Release + 全新消费冒烟 |
 | `docs/en/` 与 `docs/zh-CN/` —— architecture、api-compatibility、known-limitations、migration-guide、porting-inventory | 双语正式文档 |
 | `docs/porting-status.md` | 当前实现/验证状态（权威） |
@@ -217,11 +274,11 @@ System.InvalidOperationException: 无法执行操作，因为未将指定的 Sto
 
 ## 8. 建议的下一步（按顺序）
 
-1. **提交本轮改动**（原版 storyboard 管线与三处转场修复尚未提交）：`git add -A`，提交信息概括 XAML storyboard 移植、`IsNavigationInitiator` 修复、跨线程 `BitmapCache` 移除以及新增的 `TransitionStoryboardTests`，并带 `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` 尾注。
+1. **提交本轮改动**（原版 WP8 `ListPicker` 移植及其两处动画修复尚未提交）：`git add -A`，提交信息概括原版源码移植、WPF 适配、高度动画与高亮画刷两处修复，并带 `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` 尾注。
 2. **在模拟器里确认 Turnstile 调优**（Virtual Machine Connection），必要时调整 `Transitions.cs` 里的两个常量 —— 枢轴偏移与节奏只由这两处控制。
 3. **目视确认其余修复**：羽化进场不再卡死（数值探针已确认）、消息框 Swivel、两侧都使用所选转场族、Rating 在 50%/80% 处的命中区域、PhoneTextBox 占位符与光标对齐、HubTile 翻转。以上均已数值验证，与模拟器的像素对比仍未做。
-4. **让 `CustomMessageBox.Show()` 支持 `Application` 为 `null`**，以便最后一个既有红色测试（`ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents`）通过：它无条件读取 `Application.Current.Resources["PhoneBackgroundColor"]` 与 `Application.Current.MainWindow`。
-5. **决定 `Prefer3D` 的生命周期**：目前被丢弃的旧 presenter 会回到 2D，新 presenter 在动画完成后回到 2D。若将来出现“转场结束时文字突然变清晰”的跳变，可考虑把 `Prefer3D` 保持到下一次导航。
+4. **决定 `Prefer3D` 的生命周期**：目前被丢弃的旧 presenter 会回到 2D，新 presenter 在动画完成后回到 2D。若将来出现“转场结束时文字突然变清晰”的跳变，可考虑把 `Prefer3D` 保持到下一次导航。
+5. **只有隔离好状态后再考虑测试并行化** —— 并行运行会死锁，因为多组测试共享主题字典、`Popup` 与 storyboard 缓存；前提是把这些状态做成 per-test，而不是直接删掉 collection 属性。
 6. **同步文档** —— 每次行为或验证状态变化时更新 `docs/porting-status.md` 与 `docs/handoff.md`（§2 结果、§5 状态）。
 
 ---
@@ -239,65 +296,59 @@ System.InvalidOperationException: 无法执行操作，因为未将指定的 Sto
 ## 10. Git 状态 —— 请保护好
 
 - 分支：**`main`**，本工作区未配置远端跟踪。
-- 已有提交：`cd606b4`（上一轮文档 + TransitionFrame/XAML storyboard 骨架）、`7efd2cd`、`ccfd83b`、`386c52e`、`bc0e22e`、`83d5d73`、`81a55d2`。
-- 交接时工作区：**全部未提交** —— 原版 storyboard 管线、`Transition` 的 WPF 适配以及全部文档更新只存在于工作区。转场源码也已恢复为原版工具包文件（见下文），`Transition` 因此换了位置。
+- HEAD：**`4c62a43` "fix"**（§4.1–§4.8 描述的转场/投影工作已提交）。
+- 交接时工作区：**未提交** —— 原版 WP8 `ListPicker` 移植（§4.9）、`ApplicationBar` 移植（§4.10）、`ListPickerPage`/测试基础设施这一轮（§4.11）与全部文档更新只存在于工作区。
 
-**已修改（不可丢失）：**
-
-```
-README.md
-README_zh-CN.md
-docs/api-compatibility.md
-docs/en/api-compatibility.md
-docs/en/architecture.md
-docs/en/known-limitations.md
-docs/en/migration-guide.md
-docs/en/porting-inventory.md
-docs/handoff.md
-docs/porting-status.md
-docs/zh-CN/api-compatibility.md
-docs/zh-CN/architecture.md
-docs/zh-CN/handoff.md
-docs/zh-CN/known-limitations.md
-docs/zh-CN/migration-guide.md
-docs/zh-CN/porting-inventory.md
-docs/zh-CN/porting-status.md
-src/Community.Phone.Controls.Toolkit.WPF/Projection/PlaneProjection.cs
-src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionService.cs
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Storyboards/*.xaml   （27 个中的 19 个：投影路径）
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transition.cs        （已删除，移动到 Transitions/Transitions/）
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionFrame.cs
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/TransitionService.cs
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/*.cs     （原版工具包源码 + Transition.cs 中的 WPF 适配）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs        （删除过时的回退测试）
-```
-
-**新增（未跟踪）：**
+**已修改（本次工作）：**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions/Transition.cs
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs
+docs/en/{api-compatibility,architecture,known-limitations,migration-guide,handoff,porting-status}.md
+docs/zh-CN/{api-compatibility,architecture,handoff,known-limitations,migration-guide,porting-status}.md
+src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationFrame.cs   （应用栏 chrome 接线）
+src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationPage.cs    （ApplicationBar 改为 IApplicationBar）
+src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBar.cs               （重写为原版 API）
+src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml                   （frame 模板承载应用栏；ListPicker 样式移出）
+src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MenusPage.xaml(.cs)      （使用移植版应用栏）
+src/Community.Phone.Controls.Toolkit.WPF.Sample/Community.Phone.Controls.Toolkit.WPF.Sample.csproj  （Images 作为资源）
+src/Community.Phone.Controls.Toolkit.WPF/Community.Phone.Controls.Toolkit.WPF.csproj  （Content/*.png 作为资源）
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/ListPickerPage.xaml(.cs)  （用原版 ApplicationBar 取代命令区）
+src/Community.Phone.Controls.Toolkit.WPF/Controls/CustomMessageBox/CustomMessageBox.cs （不再依赖 Application）
+src/Community.Phone.Controls.Toolkit.WPF/Controls/Rating.cs                     （UpdateValueFromMouse 改为 internal）
+src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs            （storyboard 缓存加锁）
+src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBarPresenter.cs      （图标缓存加锁）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/ControlTests.cs               （替换/新增 ListPicker 测试；Rating、CustomMessageBox、ListPickerPage）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/ShellTests.cs                 （重写 ApplicationBar 测试）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs            （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/EffectsTests.cs               （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs  （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/WpfTestHelper.cs              （PumpUntil / PumpFor）
+tests/Community.Phone.Controls.Toolkit.WPF.Tests/StaTest.cs                    （并行化保持关闭并附注释）
 ```
 
-- **不要**执行 `git reset --hard`、`git checkout -- .`、`git clean -fd` 或强推。
+**已删除：**
 
----
+```
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker.cs        （由 Controls/ListPicker/ 取代）
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerItem.cs
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerMode.cs
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ExpansionMode.cs
+```
 
-## 11. 长期开发规则摘要（中文）
+**新增（未跟踪，本次工作）：**
 
-完整规则见 `.github/copilot-instructions.md`（Copilot 只读取英文单文件，此处为中文摘要）。
+```
+src/Community.Phone.Controls.Toolkit.WPF/Common/ItemsControlExtensions.cs
+src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/          （ListPicker.cs、ListPickerItem.cs、ListPickerMode.cs、ExpansionMode.cs、ListPickerPage.xaml(.cs)）
+src/Community.Phone.Controls.Toolkit.WPF/Themes/Controls/ListPicker.xaml
+src/Community.Phone.Controls.Toolkit.WPF/Shell/IApplicationBar*.cs、ApplicationBarIconButton.cs、
+    ApplicationBarMenuItem.cs、ApplicationBarMode.cs、ApplicationBarStateChangedEventArgs.cs、
+    ApplicationBarItemList.cs、ApplicationBarItemContainer*.cs、ApplicationBarItemContainerFactory.cs、
+    BoolEventArgs.cs、ApplicationBarPresenter.cs、ApplicationBarItemView.cs、
+    ApplicationBarIconButtonView.cs、ApplicationBarMenuItemView.cs
+src/Community.Phone.Controls.Toolkit.WPF.Sample/Images/appbar.*.rest.png
+src/Community.Phone.Controls.Toolkit.WPF/Content/ApplicationBar.Check.png、ApplicationBar.Cancel.png
+```
 
-- 保持原始公共 API 形状；移植新增 API 必须是**加法**并写入兼容性文档。
-- 不得虚报：未实现/未验证的内容必须显式标注；未实现模块继续留在已知限制中。
-- 转场数值只能来自原 storyboard XAML，不得自行调参。**唯一例外**是 `Transitions.cs` 中 Turnstile 的两个对齐常量（`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`）；设为 `0` / `1` 即还原原工具包。
-- 出站转场取自**被离开的页面**：需要特定退场的页面必须自己声明或在导航前设置（示例见 `SampleNavigator`）。
-- 羽化元素在**订阅时**包装（`SetFeatheringIndex`），清空索引时释放；动画期间绝不要重新挂载内容。
-- 示例结构对齐原版 `PhoneToolkitSample8`：`MainPage` 索引 + 每示例独立页面。
-- 投影：`PerspectiveDepth = 999`、相机在 `z = depth`、水平 FOV 由视口**宽度**推导；`R = Rz·Ry·Rx`、Y 偏移取反、`RotationY` 取反。
-- 动画/效果切换 2D↔3D 必须在首帧之前（`Prefer3D`）；不要在转场/效果宿主上使用 `BitmapCache`。
-- 元素级效果必须使用**直接包含元素**的宿主。
-- `TransitionFrame` 模板部件是两个 `ProjectionHost`（`FirstContentPresenter`/`SecondContentPresenter`），退场先于入场。
-- 构建 0 警告 0 错误；测试全绿；每个 bug 修复都要有回归测试；改动公共 API 后跑 `build\verify-package.ps1`。
-- 文档双语同步（`docs/en` + `docs/zh-CN`，根目录用 `_zh-CN` 后缀）。
-- 模拟器只用 Virtual Machine Connection，不用 `XDE.exe`。
+**工作区里还有不属于本次工作的内容**（他人在做的示例页）：`Sample/Data/`、`Sample/Samples/ListPickerSample.xaml(.cs)`、`MainPage.xaml(.cs)` 中新增的 `ListPicker` 入口、库 csproj 中重复的 `<RootNamespace>` 行，以及 `Community.Phone.Controls.Toolkit.WPF.Sample.csproj.user`。提交时不要动它们。
+
+- **不要**执行 `git reset --hard`、`git checkout -- .`、`git clean -fd` 或强推：未跟踪的 `Controls/ListPicker/`、`Shell/ApplicationBar*` 与示例资源文件会丢失。

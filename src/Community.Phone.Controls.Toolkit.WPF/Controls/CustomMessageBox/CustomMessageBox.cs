@@ -448,7 +448,13 @@ namespace Microsoft.Phone.Controls
             // The message box is hosted in a projection host so it can swivel
             // in and out like on Windows Phone.
             Rectangle overlay = new Rectangle();
-            Color backgroundColor = (Color)Application.Current.Resources["PhoneBackgroundColor"];
+            Color backgroundColor = Colors.Black;
+            object backgroundColorResource = FindThemeResource("PhoneBackgroundColor");
+            if (backgroundColorResource is Color)
+            {
+                backgroundColor = (Color)backgroundColorResource;
+            }
+
             overlay.Fill = new SolidColorBrush(Color.FromArgb(0x99, backgroundColor.R, backgroundColor.G, backgroundColor.B));
             _container = new Grid();
             _container.Children.Add(overlay);
@@ -461,9 +467,14 @@ namespace Microsoft.Phone.Controls
             // Insert the message box.
             _container.Children.Add(host);
 
-            var owner = Application.Current.MainWindow;
-            _windowSize = WindowHelper.GetVisibleWindowBounds(owner).Size;
-            _clientSize = WindowHelper.GetClientSize(owner);
+            // The host window is optional: a host without an Application (a test
+            // host, a design surface) still gets a usable dialog.
+            Window owner = Application.Current == null ? null : Application.Current.MainWindow;
+            if (owner != null)
+            {
+                _windowSize = WindowHelper.GetVisibleWindowBounds(owner).Size;
+                _clientSize = WindowHelper.GetClientSize(owner);
+            }
             _window = new Window
             {
                 WindowStyle = WindowStyle.None,
@@ -491,7 +502,11 @@ namespace Microsoft.Phone.Controls
             window?.ContentRendered -= OnWindowContentRendered;
 
             double titleHeight = _windowSize.Height - _clientSize.Height;
-            _window?.Top = _window.Owner.Top + titleHeight;
+            if (_window != null && _window.Owner != null)
+            {
+                _window.Top = _window.Owner.Top + titleHeight;
+            }
+
             _window?.Opacity = 1;
             SwivelTransition backwardIn = new SwivelTransition { Mode = SwivelTransitionMode.BackwardIn };
             ITransition swivelTransition = backwardIn.GetTransition(this);
@@ -717,9 +732,15 @@ namespace Microsoft.Phone.Controls
 
         private object FindThemeResource(object key)
         {
+            object value = TryFindResource(key);
+            if (value != null)
+            {
+                return value;
+            }
+
             if (Application.Current != null)
             {
-                object value = Application.Current.TryFindResource(key);
+                value = Application.Current.TryFindResource(key);
                 if (value != null)
                 {
                     return value;

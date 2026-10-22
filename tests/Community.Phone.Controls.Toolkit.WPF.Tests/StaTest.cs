@@ -3,6 +3,8 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using Xunit;
 
+// WPF tests create windows and share process-wide WPF state (theme resources,
+// TiltEffect statics, SystemTray), so they run one at a time.
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Community.Phone.Controls.Toolkit.WPF.Tests

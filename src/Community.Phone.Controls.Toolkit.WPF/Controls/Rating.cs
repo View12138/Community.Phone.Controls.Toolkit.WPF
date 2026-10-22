@@ -293,7 +293,13 @@ namespace Microsoft.Phone.Controls
             ChangeDragHelperVisibility(false);
         }
 
-        private void UpdateValueFromMouse(Point position)
+        /// <summary>
+        /// Applies a pointer position, as the mouse handlers do. Exposed to the
+        /// test assembly so pointer arithmetic can be verified without a real
+        /// desktop pointer.
+        /// </summary>
+        /// <param name="position">The pointer position, relative to the control.</param>
+        internal void UpdateValueFromMouse(Point position)
         {
             PerformValueCalculation(position, this);
             UpdateDragHelper();

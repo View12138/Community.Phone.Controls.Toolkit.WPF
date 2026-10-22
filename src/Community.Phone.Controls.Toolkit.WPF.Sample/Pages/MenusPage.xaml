@@ -6,13 +6,26 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
     d:DesignHeight="768"
     d:DesignWidth="480"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
     mc:Ignorable="d">
+
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar x:Name="PageBar" IsVisible="True" IsMenuEnabled="True" StateChanged="OnBarStateChanged">
+            <shell:ApplicationBarIconButton Click="OnDoneClick" IconUri="/Images/appbar.check.rest.png" Text="done" />
+            <shell:ApplicationBarIconButton Click="OnAddClick" IconUri="/Images/appbar.add.rest.png" Text="add" />
+            <shell:ApplicationBarIconButton Click="OnDeleteClick" IconUri="/Images/appbar.delete.rest.png" Text="delete" />
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Click="OnAboutClick" Text="about" />
+                <shell:ApplicationBarMenuItem Click="OnMinimizeClick" Text="minimize" />
+                <shell:ApplicationBarMenuItem Click="OnHideBarClick" Text="hide app bar" />
+            </shell:ApplicationBar.MenuItems>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
 
     <Grid Background="{StaticResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
@@ -48,7 +61,7 @@
                 <TextBlock
                     Margin="0,4,0,8"
                     Style="{StaticResource PhoneTextSubtleStyle}"
-                    Text="Both are API-compatible models. The default frame template does not draw them, so this sample reports their state instead of showing chrome."
+                    Text="The bar at the bottom is the ported Microsoft.Phone.Shell.ApplicationBar: its buttons, its menu and the page space it reserves come from the phone theme chrome. Use its buttons, or toggle its state below."
                     TextWrapping="Wrap" />
                 <TextBlock
                     x:Name="ShellStatus"
@@ -56,6 +69,7 @@
                     Style="{StaticResource PhoneTextSubtleStyle}"
                     TextWrapping="Wrap" />
                 <Button Margin="0,0,0,8" Click="OnToggleApplicationBar" Content="Toggle application bar" />
+                <Button Margin="0,0,0,8" Click="OnToggleApplicationBarMode" Content="Toggle minimized mode" />
                 <Button Margin="0,0,0,16" Click="OnToggleSystemTray" Content="Toggle system tray" />
 
                 <Button Click="OnGoBack" Content="Go back" />

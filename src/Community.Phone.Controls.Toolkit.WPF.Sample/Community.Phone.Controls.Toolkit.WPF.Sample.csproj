@@ -15,4 +15,8 @@
 		<ProjectReference Include="..\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Resource Include="Images\*.png" />
+	</ItemGroup>
+
 </Project>

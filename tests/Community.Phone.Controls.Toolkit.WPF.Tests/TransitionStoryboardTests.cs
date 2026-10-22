@@ -245,9 +245,10 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     window.UpdateLayout();
 
                     frame.Navigate(first);
-                    PumpFor(700);
+                    Assert.True(WpfTestHelper.PumpUntil(() => ReferenceEquals(frame.Content, first) && first.IsHitTestVisible));
+
                     frame.Navigate(second);
-                    PumpFor(2400);
+                    Assert.True(WpfTestHelper.PumpUntil(() => inEnded == 1), "the entry transition did not complete");
 
                     Assert.Same(second, frame.Content);
                     Assert.Equal(1, outEnded);

@@ -143,12 +143,19 @@ Derives from WPF `Frame`. WPF’s navigation journal, `NavigationService`, `CanG
 - `GoBack()` that first raises `PhoneApplicationPage.BackKeyPress`.
 - `Navigate(PhoneApplicationPage, IDictionary<string,string>)` for navigation parameters, merged with any URI query string into a `NavigationContext` that is assigned to the page before `OnNavigatedTo`.
 - Page state is stored by the frame per page instance, so it survives a back navigation to the same page.
+- Application bar chrome: the template hosts `ApplicationBarHost` (a row that reserves the bar height) and `ApplicationBar` (an `ApplicationBarPresenter`). `Navigated` pushes the new page’s bar into the presenter, and a page `ApplicationBar` change is forwarded while the page is active.
 
 WPF `Page` does not expose the WP `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` protected virtual methods, so the port declares them as virtual methods on `PhoneApplicationPage` and raises them from the frame. This preserves the API and gives deterministic ordering, but the methods are not called by WPF’s own `NavigationService` if a page is hosted outside a phone frame.
 
 ### 5.2 `PhoneApplicationPage`
 
-Derives from WPF `Page` and adds `State`, `NavigationContext`, `Orientation`, `SupportedOrientations`, `ApplicationBar`, `NavigatedTo`, `NavigatingFrom`, `NavigatedFrom`, `BackKeyPress`, and `OrientationChanged`. `NavigationContext` exposes `Uri`, `ExtraData`, and an ordinal-ignore-case `QueryString` dictionary.
+Derives from WPF `Page` and adds `State`, `NavigationContext`, `Orientation`, `SupportedOrientations`, `ApplicationBar`, `NavigatedTo`, `NavigatingFrom`, `NavigatedFrom`, `BackKeyPress`, and `OrientationChanged`. `NavigationContext` exposes `Uri`, `ExtraData`, and an ordinal-ignore-case `QueryString` dictionary. `ApplicationBar` is typed `IApplicationBar` like the original and only accepts the toolkit’s `ApplicationBar` implementation (anything else throws).
+
+### 5.2.1 Application bar
+
+`Microsoft.Phone.Shell` ports the original managed API (`IApplicationBar`, `ApplicationBar`, `ApplicationBarIconButton`, `ApplicationBarMenuItem`, `ApplicationBarMode`, `ApplicationBarStateChangedEventArgs`) and the infrastructure behind it: `ApplicationBarItemList<T>` keeps the per-list limits (4 icon buttons, 50 menu items) and the original exceptions, item containers validate text/icon/enabled state and dispatch clicks, and `ApplicationBar` keeps the original rule that only a visible, fully opaque bar reserves page space.
+
+Windows Phone draws the bar with the compositor; the port draws it with the additive `ApplicationBarPresenter`, hosted in the frame template (see 5.1). The presenter subscribes to the bar and its items, builds icon-button views (96×72 slots with a 48×48 icon and a 12 px label), a menu button (top-right, three dots), and a `Popup` menu whose rows are 48 px high. Colors come from `BackgroundColor`/`ForegroundColor`, opacity from `Opacity`, and the frame sets `ApplicationBarHost.Height` from the presenter’s `ReservedHeight`, so a translucent or hidden bar floats over the page instead of shrinking it.
 
 ### 5.3 `TransitionFrame`
 
@@ -215,7 +222,7 @@ Design decisions per control:
 - **PhoneTextBox**: inner TextBox with a two-way `Text` binding (WPF `TemplateBinding` is one-way), hint/action/length indicator.
 - **ExpanderView**: WPF `HeaderedItemsControl`; parts `Presenter`, `ExpanderPanel`, `ItemsCanvas`; height animation performed in code because WPF cannot retrieve Silverlight keyframe template parts.
 - **HubTile**: timer-driven state cycle with `Expanded → Semiexpanded → Collapsed → Expanded → Flipped`; `HubTileService` freeze groups.
-- **ListPicker**: original DP surface; normal popup and full-mode modal Window; `PickerPageUri` retained but not navigated.
+- **ListPicker**: original WP8 implementation — normal-mode canvas height/translation animation and full-mode navigation to `ListPickerPage` (pack URI from `PickerPageUri`) through the host frame; the page's Done/Cancel actions are the original `ApplicationBar` (check/cancel icon buttons from the library's `Content` resources, visible only for multiple selection).
 - **ContextMenu/MenuItem/Separator/ContextMenuService**: derives from WPF menu types; right-click opens the menu.
 - **CustomMessageBox**: `ContentControl` API with `Show()`/`Dismiss()` hosted in a WPF Window.
 - **DatePicker/TimePicker**: original Value/ValueString/Header/PickerPageUri API, implemented with WPF date/time UI in modal Windows.
@@ -239,11 +246,11 @@ A fresh WPF consumer project is used as an installation test: add the package fr
 - **Sample run**: the sample is started as a real WPF process; startup errors are written to `%TEMP%\community-phone-toolkit-sample-error.txt` and the process is checked for a stable window.
 - **Package consumption**: `build/verify-package.ps1` packs, restores a fresh consumer from an isolated local feed/cache, builds it with zero warnings, and runs it; the consumer writes a success marker only after loading the theme and controls.
 
-Tests that require a window or WPF dispatcher run on a dedicated STA thread via `StaTest.Run`; animations are advanced with a dispatcher frame pump.
+Tests that require a window or WPF dispatcher run on a dedicated STA thread via `StaTest.Run`; animations are advanced with a dispatcher frame pump. Waits are condition-based (`WpfTestHelper.PumpUntil(predicate, timeout)`) instead of fixed sleeps, and no test depends on the OS pointer or on a physical input device. Test parallelization stays disabled: several suites drive shared WPF singletons (the theme dictionary, `Popup`s, the storyboard XAML cache), and a parallel run deadlocks.
 
 ## 10. Known architectural trade-offs
 
 - `ProjectionHost` wrapping is required rather than transparent in-place projection. This is the only way to preserve true 3D and interaction without redefining WPF types.
 - Page lifecycle is frame-driven; WPF’s own `Page` navigation does not call the WP-style methods if the page is hosted outside the port’s frames.
-- System tray and application bar are API/state compatible but do not render full Windows Phone system chrome in this preview.
+- The application bar renders through a WPF presenter (`ApplicationBarPresenter`) that approximates the native compositing; the system tray stays an API/state model with nothing painted, so this preview does not reproduce full Windows Phone system chrome.
 - Map, transfer, speech, Pivot, AutoCompleteBox, LongListSelector, and LongListMultiSelector remain architectural work items, not hidden shims.

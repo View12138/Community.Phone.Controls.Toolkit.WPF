@@ -4,249 +4,336 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Input;
+using System.Collections;
+using System.Windows.Markup;
 using System.Windows.Media;
 
 namespace Microsoft.Phone.Shell
 {
     /// <summary>
     /// Represents the application bar displayed at the bottom of a phone page.
+    /// The API follows the original <c>Microsoft.Phone.Shell.ApplicationBar</c>;
+    /// in the WPF port the bar is drawn by an
+    /// <see cref="ApplicationBarPresenter"/> instead of the native compositor.
     /// </summary>
-    public class ApplicationBar : DependencyObject
+    [ContentProperty("Buttons")]
+    public sealed class ApplicationBar : IApplicationBar
     {
         /// <summary>
-        /// Identifies the IsVisible property.
+        /// The maximum number of icon buttons an application bar accepts.
         /// </summary>
-        public static readonly DependencyProperty IsVisibleProperty =
-            DependencyProperty.Register("IsVisible", typeof(bool), typeof(ApplicationBar), new PropertyMetadata(true));
+        internal static readonly int MaxIconButtons = 4;
 
         /// <summary>
-        /// Identifies the IsMenuEnabled property.
+        /// The maximum number of menu items an application bar accepts.
         /// </summary>
-        public static readonly DependencyProperty IsMenuEnabledProperty =
-            DependencyProperty.Register("IsMenuEnabled", typeof(bool), typeof(ApplicationBar), new PropertyMetadata(true));
+        internal static readonly int MaxMenuItems = 50;
 
-        /// <summary>
-        /// Identifies the BackgroundColor property.
-        /// </summary>
-        public static readonly DependencyProperty BackgroundColorProperty =
-            DependencyProperty.Register("BackgroundColor", typeof(Color), typeof(ApplicationBar), new PropertyMetadata(Color.FromArgb(255, 31, 31, 31)));
+        private const double AppBarDefaultSize = 72.0;
+        private const double AppBarMiniSize = 30.0;
 
-        /// <summary>
-        /// Identifies the ForegroundColor property.
-        /// </summary>
-        public static readonly DependencyProperty ForegroundColorProperty =
-            DependencyProperty.Register("ForegroundColor", typeof(Color), typeof(ApplicationBar), new PropertyMetadata(Colors.White));
+        private readonly ApplicationBarItemList<IApplicationBarIconButton> _buttons;
+        private readonly ApplicationBarItemList<IApplicationBarMenuItem> _menuItems;
 
-        /// <summary>
-        /// Identifies the Opacity property.
-        /// </summary>
-        public static readonly DependencyProperty OpacityProperty =
-            DependencyProperty.Register("Opacity", typeof(double), typeof(ApplicationBar), new PropertyMetadata(1.0));
+        private bool _isVisible;
+        private double _opacity;
+        private bool _isMenuEnabled;
+        private bool _reservesSpace;
+        private Color _backgroundColor;
+        private Color _foregroundColor;
+        private ApplicationBarMode _mode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationBar"/> class.
         /// </summary>
         public ApplicationBar()
         {
-            Buttons = new ObservableCollection<ApplicationBarIconButton>();
-            MenuItems = new ObservableCollection<ApplicationBarMenuItem>();
+            _isVisible = true;
+            _opacity = 1.0;
+            _isMenuEnabled = true;
+            _reservesSpace = true;
+
+            // The native bar takes its default colors from the shell theme, which
+            // is not observable from managed code; the port uses the Metro chrome
+            // colors so the bar is visible without being configured.
+            _backgroundColor = Color.FromArgb(255, 31, 31, 31);
+            _foregroundColor = Colors.White;
+
+            _buttons = new ApplicationBarItemList<IApplicationBarIconButton>(ApplicationBarItemType.ImageButton);
+            _buttons.MaxItems = MaxIconButtons;
+            _buttons.Changed += OnItemsChanged;
+
+            _menuItems = new ApplicationBarItemList<IApplicationBarMenuItem>(ApplicationBarItemType.TextItem);
+            _menuItems.MaxItems = MaxMenuItems;
+            _menuItems.Changed += OnItemsChanged;
         }
 
         /// <summary>
-        /// Gets or sets whether the application bar is visible.
+        /// Occurs when the application bar menu opens or closes.
+        /// </summary>
+        public event EventHandler<ApplicationBarStateChangedEventArgs> StateChanged;
+
+        /// <summary>
+        /// Occurs when a property of the bar or of one of its items changed.
+        /// </summary>
+        internal event EventHandler Changed;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the application bar is visible.
         /// </summary>
         public bool IsVisible
         {
-            get { return (bool)GetValue(IsVisibleProperty); }
-            set { SetValue(IsVisibleProperty, value); }
+            get
+            {
+                return _isVisible;
+            }
+
+            set
+            {
+                if (value != _isVisible)
+                {
+                    _isVisible = value;
+                    UpdateReservesSpace();
+                    OnChanged();
+                }
+            }
         }
 
         /// <summary>
-        /// Gets or sets whether the menu button is enabled.
-        /// </summary>
-        public bool IsMenuEnabled
-        {
-            get { return (bool)GetValue(IsMenuEnabledProperty); }
-            set { SetValue(IsMenuEnabledProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the background color.
-        /// </summary>
-        public Color BackgroundColor
-        {
-            get { return (Color)GetValue(BackgroundColorProperty); }
-            set { SetValue(BackgroundColorProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the foreground color.
-        /// </summary>
-        public Color ForegroundColor
-        {
-            get { return (Color)GetValue(ForegroundColorProperty); }
-            set { SetValue(ForegroundColorProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the opacity.
+        /// Gets or sets the opacity of the application bar. Values outside the
+        /// range 0..1 are clamped, like the original.
         /// </summary>
         public double Opacity
         {
-            get { return (double)GetValue(OpacityProperty); }
-            set { SetValue(OpacityProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets the icon buttons.
-        /// </summary>
-        public ObservableCollection<ApplicationBarIconButton> Buttons { get; private set; }
-
-        /// <summary>
-        /// Gets the menu items.
-        /// </summary>
-        public ObservableCollection<ApplicationBarMenuItem> MenuItems { get; private set; }
-    }
-
-    /// <summary>
-    /// Base class for application bar items.
-    /// </summary>
-    public abstract class ApplicationBarItem : DependencyObject
-    {
-        /// <summary>
-        /// Identifies the IsEnabled property.
-        /// </summary>
-        public static readonly DependencyProperty IsEnabledProperty =
-            DependencyProperty.Register("IsEnabled", typeof(bool), typeof(ApplicationBarItem), new PropertyMetadata(true));
-
-        /// <summary>
-        /// Identifies the Text property.
-        /// </summary>
-        public static readonly DependencyProperty TextProperty =
-            DependencyProperty.Register("Text", typeof(string), typeof(ApplicationBarItem), new PropertyMetadata(string.Empty));
-
-        /// <summary>
-        /// Gets or sets whether the item is enabled.
-        /// </summary>
-        public bool IsEnabled
-        {
-            get { return (bool)GetValue(IsEnabledProperty); }
-            set { SetValue(IsEnabledProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the item text.
-        /// </summary>
-        public string Text
-        {
-            get { return (string)GetValue(TextProperty); }
-            set { SetValue(TextProperty, value); }
-        }
-    }
-
-    /// <summary>
-    /// An icon button in the application bar.
-    /// </summary>
-    public class ApplicationBarIconButton : ApplicationBarItem
-    {
-        /// <summary>
-        /// Identifies the IconUri property.
-        /// </summary>
-        public static readonly DependencyProperty IconUriProperty =
-            DependencyProperty.Register("IconUri", typeof(Uri), typeof(ApplicationBarIconButton), new PropertyMetadata(null));
-
-        /// <summary>
-        /// Identifies the Command property.
-        /// </summary>
-        public static readonly DependencyProperty CommandProperty =
-            DependencyProperty.Register("Command", typeof(ICommand), typeof(ApplicationBarIconButton), new PropertyMetadata(null));
-
-        /// <summary>
-        /// Identifies the CommandParameter property.
-        /// </summary>
-        public static readonly DependencyProperty CommandParameterProperty =
-            DependencyProperty.Register("CommandParameter", typeof(object), typeof(ApplicationBarIconButton), new PropertyMetadata(null));
-
-        /// <summary>
-        /// Gets or sets the icon URI.
-        /// </summary>
-        public Uri IconUri
-        {
-            get { return (Uri)GetValue(IconUriProperty); }
-            set { SetValue(IconUriProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the command executed when the button is clicked.
-        /// </summary>
-        public ICommand Command
-        {
-            get { return (ICommand)GetValue(CommandProperty); }
-            set { SetValue(CommandProperty, value); }
-        }
-
-        /// <summary>
-        /// Gets or sets the command parameter.
-        /// </summary>
-        public object CommandParameter
-        {
-            get { return GetValue(CommandParameterProperty); }
-            set { SetValue(CommandParameterProperty, value); }
-        }
-
-        /// <summary>
-        /// Occurs when the button is clicked.
-        /// </summary>
-        public event EventHandler Click;
-
-        /// <summary>
-        /// Raises the <see cref="Click"/> event and executes the command.
-        /// </summary>
-        public void RaiseClick()
-        {
-            if (!IsEnabled)
+            get
             {
-                return;
+                return _opacity;
             }
 
-            EventHandler handler = Click;
+            set
+            {
+                if (value > 1.0)
+                {
+                    value = 1.0;
+                }
+                else if (value < 0.0)
+                {
+                    value = 0.0;
+                }
+
+                if (value != _opacity)
+                {
+                    _opacity = value;
+                    UpdateReservesSpace();
+                    OnChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the menu is available.
+        /// </summary>
+        public bool IsMenuEnabled
+        {
+            get
+            {
+                return _isMenuEnabled;
+            }
+
+            set
+            {
+                if (value != _isMenuEnabled)
+                {
+                    _isMenuEnabled = value;
+                    OnChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the background color of the application bar.
+        /// </summary>
+        public Color BackgroundColor
+        {
+            get
+            {
+                return _backgroundColor;
+            }
+
+            set
+            {
+                if (!value.Equals(_backgroundColor))
+                {
+                    _backgroundColor = value;
+                    UpdateReservesSpace();
+                    OnChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the foreground color of the application bar.
+        /// </summary>
+        public Color ForegroundColor
+        {
+            get
+            {
+                return _foregroundColor;
+            }
+
+            set
+            {
+                if (!value.Equals(_foregroundColor))
+                {
+                    _foregroundColor = value;
+                    OnChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the display mode of the application bar.
+        /// </summary>
+        public ApplicationBarMode Mode
+        {
+            get
+            {
+                return _mode;
+            }
+
+            set
+            {
+                if (!value.Equals(_mode))
+                {
+                    _mode = value;
+                    OnChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the height of the application bar in the default mode.
+        /// </summary>
+        public double DefaultSize
+        {
+            get { return AppBarDefaultSize; }
+        }
+
+        /// <summary>
+        /// Gets the height of the application bar in the minimized mode.
+        /// </summary>
+        public double MiniSize
+        {
+            get { return AppBarMiniSize; }
+        }
+
+        /// <summary>
+        /// Gets the icon buttons shown by the application bar.
+        /// </summary>
+        public IList Buttons
+        {
+            get { return _buttons; }
+        }
+
+        /// <summary>
+        /// Gets the menu items shown by the application bar.
+        /// </summary>
+        public IList MenuItems
+        {
+            get { return _menuItems; }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the page layout reserves space for
+        /// the bar. Mirrors the original rule: an invisible, translucent or
+        /// semi-transparent bar floats over the page instead of reserving room.
+        /// </summary>
+        internal bool ReservesSpace
+        {
+            get { return _reservesSpace; }
+        }
+
+        /// <summary>
+        /// Gets the height the bar occupies in the page layout.
+        /// </summary>
+        internal double ReservedHeight
+        {
+            get
+            {
+                if (!_reservesSpace)
+                {
+                    return 0;
+                }
+
+                return _mode == ApplicationBarMode.Minimized ? AppBarMiniSize : AppBarDefaultSize;
+            }
+        }
+
+        /// <summary>
+        /// Gets the height of the bar itself.
+        /// </summary>
+        internal double BarHeight
+        {
+            get { return _mode == ApplicationBarMode.Minimized ? AppBarMiniSize : AppBarDefaultSize; }
+        }
+
+        /// <summary>
+        /// Gets the container that renders the icon button at the given index.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The container.</returns>
+        internal ApplicationBarItemContainer GetButtonContainer(int index)
+        {
+            return _buttons.GetContainer(index);
+        }
+
+        /// <summary>
+        /// Gets the container that renders the menu item at the given index.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>The container.</returns>
+        internal ApplicationBarItemContainer GetMenuItemContainer(int index)
+        {
+            return _menuItems.GetContainer(index);
+        }
+
+        /// <summary>
+        /// Raises <see cref="StateChanged"/> for an opened menu.
+        /// </summary>
+        internal void OnEnterMenu()
+        {
+            EventHandler<ApplicationBarStateChangedEventArgs> handler = StateChanged;
             if (handler != null)
             {
-                handler(this, EventArgs.Empty);
-            }
-
-            ICommand command = Command;
-            if (command != null && command.CanExecute(CommandParameter))
-            {
-                command.Execute(CommandParameter);
+                handler(this, new ApplicationBarStateChangedEventArgs(true));
             }
         }
-    }
-
-    /// <summary>
-    /// A menu item in the application bar.
-    /// </summary>
-    public class ApplicationBarMenuItem : ApplicationBarItem
-    {
-        /// <summary>
-        /// Occurs when the item is clicked.
-        /// </summary>
-        public event EventHandler Click;
 
         /// <summary>
-        /// Raises the <see cref="Click"/> event.
+        /// Raises <see cref="StateChanged"/> for a closed menu.
         /// </summary>
-        public void RaiseClick()
+        internal void OnExitMenu()
         {
-            if (!IsEnabled)
+            EventHandler<ApplicationBarStateChangedEventArgs> handler = StateChanged;
+            if (handler != null)
             {
-                return;
+                handler(this, new ApplicationBarStateChangedEventArgs(false));
             }
+        }
 
-            EventHandler handler = Click;
+        private void OnItemsChanged(object sender, EventArgs e)
+        {
+            OnChanged();
+        }
+
+        private void UpdateReservesSpace()
+        {
+            _reservesSpace = _isVisible && _opacity >= 1.0 && (_backgroundColor.A >= byte.MaxValue || _backgroundColor.A == 0);
+        }
+
+        private void OnChanged()
+        {
+            EventHandler handler = Changed;
             if (handler != null)
             {
                 handler(this, EventArgs.Empty);

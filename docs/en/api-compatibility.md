@@ -25,7 +25,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF has no equivalent; exposes `Uri`, `QueryString`, `ExtraData`. |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | `Microsoft.Phone.Shell.PhoneApplicationService` | B | WPF app/window lifetime mapping. |
 | `Microsoft.Phone.Shell.SystemTray` | `Microsoft.Phone.Shell.SystemTray` | B | API/state implemented; chrome rendering pending. |
-| `Microsoft.Phone.Shell.ApplicationBar` | `Microsoft.Phone.Shell.ApplicationBar` | B | API model; default presenter pending. |
+| `Microsoft.Phone.Shell.ApplicationBar` (and `IApplicationBar`, `IApplicationBarIconButton`, `IApplicationBarMenuItem`, `ApplicationBarIconButton`, `ApplicationBarMenuItem`, `ApplicationBarMode`, `ApplicationBarStateChangedEventArgs`) | same names | A/B | Original API shape (max 4 icon buttons, max 50 menu items, text/icon validation, `StateChanged`); the bar is drawn by `ApplicationBarPresenter` hosted by the frame, which reserves the page space like the original. |
 | `Microsoft.Phone.Controls.TransitionFrame` | `Microsoft.Phone.Controls.TransitionFrame` | B | Template parts are `ProjectionHost`, not `ContentPresenter`. |
 | `Microsoft.Phone.Controls.ITransition` and transition types | same names | A/B | Same surface; WPF storyboards and state tracking. |
 | `Microsoft.Phone.Controls.ContextMenu` | `Microsoft.Phone.Controls.ContextMenu` | B/C | Derives from WPF `ContextMenu`. |
@@ -81,7 +81,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `RecurringDaysPicker` | Implemented | A/B | Weekday list, multiple selection, summary | Built on the WPF `ListPicker`; localized day names. |
 | `ExpanderView` | Implemented | B | `Expander`, `ExpanderTemplate`, `NonExpandableHeader`, `HasItems`, `IsExpanded`, `Expanded`/`Collapsed` | WPF `HeaderedItemsControl`; simplified height animation; parts `Presenter`/`ExpanderPanel`/`ItemsCanvas`. |
 | `HubTile` | Implemented | B | `Source`, `Title`, `Notification`, `Message`, `DisplayNotification`, `IsFrozen`, `GroupTag`, `Size`; `HubTileService` | Timer-driven cycle; animation timing approximate. |
-| `ListPicker` | Implemented | B | `SelectedIndex`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `Header`, `FullModeHeader`, `FullModeItemTemplate`, `ItemCountThreshold`, `ExpansionMode`, `PickerPageUri`, `Open()`, `SelectionChanged` | Uses popup/modal Window instead of `ListPickerPage`. |
+| `ListPicker` | Implemented | A/B | `SelectedIndex`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `Header`, `FullModeHeader`, `FullModeItemTemplate`, `ItemCountThreshold`, `ExpansionMode`, `PickerPageUri`, `Open()`, `SelectionChanged`, `ListPickerMode` | Full mode navigates to the original `ListPickerPage` (`PickerPageUri`) and commits on `Done`/back; the page uses the original `ApplicationBar` (check/cancel icon buttons) for its actions. Normal mode animates the template canvas like the original. |
 | `LongListSelector` (WP7) | Not implemented | E | — | Virtualized Silverlight control; large remaining item. |
 | `LongListMultiSelector` (WP8) | Not implemented | E | — | Depends on WP8 list infrastructure. |
 | `Maps` extensions | Not implemented | E | — | No WPF map provider. |
@@ -141,7 +141,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel) and unwrapped when the projection is cleared. |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | Works. |
 | Original `PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the port’s `shell` namespace; visual chrome is limited. |
-| Original `shell:ApplicationBar` XAML | Parses; API state is retained; visual presenter pending. |
+| Original `shell:ApplicationBar` XAML | Works: the bar is rendered by the frame chrome (`ApplicationBarPresenter`), including its menu, minimized mode and the page space it reserves. |
 | Original `phone:PhoneApplicationPage` `SupportedOrientations`/`Orientation` | Parses and is retained; desktop window rotation is not forced. |
 | `phone:LongListSelector`, `phone:AutoCompleteBox`, map, speech, transfer XAML | Not supported in this preview. |
 

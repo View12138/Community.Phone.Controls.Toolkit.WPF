@@ -5,5 +5,8 @@
     <Compile Update="Samples\CustomMessageBoxSample.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Samples\ListPickerSample.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

@@ -106,10 +106,10 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     Assert.Same(projection, ProjectionService.GetProjection(button));
                     Assert.True(tiltMagnitude > 0);
 
-                    PumpFor(2000);
+                    // The return animation runs after TiltReturnAnimationDelay and
+                    // then releases the projection.
+                    Assert.True(WpfTestHelper.PumpUntil(() => ProjectionService.GetProjection(button) == null));
 
-                    // The return animation has run and the render path is back
-                    // to 2D.
                     Assert.Null(ProjectionService.GetProjection(button));
                     Assert.False(host.IsRenderingIn3D);
                 }

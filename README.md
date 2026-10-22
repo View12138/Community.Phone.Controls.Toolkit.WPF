@@ -13,6 +13,7 @@ A WPF compatibility port of the archived **Windows Phone Toolkit**, delivered as
 - **Transitions** — `TransitionFrame`, `ITransition`, `NavigationInTransition`/`NavigationOutTransition`, and Roll, Rotate, Slide, Swivel, Turnstile, and TurnstileFeather families (19 original storyboards).
 - **Effects** — `TiltEffect` and `TurnstileFeatherEffect` backed by the real projection pipeline.
 - **Controls** — `WrapPanel`, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ExpanderView`, `ListPicker`, `HubTile`, `ContextMenu`, `CustomMessageBox`, `DatePicker`, `TimePicker`, `RecurringDaysPicker`, `PerformanceProgressBar`, and related converters/helpers.
+- **Shell** — `Microsoft.Phone.Shell.ApplicationBar` with the original API (`IApplicationBar`, icon buttons, menu items, `Mode`, `StateChanged`, the 4/50 limits and item validation) rendered by the frame's `ApplicationBarPresenter`; `SystemTray` remains an API/state model. `ListPicker`'s full-mode page uses the real `ApplicationBar` for its Done/Cancel actions.
 - **Localization** — 50 real cultures plus the neutral resource, generated from the original designer/resources.
 - **Theme** — Metro palette, fonts, text styles, frame templates, and control templates in `Themes/Generic.xaml`. The theme also supplies implicit WP styles for common WPF controls (`Button`, `TextBox`, `ListBox`/`ListBoxItem`, `ComboBox`/`ComboBoxItem`, `CheckBox`, `RadioButton`, `ScrollBar`, `ContextMenu`/`MenuItem`, `ProgressBar`, and `ToolTip`).
 
@@ -152,8 +153,8 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 
 ## Verification status
 
-- Release build: 0 warnings, 0 errors (re-verified 2026-10-19).
-- Automated tests: 72 passed, 0 failed (projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating mouse input, and PhoneTextBox focus/editing.
+- Release build: 0 errors (re-verified 2026-10-22); the only warnings come from the untracked in-progress `LongListSelector`/`ViewportControl`/`WindowHelper` files.
+- Automated tests: 103 passed, 0 failed in Release and Debug (about 30 s; projection, controls, converters, effects, navigation/transitions, and shell APIs). Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating pointer input, PhoneTextBox focus/editing, the `ApplicationBar` chrome (reserved height, slots, menu, `StateChanged`) and the `ListPicker` full-mode page's app bar.
 - Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls and theme resources.
 - Sample: launched successfully; UI automation opened every sample (Controls, Projection, Transitions → target page → back, Feathering, Menus) and returned to the sample index each time, with no startup error.
 - Per-module status and evidence: [docs/porting-status.md](docs/porting-status.md). Latest handoff: [docs/handoff.md](docs/handoff.md).
