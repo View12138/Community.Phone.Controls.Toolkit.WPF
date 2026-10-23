@@ -26,12 +26,12 @@
 | 检查项 | 命令 | 结果 |
 |---|---|---|
 | Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental`（或删除 `obj`/`bin` 后重建） | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
-| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **103 通过 / 0 失败 / 0 跳过**，约 30 秒 —— 所有转场/导航/投影/效果/ListPicker/应用栏测试均通过，包括此前失败的 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
-| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **103 通过 / 0 失败** |
+| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **109 通过 / 0 失败 / 0 跳过**，约 35 秒 —— 所有转场/导航/投影/效果/ListPicker/应用栏测试均通过，包括此前失败的 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
+| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **109 通过 / 0 失败** |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
 | 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；Controls 页（含两个 list picker）加载时不再抛动画异常，`RecurringDaysPicker` 能打开完整模式 `ListPickerPage`（标题 `REPEATS`、七行星期、原版 `ApplicationBar` 的「完成/取消」图标按钮），点「完成」返回 Controls 页；Menus 页绘制出移植版应用栏（图标、标签、菜单按钮与菜单）；进程存活且无错误日志。**最近一轮未重复该验证** —— 交互式桌面不可用（`CopyFromScreen` 报 "句柄无效"，UIA 点击落不到窗口）；该路径由三个 `ListPickerPage` 测试覆盖 |
 
-测试清单（103 个用例、99 个方法）：`ControlTests` 29、`ProjectionTests` 25、`NavigationTests` 16、`TransitionStoryboardTests` 9 方法 / 13 用例、`EffectsTests` 7、`ShellTests` 10、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+测试清单（109 个用例、105 个方法）：`ControlTests` 34、`ProjectionTests` 25、`NavigationTests` 16、`TransitionStoryboardTests` 9 方法 / 13 用例、`EffectsTests` 7、`ShellTests` 11、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
 
 `NavigationTests.TransitionFrame_FallsBackWhenTransitionFactoryThrows` 已随移植版的 `TransitionFailed` 事件一起删除：现在与原版一致，`TransitionElement` 工厂抛出的异常会向上传播，而不是降级成无转场导航。
 
@@ -226,6 +226,34 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 
 本轮同步更新的文档（双语）：本节、`porting-status.md`（证据快照、ListPicker 行）、`known-limitations.md`（页面自带主题、加载期属性使用 `DynamicResource`）、`architecture.md`（主题字典规则）。
 
+### 4.13 本轮：`ListPicker` 完整模式保真度与普通模式的选中显示
+
+来自示例反馈的五个问题：
+
+1. **单选时完整模式关闭后仍显示第一项。** 普通模式显示依赖 Canvas 高度和 `ItemsPresenter` 的 `TranslateTransform.Y`，两者原本共用一个 `Storyboard`。高度动画的目标是 Canvas（`FrameworkElement`），能生效；位移动画的目标是模板里的 `TranslateTransform`（`Freezable`），时钟虽然创建了（`ClockState.Filling`），值却从未写进属性，`Y` 一直停在 `-4`（第一项的偏移）。`SelectedItem` 本身提交正确。修复：`SizeForAppropriateView` 改为直接在 Canvas 高度和 transform 上调用 `BeginAnimation`；非动画路径先清除动画再同步写入最终值（`Top`/`Y`）。离屏探针验证：选择第 4 项后 `TranslateTransform.Y = -160.5`，不再是 `-4`。
+2. **多选复选框显示成桌面复选框**（白色填充、灰色边框）。`ListPickerPage` 用 `AnyFontSizeCheckBoxStyle` 替换主题样式，因此样式未设置的属性会回落到 WPF 主题样式，而不是手机的 `PhoneRadioCheckBox*` 画刷。修复：样式显式设置 `Background`（`PhoneRadioCheckBoxBrush`，透明）、`BorderBrush`（`PhoneRadioCheckBoxBorderBrush`，白色）、`Foreground` 与 `Padding`。探针实测：`#00FFFFFF` / `#FFFFFFFF`（修复前为 `#FFFFFFFF` / `#FF707070`）。
+3. **完整模式的 item 没有依次翻转展开。** 两个原因。其一，`ListPicker` 的模板在首次布局前就应用，`OnLoaded` 里 `Picker.GetItemsInViewPort()` 返回 0 个 item，根本没有创建投影（Silverlight 会更早生成容器）。现在 `OnLoaded` 与 `UpdateVisualState` 都会先 `Picker.UpdateLayout()` 再执行 `SetupListItems`。其二，item 容器不能包进 `ProjectionHost`（`ProjectionService.EnsureProjectionHost` 为保护容器生成而拒绝 `ListBoxItem`/`ContentPresenter`），所以即使拿到 item，投影也没有承载对象。现在单选/多选的 item 模板内各有一个 `ProjectionHost`（内容放在其中），动画目标改为该 host（`(ProjectionHost.Projection).(PlaneProjection.RotationX)`）。探针时序：`-90 → 0`，保留原版 30 ms/350 ms 的逐个延迟。
+4. **Accent 颜色完整模式页面出现桌面选中底色、行距过大。** 单选时页面没有设置 `ItemContainerStyle`，使用了系统 `ListBoxItem` 模板（蓝色选中底色、`MinHeight`），行高 118 DIP 而非 98。修复：为单选设置页面内的 `ListBoxItemStyle`（无底色、选中文字使用 accent 色、`FontSize=43`、Light 字体、无内边距、含 `ProjectionHost`）。页面的 `ListBox` 也使用页面内的 `ListBoxStyle`；否则系统 `ListBox` 模板的根不是 `GetItemsInViewPort` 期望的 `ScrollViewer`，这正是一次布局修复后仍然找不到 item 的原因。
+5. **应用栏按钮样式。** 原来是在标签上方直接画 48 DIP 的图标；WP 会在图标外套一个圆形 chrome。`ApplicationBarIconButtonView` 现在绘制 48 DIP 圆环（2 DIP `ForegroundColor` 描边、半径 24），内部 32 DIP 图标，标签位于下方（72 DIP 槽位中圆环 4..52、标签 53..69）。
+
+页面由控件在挂到 frame 之前解析，看不到 `Application.Resources`。`ListPickerPage.Resources` 现在用 `ResourceDictionary` 包住样式并合并 `Themes/Theme/Dark.xaml`，模板关键帧改用 `StaticResource`（这种场景下模板 storyboard 里的 `DynamicResource` 不生效；样式 setter 仍用 `DynamicResource`）。这也让页面在没有 `Application` 的测试里可验证。
+
+测试：`ListPicker_FullModePageAnimatesEveryItemInView`、`…_FullModeSingleSelectionUsesThePhoneItemStyle`、`…_MultipleSelectionCheckBoxUsesThePhoneStyle`、`…_ReturnsFromFullModeShowsTheSelectedItem`、`ApplicationBarIconButtonDrawsThePhoneCircle`（同一变更加入；前四个在旧版本上失败，应用栏测试因没有圆形边框而失败）。Release **108/108**（约 29 秒）、Debug **108/108**（约 35 秒），库构建 0 错误，示例冒烟启动无错误文件。离屏探针（480×800 `RenderTargetBitmap`）：单选行高 98 DIP（无选中底色）、上述复选框颜色、依次旋转、应用栏圆环位于 `(297, 4)` 48×48、图标位于 `(305, 12)` 32×32。
+
+本轮同步更新的文档（双语）：本节、`known-limitations.md` §3.2/§6.3/§7、`architecture.md` §5.2.1 与 ListPicker 设计决策、`porting-status.md`（证据快照、ListPicker 与 ApplicationBar 行）。
+
+### 4.14 本轮：长列表 `ListPicker`（`GetItemsInViewPort` 抛 `NullReferenceException`）
+
+items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式页面加载时崩溃：`ItemsControlExtensions.GetItemsInViewPort` 第 103 行 `NullReferenceException`。
+
+- **空容器。** `ListBox` 默认虚拟化，缓存窗口之外的项目 `ItemContainerGenerator.ContainerFromIndex` 返回 `null`。第一个循环已做判空，第二个循环直接使用了容器。用 120 项的页面复现（同样的堆栈）并修复：遇到空容器跳过（改为逐个检查已实现容器是否与视口相交，而不是"走到第一个不可见项就停"），`TransformToVisual` 抛 `ArgumentException`/`InvalidOperationException` 时结束收集而不是向外抛。
+- **滚动到选中项的请求被取消。** `Loaded` 里调用的 `ScrollIntoView` 会排队等到容器生成后才执行，而 `UpdateVisualState` 会重新设置当时的 `ScrollViewer.VerticalOffset`——此刻仍是 `0`，于是滚动请求被丢弃：页面停在顶部，而（尚未实现的）选中项远在下方。120 项时这也意味着翻转动画只覆盖前几行而不是可见行。探针实测：修复后页面会滚动到第 60 项（96 DIP 行高时 `VerticalOffset` 为 55，98 DIP 时为 49），动画集合与可见容器一致。
+- **等待列表就绪。** 打开动画现在由 `BeginOpenAnimationWhenListIsReady` 准备：订阅 `LayoutUpdated`，在 dispatcher 轮次里重复 `ScrollIntoView`（第一次请求可能丢失），直到选中项的容器存在且与视口相交才开始（最多重试 50 轮；无选中项时回退到"任一可见容器"）。每次重新收集前会把上一次设置的 item 投影重置为 0，避免残留的 `-90` 让该行滚回视野时不可见。
+
+测试：`ListPicker_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt`（120 项、选中第 60 项：不抛异常、把选中项滚入视口、对它做动画、且没有已实现容器停留在侧立状态）；`ListPicker_FullModePageAnimatesEveryItemInView` 改为等待（被推迟的）动画并采样最小观测角度，而不是只读一帧。完整套件 Release **109/109**（连跑两次，约 35 秒）；示例可构建并启动，无错误文件。
+
+本轮同步更新的文档（双语）：本节、`known-limitations.md` §6.3、`architecture.md`（ListPicker 决策）、`porting-status.md`（证据快照与 ListPicker 行）。
+
 ---
 
 ## 5. 未完成 / 未验证
@@ -235,10 +263,10 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 1. **与 WP 8.1 模拟器的逐帧视觉对比** —— 模拟器在运行、通过 Virtual Machine Connection 查看，但本次会话无法“看图”；验证是数值化的（几何、时序、渲染帧几何）+ 与原 XAML/WinUI 数学比对。Turnstile 的调优（枢轴 `-0.05`、时长 ×1.2）来自用户的口头观察而非测量，因此仍**需要一次视觉确认**。现在每个族都有运行时属性测试（`TransitionStoryboardTests`），但只有 Turnstile 有渲染帧证据。
 2. **各族缓动/像素一致性** —— storyboard 就是原版 XAML，数值天然精确；但 WPF 与 Silverlight 是否在每一帧都以完全相同的方式求值同一个 `ExponentialEase`/`SineEase`，没有测量。
 3. **羽化透视原点** —— 原版 `TurnstileFeatherEffect` 会把每个元素的透视原点移到页面垂直中心（`GlobalOffsetY` + 补偿 RenderTransform）。本移植版因 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，让元素绕自身中心旋转；角度/延迟/时序与原版一致。已写入已知限制。
-4. **Shell chrome** —— `ApplicationBar` 现在由 frame（`ApplicationBarPresenter`）绘制，但 `SystemTray` 仍是纯 API 模型，没有绘制 WP 状态栏。应用栏不随页面转场动画进入，菜单是 WPF `Popup` 而不是原生表面，WP8 的精确度量（菜单滑入、省略号位置）是近似而非逐像素比对。
+4. **Shell chrome** —— `ApplicationBar` 现在由 frame（`ApplicationBarPresenter`）绘制，但 `SystemTray` 仍是纯 API 模型，没有绘制 WP 状态栏。应用栏的圆形图标 chrome（48 DIP 圆环、2 DIP 描边、32 DIP 图标、12 px 标签）已实现并有测试覆盖，ListPicker 页面的应用栏也已与 WP 8.1 截图对比；应用栏不随页面转场动画进入，菜单是 WPF `Popup` 而不是原生表面，其余 WP8 度量（菜单滑入、省略号位置）仍是近似而非逐像素比对。
 5. **未实现模块** —— `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService`、`LoopingSelector`/picker 页面。已通过源码检索确认不存在（无对应 `class`）。
 6. **示例覆盖缺口** —— 重构后的示例展示投影、全部转场族、羽化、所有已实现控件、ContextMenu、CustomMessageBox 以及 shell 状态（ApplicationBar/SystemTray API）；**未**展示 `Matrix3DProjection`，也没有真实 shell chrome（本来就没有绘制）。
-7. **未做像素级验证的视觉细节** —— ListPicker 展开模式样式以及完整模式页面的 `ApplicationBar`（现在就是移植版的真实应用栏，但其图标/文本精确度量未与 WP8 逐像素比对）、ExpanderView 高度动画、PhoneTextBox 水印动画、HubTile 像素保真度：行为有测试（含 HubTile 翻转旋转量与 PhoneTextBox 占位符原点），像素保真度没有。
+7. **未做像素级验证的视觉细节** —— ListPicker 展开模式样式、ExpanderView 高度动画、PhoneTextBox 水印动画、HubTile 像素保真度：行为有测试（含 HubTile 翻转旋转量与 PhoneTextBox 占位符原点），像素保真度没有。ListPicker 完整模式页面（item chrome、间距、复选框颜色、依次翻转）及其应用栏已在 §4.13 与 WP 8.1 截图对比。
 
 ---
 

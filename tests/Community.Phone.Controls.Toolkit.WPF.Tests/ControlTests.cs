@@ -640,6 +640,341 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void ListPicker_FullModePageAnimatesEveryItemInView()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320, SelectionMode = SelectionMode.Multiple };
+                for (int i = 0; i < 4; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    page.Picker.UpdateLayout();
+                    WpfTestHelper.PumpDispatcher();
+
+                    List<ProjectionHost> hosts = new List<ProjectionHost>();
+                    foreach (object item in page.Items)
+                    {
+                        ListBoxItem container = (ListBoxItem)page.Picker.ItemContainerGenerator.ContainerFromItem(item);
+                        Assert.NotNull(container);
+
+                        // Item containers cannot be wrapped in a projection
+                        // host, so the page template hosts the content instead.
+                        ProjectionHost host = container.Template.FindName("ProjectionHost", container) as ProjectionHost;
+                        Assert.NotNull(host);
+                        hosts.Add(host);
+                    }
+
+                    // The open animation starts once the list has generated its
+                    // containers, so wait for it and observe the edge-on frames
+                    // (before the fix no projection was applied at all).
+                    double minimumRotation = 0;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() =>
+                        {
+                            foreach (ProjectionHost host in hosts)
+                            {
+                                PlaneProjection projection = host.Projection as PlaneProjection;
+                                if (null == projection)
+                                {
+                                    return false;
+                                }
+
+                                minimumRotation = Math.Min(minimumRotation, projection.RotationX);
+                            }
+
+                            return minimumRotation < -5;
+                        }),
+                        "No item was animated.");
+
+                    WpfTestHelper.PumpFor(1500);
+                    Assert.All(hosts, host => Assert.Equal(0, ((PlaneProjection)host.Projection).RotationX, 1));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker
+                {
+                    Width = 320,
+                    ExpansionMode = ExpansionMode.FullScreenOnly,
+                };
+                for (int i = 0; i < 120; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                picker.SelectedItem = "item 60";
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    // The list virtualizes, so only the containers around the
+                    // view port exist. Used to throw NullReferenceException
+                    // (ContainerFromIndex returns null for the rest).
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    ListBox list = page.Picker;
+                    WpfTestHelper.PumpUntil(() => list.ItemContainerGenerator.ContainerFromItem("item 60") != null);
+
+                    FrameworkElement container = (FrameworkElement)list.ItemContainerGenerator.ContainerFromItem("item 60");
+                    Assert.NotNull(container);
+
+                    ScrollViewer scrollViewer = WpfTestHelper.FindDescendants<ScrollViewer>(list).First();
+                    Assert.True(WpfTestHelper.PumpUntil(() =>
+                    {
+                        GeneralTransform transform = container.TransformToVisual(scrollViewer);
+                        Point position = transform.Transform(new Point(0, 0));
+                        return (position.Y + container.ActualHeight > 0) && (position.Y < scrollViewer.ActualHeight);
+                    }), "The selected item was not scrolled into view.");
+
+                    // The animation must cover the items the user sees, not the
+                    // first ones of the (virtualized) list.
+                    double observedRotation = 0;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() =>
+                        {
+                            PlaneProjection projection = GetItemProjection((ListBoxItem)container);
+                            if (null == projection)
+                            {
+                                return false;
+                            }
+
+                            observedRotation = Math.Min(observedRotation, projection.RotationX);
+                            return observedRotation != 0;
+                        }),
+                        "The selected item was not animated.");
+
+                    WpfTestHelper.PumpFor(1500);
+
+                    // No realized container may be left edge-on: a stale -90
+                    // would make it invisible when it scrolls into view.
+                    for (int i = 0; i < list.Items.Count; i++)
+                    {
+                        if (list.ItemContainerGenerator.ContainerFromIndex(i) is ListBoxItem item)
+                        {
+                            PlaneProjection projection = GetItemProjection(item);
+                            if (null != projection)
+                            {
+                                Assert.Equal(0, projection.RotationX, 1);
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        private static PlaneProjection GetItemProjection(ListBoxItem container)
+        {
+            ProjectionHost host = container.Template.FindName("ProjectionHost", container) as ProjectionHost;
+            return host == null ? null : host.Projection as PlaneProjection;
+        }
+
+        [Fact]
+        public void ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker
+                {
+                    Width = 320,
+                    ExpansionMode = ExpansionMode.FullScreenOnly,
+                };
+                for (int i = 0; i < 4; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    page.Picker.UpdateLayout();
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.Same(page.Resources["ListBoxItemStyle"], page.Picker.ItemContainerStyle);
+
+                    ListBoxItem container = (ListBoxItem)page.Picker.ItemContainerGenerator.ContainerFromIndex(1);
+                    Assert.NotNull(container);
+                    Assert.True(container.ActualHeight < 110, "The desktop ListBoxItem padding is applied: " + container.ActualHeight);
+                    Assert.Equal(Colors.Transparent, ((SolidColorBrush)container.Background).Color);
+
+                    page.Picker.SelectedIndex = 1;
+                    WpfTestHelper.PumpFor(100);
+
+                    ContentControl content = container.Template.FindName("ContentContainer", container) as ContentControl;
+                    Assert.NotNull(content);
+                    SolidColorBrush foreground = content.Foreground as SolidColorBrush;
+                    Assert.NotNull(foreground);
+                    SolidColorBrush accent = WpfTestHelper.Theme["PhoneAccentBrush"] as SolidColorBrush;
+                    Assert.NotNull(accent);
+                    Assert.Equal(accent.Color, foreground.Color);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_MultipleSelectionCheckBoxUsesThePhoneStyle()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker { Width = 320, SelectionMode = SelectionMode.Multiple };
+                picker.Items.Add("one");
+                picker.Items.Add("two");
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    page.Picker.UpdateLayout();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ListBoxItem container = (ListBoxItem)page.Picker.ItemContainerGenerator.ContainerFromIndex(0);
+                    Assert.NotNull(container);
+                    CheckBox checkBox = WpfTestHelper.FindDescendants<CheckBox>(container).FirstOrDefault();
+                    Assert.NotNull(checkBox);
+
+                    // The page's check box style replaces the theme style, so
+                    // it must supply the phone colors itself.
+                    SolidColorBrush background = checkBox.Background as SolidColorBrush;
+                    Assert.NotNull(background);
+                    Assert.Equal(Colors.Transparent, background.Color);
+
+                    SolidColorBrush border = checkBox.BorderBrush as SolidColorBrush;
+                    SolidColorBrush expectedBorder = WpfTestHelper.Theme["PhoneRadioCheckBoxBorderBrush"] as SolidColorBrush;
+                    Assert.NotNull(border);
+                    Assert.NotNull(expectedBorder);
+                    Assert.Equal(expectedBorder.Color, border.Color);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ListPicker_ReturnsFromFullModeShowsTheSelectedItem()
+        {
+            StaTest.Run(() =>
+            {
+                ListPicker picker = new ListPicker
+                {
+                    Width = 320,
+                    ExpansionMode = ExpansionMode.FullScreenOnly,
+                };
+                for (int i = 0; i < 6; i++)
+                {
+                    picker.Items.Add("item " + i);
+                }
+
+                PhoneApplicationPage hostPage = new PhoneApplicationPage { Content = picker };
+                WpfTestHelper.ApplyTheme(hostPage);
+                WpfTestHelper.ApplyDefaultStyle(picker);
+
+                TransitionFrame frame = new TransitionFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                try
+                {
+                    window.Show();
+                    frame.Navigate(hostPage);
+                    WpfTestHelper.PumpDispatcher();
+
+                    Assert.True(picker.Open());
+                    Assert.True(WpfTestHelper.PumpUntil(() => frame.Content is ListPickerPage));
+
+                    ListPickerPage page = (ListPickerPage)frame.Content;
+                    page.SelectedItem = "item 5";
+                    frame.NavigationService.GoBack();
+
+                    Assert.True(WpfTestHelper.PumpUntil(() => ReferenceEquals(frame.Content, hostPage)));
+                    WpfTestHelper.PumpFor(600);
+
+                    Assert.Equal("item 5", picker.SelectedItem);
+
+                    ItemsPresenter presenter = WpfTestHelper.FindDescendants<ItemsPresenter>(picker).First();
+                    TranslateTransform transform = presenter.RenderTransform as TranslateTransform;
+                    Assert.NotNull(transform);
+
+                    // -4 would mean the presenter still shows the first item.
+                    Assert.True(transform.Y < -50, "The picker still shows the first item (Y=" + transform.Y + ").");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void ListPicker_OpenWithoutItemsExpands()
         {
             StaTest.Run(() =>

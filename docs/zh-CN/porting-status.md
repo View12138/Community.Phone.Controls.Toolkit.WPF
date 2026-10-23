@@ -12,7 +12,7 @@
 | 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
 | ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**证据快照（2026-10-22）：** 删除库 `obj`/`bin` 后的干净 Release 构建 0 错误（22 个既有警告，全部位于 `LongListSelector`、`ViewportControl`、`WindowHelper`）· Release 与 Debug 下 **103/103 测试通过**（约 30 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）· `build\verify-package.ps1` 通过 · 此前的示例运行：Controls 示例（含两个 list picker）加载不再抛动画异常，ListPicker 完整模式页面显示原版 `ApplicationBar`（完成/取消），Menus 示例绘制出移植版应用栏。在 `ListPickerPage` 主题/`MC3074` 修复之后无法重复屏幕验证（交互式桌面不可用），这些路径由 `ListPickerPage` 相关测试覆盖。
+**证据快照（2026-10-22）：** 干净 Release 构建 0 错误（22 个既有警告，全部位于 `LongListSelector`、`ViewportControl`、`WindowHelper`）· Release 下 **109/109 测试通过**（约 35 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）· `build\verify-package.ps1` 通过 · 此前的示例运行：Controls 示例（含两个 list picker）加载不再抛动画异常，ListPicker 完整模式页面显示原版 `ApplicationBar`（圆形完成/取消按钮），Menus 示例绘制出移植版应用栏。最新的 ListPicker 修复通过 480×800 的离屏 `RenderTargetBitmap` 探针验证（复现页面与完整模式往返）；示例本身做了冒烟运行（能启动、无错误文件）。
 
 ---
 
@@ -40,7 +40,7 @@
 | Tombstone / 真实 WP 生命周期 | ⛔ 未实现 | `State` 是内存字典；见 `known-limitations.md` §2 |
 | `PhoneApplicationService` 状态 API | ✅ 已验证 | `SystemTrayAndApplicationServiceExposeState`；idle/deactivation 策略未实现 |
 | `SystemTray`（状态 API） | ✅ 已验证 | `SystemTrayStatePublishesPropertyChanges`；**不绘制视觉 chrome** |
-| `ApplicationBar`（API、chrome 与菜单） | ✅ 已验证 | `ApplicationBarItemsRaiseClicksThroughTheirViews`、`…DisabledItemsDoNotRaiseEvents`、`…EnforcesItemLimitsAndValidation`、`…MenuAcceptsTheMaximumNumberOfItems`、`…ReservedHeightFollowsTheOriginalRule`、`ApplicationBarPresenterOpensAndClosesTheMenu`、`PhoneApplicationFrameHostsThePageApplicationBar`、`…HidesTheBarWhenThePageHasNone`、`…RejectsForeignApplicationBarImplementations`；应用栏由 Frame 模板中的 `ApplicationBarPresenter` 绘制，示例 `MenusPage` 已使用 |
+| `ApplicationBar`（API、chrome 与菜单） | ✅ 已验证 | `ApplicationBarItemsRaiseClicksThroughTheirViews`、`…DisabledItemsDoNotRaiseEvents`、`…EnforcesItemLimitsAndValidation`、`…MenuAcceptsTheMaximumNumberOfItems`、`…ReservedHeightFollowsTheOriginalRule`、`ApplicationBarPresenterOpensAndClosesTheMenu`、`ApplicationBarIconButtonDrawsThePhoneCircle`、`PhoneApplicationFrameHostsThePageApplicationBar`、`…HidesTheBarWhenThePageHasNone`、`…RejectsForeignApplicationBarImplementations`；应用栏由 Frame 模板中的 `ApplicationBarPresenter` 绘制（96×72 槽位、48 DIP 圆环内嵌 32 DIP 图标、12 px 标签），示例 `MenusPage` 已使用 |
 | `NavigationContext` 查询参数/附加数据 | ✅ 已验证 | `Frame_NavigationContextCarriesParameters` |
 
 ## 3. 转场
@@ -72,7 +72,7 @@
 | `ToggleSwitch` + `ToggleSwitchButton` | ✅ 已验证 | `ToggleSwitch_HasTemplateAndDependencyProperties`、`…_AnimatesThumbTranslation`、`…_SwitchButtonDrivesEvents` |
 | `Rating` | ✅ 已验证 | `Rating_CreatesConfiguredNumberOfItems`、`…_MouseClickChangesValue`、`…_ValueChangesRaiseEventAndUpdateItems`、`…_HalfItemIncrementKeepsValueInItemUnits`；半星模式现在以“星”为单位存值（已文档化的偏离：原版会填出两倍于指针位置的数量） |
 | `PhoneTextBox` | ✅ 已验证（行为） | `PhoneTextBox_ShowsHintWhenEmpty`、`…_TemplatePartsAndTwoWayText`、`…_InnerEditorIsVisibleAndReceivesFocus`；占位符起点现在与光标一致（实测 12 px），聚焦或输入法合成期间隐藏；水印动画视觉未验证 |
-| `ListPicker` / `ListPickerItem` | ✅ 已验证（行为） | `ListPicker_SelectionRoundTrips`、`…_ExpandedModeSelectsItemAndCollapses`、`…_OpenWithoutItemsExpands`、`…_FullModeWithoutFrameStaysUsable`、`…_FullModeNavigatesToPickerPageAndCommitsSelection`、`…_PageWithPickersLoadsWithoutAnimationErrors`、`…_HighlightedVisualStateUsesBrushResources`、`…_FullModePageUsesTheApplicationBarForSingleSelection`、`…_FullModePageCommitsFromTheApplicationBarDoneButton`（页面的原版应用栏、本地化文本、库内图标以及"完成→提交"链路）；像素样式未与 WP 对比 |
+| `ListPicker` / `ListPickerItem` | ✅ 已验证（行为） | `ListPicker_SelectionRoundTrips`、`…_ExpandedModeSelectsItemAndCollapses`、`…_OpenWithoutItemsExpands`、`…_FullModeWithoutFrameStaysUsable`、`…_FullModeNavigatesToPickerPageAndCommitsSelection`、`…_PageWithPickersLoadsWithoutAnimationErrors`、`…_HighlightedVisualStateUsesBrushResources`、`…_FullModePageUsesTheApplicationBarForSingleSelection`、`…_FullModePageCommitsFromTheApplicationBarDoneButton`（页面的原版应用栏、本地化文本、库内图标以及"完成→提交"链路）、`…_FullModePageAnimatesEveryItemInView`（每个 item 都有 `ProjectionHost`，从侧立开始、最终归零）、`…_FullModeSingleSelectionUsesThePhoneItemStyle`（没有桌面选中底色、选中文字为 accent 色、行高 98 px 而非桌面的 118）、`…_MultipleSelectionCheckBoxUsesThePhoneStyle`（透明填充、白色边框）、`…_ReturnsFromFullModeShowsTheSelectedItem`（presenter 位移到选中行）、`…_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt`（120 个虚拟化项目：不再抛 `NullReferenceException`，选中项滚入视口并参与动画，没有容器停留在侧立状态）。完整模式页面的 chrome 与间距已与 WP 8.1 截图对比 |
 | `ExpanderView` | 🟡 已实现、未验证 | `ExpanderView_TogglesAndRaisesEvents` 覆盖行为；高度动画与标题竖线间距属于纯视觉 |
 | `HubTile` / `HubTileService` | 🟡 已实现、未验证 | `HubTile_PropertiesAndGroupFreeze`；模板已按 WP8 原版重写（滑动表面 + `RotationX` 翻转，探针数值验证 `0→180→0`、185 ms 切换正反面），像素保真度未验证 |
 | `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`；弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel（探针：弹出 `RotationX −45°→0°`，关闭 `0°→42°` 后窗口才关闭）。`Show()` 在没有 `Application` 的宿主中同样可用（主题色回退到固定值、窗口尺寸取默认值），测试正是这样驱动它的 |

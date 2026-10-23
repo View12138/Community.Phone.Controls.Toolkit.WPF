@@ -25,9 +25,19 @@ namespace Microsoft.Phone.Shell
         internal const double SlotWidth = 96;
 
         /// <summary>
-        /// The size of the icon.
+        /// The size of the circular button that hosts the icon.
         /// </summary>
         internal const double IconSize = 48;
+
+        /// <summary>
+        /// The size of the glyph inside the circular button.
+        /// </summary>
+        internal const double GlyphSize = 32;
+
+        /// <summary>
+        /// The thickness of the circle around the icon.
+        /// </summary>
+        internal const double CircleThickness = 2;
 
         /// <summary>
         /// The font size of the label under the icon.
@@ -48,14 +58,33 @@ namespace Microsoft.Phone.Shell
         /// <inheritdoc />
         protected override void UpdateContent()
         {
+            // Leave room above the circle so the label sits below it instead of
+            // overlapping its lower edge (4 + 48 + 20 = 72).
             Grid grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(IconSize) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(IconSize + 4) });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            Image icon = new Image
+            // Windows Phone draws a circular outline around every application
+            // bar icon; the icon itself is only the glyph inside it.
+            Border circle = new Border
             {
                 Width = IconSize,
                 Height = IconSize,
+                Margin = new Thickness(0, 4, 0, 0),
+                CornerRadius = new CornerRadius(IconSize / 2),
+                BorderThickness = new Thickness(CircleThickness),
+                BorderBrush = ForegroundBrush,
+                Background = Brushes.Transparent,
+                IsHitTestVisible = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            grid.Children.Add(circle);
+
+            Image icon = new Image
+            {
+                Width = GlyphSize,
+                Height = GlyphSize,
                 Margin = new Thickness(0, 4, 0, 0),
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,

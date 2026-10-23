@@ -55,7 +55,6 @@ namespace Microsoft.Phone.Controls
 
         private readonly DoubleAnimation _heightAnimation = new DoubleAnimation();
         private readonly DoubleAnimation _translateAnimation = new DoubleAnimation();
-        private readonly Storyboard _storyboard = new Storyboard();
 
         private readonly EventHandler<ManipulationStartedEventArgs> _frameManipulationStartedHandler;
         private readonly MouseButtonEventHandler _framePreviewMouseDownHandler;
@@ -626,9 +625,6 @@ namespace Microsoft.Phone.Controls
             _frameManipulationStartedHandler = OnFrameManipulationStarted;
             _framePreviewMouseDownHandler = OnFramePreviewMouseDown;
 
-            Storyboard.SetTargetProperty(_heightAnimation, new PropertyPath(FrameworkElement.HeightProperty));
-            Storyboard.SetTargetProperty(_translateAnimation, new PropertyPath(TranslateTransform.YProperty));
-
             // Would be nice if these values were customizable (ex: as DependencyProperties or in Template as VSM states)
             Duration duration = TimeSpan.FromSeconds(0.2);
             _heightAnimation.Duration = duration;
@@ -718,7 +714,6 @@ namespace Microsoft.Phone.Controls
             {
                 _itemsPresenterHostParent.SizeChanged -= OnItemsPresenterHostParentSizeChanged;
             }
-            _storyboard.Stop();
 
             base.OnApplyTemplate();
 
@@ -734,37 +729,6 @@ namespace Microsoft.Phone.Controls
             {
                 _itemsPresenterHostParent.SizeChanged += OnItemsPresenterHostParentSizeChanged;
             }
-            if (null != _itemsPresenterHostPart)
-            {
-                Storyboard.SetTarget(_heightAnimation, _itemsPresenterHostPart);
-                if (!_storyboard.Children.Contains(_heightAnimation))
-                {
-                    _storyboard.Children.Add(_heightAnimation);
-                }
-            }
-            else
-            {
-                if (_storyboard.Children.Contains(_heightAnimation))
-                {
-                    _storyboard.Children.Remove(_heightAnimation);
-                }
-            }
-            if (null != _itemsPresenterTranslateTransformPart)
-            {
-                Storyboard.SetTarget(_translateAnimation, _itemsPresenterTranslateTransformPart);
-                if (!_storyboard.Children.Contains(_translateAnimation))
-                {
-                    _storyboard.Children.Add(_translateAnimation);
-                }
-            }
-            else
-            {
-                if (_storyboard.Children.Contains(_translateAnimation))
-                {
-                    _storyboard.Children.Remove(_translateAnimation);
-                }
-            }
-
             SetBinding(ShadowItemTemplateProperty, new Binding("ItemTemplate") { Source = this });
 
 
@@ -1213,19 +1177,47 @@ namespace Microsoft.Phone.Controls
                     return;
             }
 
-            // WPF throws when the Height animation has no origin because the canvas height would be Auto
-            // (NaN). Silverlight tolerated this, so the first layout pass simply left the canvas auto until
-            // the selected item reported its size; do the same here.
-            if (double.IsNaN(_heightAnimation.From ?? double.NaN) || double.IsNaN(_heightAnimation.To ?? double.NaN))
+            if (null == _itemsPresenterHostPart || null == _itemsPresenterTranslateTransformPart)
             {
                 return;
             }
 
-            // Play the height/translation animations
-            _storyboard.Begin();
-            if (!animate)
+            if (animate)
             {
-                _storyboard.SkipToFill();
+                // WPF throws when the Height animation has no origin because the canvas height would be Auto
+                // (NaN). Silverlight tolerated this, so the first layout pass simply left the canvas auto until
+                // the selected item reported its size; do the same here.
+                if (!double.IsNaN(_heightAnimation.From ?? double.NaN) && !double.IsNaN(_heightAnimation.To ?? double.NaN))
+                {
+                    _itemsPresenterHostPart.BeginAnimation(FrameworkElement.HeightProperty, _heightAnimation);
+                }
+
+                if (!double.IsNaN(_translateAnimation.To ?? double.NaN))
+                {
+                    // A Storyboard cannot animate a transform that lives in a
+                    // template (the clock is created but the value is never
+                    // applied), so start the animation directly on the part.
+                    _itemsPresenterTranslateTransformPart.BeginAnimation(TranslateTransform.YProperty, _translateAnimation);
+                }
+
+                return;
+            }
+
+            // Apply the final layout synchronously. BeginAnimation(null)
+            // releases the value held by a previous animation before the new
+            // value is set, so navigating back from Full mode shows the new
+            // selection instead of the first item.
+            _itemsPresenterHostPart.BeginAnimation(FrameworkElement.HeightProperty, null);
+            _itemsPresenterTranslateTransformPart.BeginAnimation(TranslateTransform.YProperty, null);
+
+            if (!double.IsNaN(_heightAnimation.To ?? double.NaN))
+            {
+                _itemsPresenterHostPart.Height = _heightAnimation.To.Value;
+            }
+
+            if (!double.IsNaN(_translateAnimation.To ?? double.NaN))
+            {
+                _itemsPresenterTranslateTransformPart.Y = _translateAnimation.To.Value;
             }
         }
 

@@ -139,6 +139,7 @@ namespace Microsoft.Phone.Controls
         extension(DependencyObject element)
         {
             public Projection Projection { get => GetProjection(element); set => SetProjection(element, value); }
+            public ProjectionHost ProjectionHost { get => GetProjectionHost(element); }
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -96,6 +97,34 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
             }
 
             return condition();
+        }
+
+        /// <summary>
+        /// Enumerates the visual descendants of an element.
+        /// </summary>
+        public static IEnumerable<T> FindDescendants<T>(DependencyObject root)
+            where T : DependencyObject
+        {
+            if (root == null)
+            {
+                yield break;
+            }
+
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, i);
+                T typed = child as T;
+                if (typed != null)
+                {
+                    yield return typed;
+                }
+
+                foreach (T descendant in FindDescendants<T>(child))
+                {
+                    yield return descendant;
+                }
+            }
         }
 
         /// <summary>

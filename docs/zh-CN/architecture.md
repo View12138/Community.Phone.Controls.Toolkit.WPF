@@ -154,7 +154,7 @@ WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保
 
 `Microsoft.Phone.Shell` 移植了原版托管 API（`IApplicationBar`、`ApplicationBar`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`）及其基础设施：`ApplicationBarItemList<T>` 保留每个列表的上限（4 个图标按钮、50 个菜单项）和原始异常，item 容器负责校验文本/图标/启用状态并派发点击，`ApplicationBar` 保留“只有可见且完全不透明的应用栏才预留页面空间”这条原版规则。
 
-Windows Phone 由合成器绘制应用栏；移植版由新增的 `ApplicationBarPresenter` 绘制，并由 frame 模板承载（见 5.1）。呈现器订阅应用栏及其 item，构建图标按钮视图（96×72 槽位，48×48 图标 + 12 px 标签）、菜单按钮（右上角三个点）以及行高 48 px 的 `Popup` 菜单。颜色来自 `BackgroundColor`/`ForegroundColor`，透明度来自 `Opacity`；frame 用呈现器的 `ReservedHeight` 设置 `ApplicationBarHost.Height`，因此半透明或隐藏的应用栏会浮在页面之上而不是压缩页面。
+Windows Phone 由合成器绘制应用栏；移植版由新增的 `ApplicationBarPresenter` 绘制，并由 frame 模板承载（见 5.1）。呈现器订阅应用栏及其 item，构建图标按钮视图（96×72 槽位，48 DIP 圆形按钮——2 DIP 白色圆环内嵌 32 DIP 图标——下方 12 px 标签）、菜单按钮（右上角三个点）以及行高 48 px 的 `Popup` 菜单。颜色来自 `BackgroundColor`/`ForegroundColor`，透明度来自 `Opacity`；frame 用呈现器的 `ReservedHeight` 设置 `ApplicationBarHost.Height`，因此半透明或隐藏的应用栏会浮在页面之上而不是压缩页面。
 
 ### 5.3 `TransitionFrame`
 
@@ -213,7 +213,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 
 已实现控件使用 WPF 依赖属性、模板和 `VisualStateManager`。`DefaultStyleKeyProperty.OverrideMetadata` 在**静态构造函数**中调用，确保每个类型只注册一次元数据。`Themes/Generic.xaml` 提供按类型键控的隐式样式；示例和测试还显式合并字典，使应用 XAML 可以访问命名 Metro 资源（`PhoneTextTitle1Style` 等）。
 
-主题的写法受两条 WPF 规则约束。(1) 库内 XAML 若要使用库自身的类型，`clr-namespace:` **不写** `assembly=`：`MarkupCompilePass1` 只能从编译的源码中认识本项目的类型，在 xmlns 里写程序集名会让干净构建报 `MC3074`。(2) 主题字典里的 `StaticResource` 是在**所属字典**（当该字典被当作 WPF theme 字典使用时则是**应用程序**）中解析的，因此 `Themes/Controls/*.xaml` 各自合并 `Theme/Dark.xaml`，动画关键帧的值使用字面量而不是资源查找，而库自己创建的页面（例如 `ListPickerPage`）会把自己的 `Resources` 合并 `Themes/Generic.xaml`——它在挂树之前就被解析。
+主题的写法受两条 WPF 规则约束。(1) 库内 XAML 若要使用库自身的类型，`clr-namespace:` **不写** `assembly=`：`MarkupCompilePass1` 只能从编译的源码中认识本项目的类型，在 xmlns 里写程序集名会让干净构建报 `MC3074`。(2) 主题字典里的 `StaticResource` 是在**所属字典**（当该字典被当作 WPF theme 字典使用时则是**应用程序**）中解析的，因此 `Themes/Controls/*.xaml` 各自合并 `Theme/Dark.xaml`，动画关键帧的值使用字面量而不是资源查找。库自己创建的页面（例如 `ListPickerPage`）会把自己的 `Resources` 合并 `Theme/Dark.xaml`——它在挂到 frame 之前就被解析，看不到 `Application.Resources`；因此它的模板关键帧使用 `StaticResource`（解析时从该字典取值），这种场景下模板 storyboard 里的 `DynamicResource` 不会生效。
 
 控件设计决策：
 
@@ -223,7 +223,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 - **PhoneTextBox**：内部 TextBox 使用双向 `Text` 绑定（WPF `TemplateBinding` 是单向的），保留 hint、action icon 和长度指示。
 - **ExpanderView**：基于 WPF `HeaderedItemsControl`；部件 `Presenter`、`ExpanderPanel`、`ItemsCanvas`；高度动画在代码中完成，因为 WPF 无法直接取得 Silverlight 模板部件。
 - **HubTile**：定时器驱动 `Expanded → Semiexpanded → Collapsed → Expanded → Flipped` 状态循环；`HubTileService` 支持冻结组。
-- **ListPicker**：移植原版 WP8 实现——普通模式对模板 Canvas 做高度/位移动画，完整模式通过宿主 frame 导航到 `ListPickerPage`（pack URI 来自 `PickerPageUri`）；页面的「完成/取消」使用原版 `ApplicationBar`（勾/叉图标按钮，图标来自库的 `Content` 资源，仅多选时显示）。
+- **ListPicker**：移植原版 WP8 实现——普通模式对模板 Canvas 做高度/位移动画，完整模式通过宿主 frame 导航到 `ListPickerPage`（pack URI 来自 `PickerPageUri`）；页面的「完成/取消」使用原版 `ApplicationBar`（圆形勾/叉图标按钮，图标来自库的 `Content` 资源，仅多选时显示）。完整模式的项目按原版依次做 `RotationX` 翻转展开；item 容器不能包进 `ProjectionHost`，因此由页面的单选/多选 item 模板承载 `ProjectionHost`，动画直接作用于它。普通模式的 Canvas 动画直接在模板部件上调用 `BeginAnimation`，因为 storyboard 无法驱动模板里的 `TranslateTransform`。页面会等列表就绪后再组合动画：`GetItemsInViewPort` 跳过虚拟化面板尚未生成的容器，页面则在 dispatcher 轮次里重复 `ScrollIntoView`，直到选中项出现在屏幕上（WPF 会丢弃 `Loaded` 期间发出的请求）。
 - **ContextMenu/MenuItem/Separator/ContextMenuService**：继承 WPF 菜单类型；右键打开。
 - **CustomMessageBox**：`ContentControl` API，`Show()`/`Dismiss()` 由 WPF Window 承载。
 - **DatePicker/TimePicker**：保留 Value/ValueString/Header/PickerPageUri API，用 WPF 日期/时间 UI 在模态 Window 中实现。

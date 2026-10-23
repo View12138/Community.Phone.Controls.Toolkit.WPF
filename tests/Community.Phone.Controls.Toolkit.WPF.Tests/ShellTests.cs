@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
@@ -55,6 +56,53 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     Assert.Equal(1, buttonClicks);
                     Assert.Equal(1, menuClicks);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ApplicationBarIconButtonDrawsThePhoneCircle()
+        {
+            StaTest.Run(() =>
+            {
+                ApplicationBar bar = new ApplicationBar();
+                bar.Buttons.Add(new ApplicationBarIconButton(
+                    new Uri("/Community.Phone.Controls.Toolkit.WPF;component/Content/ApplicationBar.Check.png", UriKind.Relative))
+                {
+                    Text = "done",
+                });
+
+                ApplicationBarPresenter presenter = new ApplicationBarPresenter { ApplicationBar = bar };
+                Window window = new Window { Width = 480, Height = 200, Content = presenter };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ApplicationBarIconButtonView view =
+                        presenter.ButtonElements.OfType<ApplicationBarIconButtonView>().Single();
+
+                    Border circle = WpfTestHelper.FindDescendants<Border>(view)
+                        .FirstOrDefault(border => border.CornerRadius.TopLeft > 0);
+                    Assert.NotNull(circle);
+                    Assert.Equal(ApplicationBarIconButtonView.IconSize, circle.Width, 1);
+                    Assert.Equal(ApplicationBarIconButtonView.IconSize, circle.Height, 1);
+                    Assert.Equal(new CornerRadius(ApplicationBarIconButtonView.IconSize / 2), circle.CornerRadius);
+                    Assert.Equal(new Thickness(ApplicationBarIconButtonView.CircleThickness), circle.BorderThickness);
+
+                    SolidColorBrush borderBrush = circle.BorderBrush as SolidColorBrush;
+                    Assert.NotNull(borderBrush);
+                    Assert.Equal(Colors.White, borderBrush.Color);
+
+                    // The 48 DIP icon is the circle; the glyph inside it is smaller.
+                    Image image = WpfTestHelper.FindDescendants<Image>(view).Single();
+                    Assert.Equal(ApplicationBarIconButtonView.GlyphSize, image.Width, 1);
+                    Assert.Equal(ApplicationBarIconButtonView.GlyphSize, image.Height, 1);
+                    Assert.NotNull(image.Source);
                 }
                 finally
                 {

@@ -449,7 +449,7 @@ namespace Microsoft.Phone.Controls
             // in and out like on Windows Phone.
             Rectangle overlay = new Rectangle();
             Color backgroundColor = Colors.Black;
-            object backgroundColorResource = FindThemeResource("PhoneBackgroundColor");
+            object backgroundColorResource = this.FindThemeResource("PhoneBackgroundColor");
             if (backgroundColorResource is Color)
             {
                 backgroundColor = (Color)backgroundColorResource;
@@ -616,26 +616,6 @@ namespace Microsoft.Phone.Controls
         private void RightButton_Click(object sender, RoutedEventArgs e)
         {
             Dismiss(CustomMessageBoxResult.RightButton, true);
-        }
-
-        private object FindThemeResource(object key)
-        {
-            object value = TryFindResource(key);
-            if (value != null)
-            {
-                return value;
-            }
-
-            if (Application.Current != null)
-            {
-                value = Application.Current.TryFindResource(key);
-                if (value != null)
-                {
-                    return value;
-                }
-            }
-
-            return null;
         }
 
         /// <summary>

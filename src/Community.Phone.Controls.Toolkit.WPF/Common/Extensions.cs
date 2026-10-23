@@ -109,5 +109,26 @@ namespace Microsoft.Phone.Controls
 
             element.SetBinding(prop, new Binding(propertyName) { Source = element });
         }
+
+        public static object FindThemeResource(this FrameworkElement element, object key)
+        {
+            object value = element.TryFindResource(key);
+            if (value != null)
+            {
+                return value;
+            }
+
+            if (Application.Current != null)
+            {
+                value = Application.Current.TryFindResource(key);
+                if (value != null)
+                {
+                    return value;
+                }
+            }
+
+            return null;
+        }
+
     }
 }

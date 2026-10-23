@@ -67,36 +67,21 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
+            // A virtualizing ItemsPanel (the default for ListBox) only
+            // generates containers for the items in its cache window, so
+            // ContainerFromIndex returns null for the rest, and the realized
+            // containers are not necessarily contiguous: after a
+            // ScrollIntoView the old window can still be alive next to the new
+            // one. Test every realized container against the view port instead
+            // of walking until the first one that is out of view.
             for (index = 0; index < list.Items.Count; index++)
             {
                 container = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(index);
-                if (container != null)
+                if (container == null)
                 {
-                    itemTransform = null;
-                    try
-                    {
-                        itemTransform = container.TransformToVisual(scrollHost);
-                    }
-                    catch (ArgumentException)
-                    {
-                        // Ignore failures when not in the visual tree
-                        return;
-                    }
-
-                    boundingBox = new Rect(itemTransform.Transform(new Point()), itemTransform.Transform(new Point(container.ActualWidth, container.ActualHeight)));
-
-                    if (boundingBox.Bottom > 0)
-                    {
-                        items.Add(new WeakReference(container));
-                        index++;
-                        break;
-                    }
+                    continue;
                 }
-            }
 
-            for (; index < list.Items.Count; index++)
-            {
-                container = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(index);
                 itemTransform = null;
                 try
                 {
@@ -107,16 +92,17 @@ namespace Microsoft.Phone.Controls
                     // Ignore failures when not in the visual tree
                     return;
                 }
+                catch (InvalidOperationException)
+                {
+                    // The elements are not connected (yet); nothing to collect.
+                    return;
+                }
 
                 boundingBox = new Rect(itemTransform.Transform(new Point()), itemTransform.Transform(new Point(container.ActualWidth, container.ActualHeight)));
 
-                if (boundingBox.Top < scrollHost.ActualHeight)
+                if ((boundingBox.Bottom > 0) && (boundingBox.Top < scrollHost.ActualHeight))
                 {
                     items.Add(new WeakReference(container));
-                }
-                else
-                {
-                    break;
                 }
             }
 
