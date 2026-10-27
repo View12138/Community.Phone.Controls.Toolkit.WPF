@@ -27,6 +27,7 @@
 | 命中测试、焦点、纹理方向 | ✅ 已验证 | `ProjectionHost_ForwardsHitTestingToProjectedContent`、`…_KeepsProjectedContentFocusable`、`…_PreservesTextureOrientation` |
 | 多宿主 / 高 DPI | ✅ 已验证 | `…_RendersIndependentProjectionsForMultipleHosts`、`…_RendersAtHighDpiWithoutChangingLayoutUnits` |
 | storyboard 定位（`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` 路径） | ✅ 已验证 | `Storyboard_AnimatesProjectionTarget`、`ProjectionHost_UpdatesTheSceneWhenTheProjectionIsAnimated`，以及从原版 storyboard 资源加载带前缀路径的 `TransitionStoryboardTests` 各族 |
+| `ProjectionService` 按需包装 | ✅ 已验证 | `ProjectionService_WrapsAnElementThatReceivesAProjection`、`ProjectionService_WrapsAContentPresenterDeclaredInAPanel`、`ProjectionService_KeepsTemplateBindingsWhenWrappingATemplatedContentPresenter`、`ProjectionService_WrapsAnItemContainerOutsideAnItemsControl`；items panel 内的 item 容器会被拒绝包装且不抛异常（`ProjectionService_DoesNotWrapItemContainersInAnItemsPanel`），因为该 Panel 的子元素由 WPF 管理 |
 | `Matrix3DProjection` | 🟡 已实现、未验证 | `Matrix3DProjection_TranslatesInNormalizedCoordinates` 只覆盖平移；其他矩阵约定与视觉一致性未测；示例无演示 |
 | identity 像素级一致 | ✅ 已验证 | 2026-10-19 实测：1 px 特征线在 2D 为 100.00、3D 为 100.01 px；无位移、无缩放。剩余差异是 ClearType→灰度抗锯齿 |
 

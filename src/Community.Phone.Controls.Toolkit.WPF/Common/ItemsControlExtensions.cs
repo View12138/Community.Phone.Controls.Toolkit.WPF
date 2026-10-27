@@ -77,32 +77,30 @@ namespace Microsoft.Phone.Controls
             for (index = 0; index < list.Items.Count; index++)
             {
                 container = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(index);
-                if (container == null)
+                if (container != null)
                 {
-                    continue;
-                }
+                    itemTransform = null;
+                    try
+                    {
+                        itemTransform = container.TransformToVisual(scrollHost);
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Ignore failures when not in the visual tree
+                        return;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // The elements are not connected (yet); nothing to collect.
+                        return;
+                    }
 
-                itemTransform = null;
-                try
-                {
-                    itemTransform = container.TransformToVisual(scrollHost);
-                }
-                catch (ArgumentException)
-                {
-                    // Ignore failures when not in the visual tree
-                    return;
-                }
-                catch (InvalidOperationException)
-                {
-                    // The elements are not connected (yet); nothing to collect.
-                    return;
-                }
+                    boundingBox = new Rect(itemTransform.Transform(new Point()), itemTransform.Transform(new Point(container.ActualWidth, container.ActualHeight)));
 
-                boundingBox = new Rect(itemTransform.Transform(new Point()), itemTransform.Transform(new Point(container.ActualWidth, container.ActualHeight)));
-
-                if ((boundingBox.Bottom > 0) && (boundingBox.Top < scrollHost.ActualHeight))
-                {
-                    items.Add(new WeakReference(container));
+                    if ((boundingBox.Bottom > 0) && (boundingBox.Top < scrollHost.ActualHeight))
+                    {
+                        items.Add(new WeakReference(container));
+                    }
                 }
             }
 

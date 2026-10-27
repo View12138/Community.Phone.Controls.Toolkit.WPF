@@ -43,7 +43,7 @@
 1. **XAML 面**：WPF `UIElement` 没有 `Projection` 属性，也不能给密封框架类型添加属性元素。移植版提供 `ProjectionHost` 和 `ProjectionService`；原始 `<Grid.Projection>` 改写为同一元素上的 `phone:ProjectionService.Projection`（按需包装）或显式 `ProjectionHost`。
 2. **投影透视**：相机复现了 XAML 固定的 999 DIP 透视深度以及旋转/偏移的正负，因此投影缩放与透视收缩与 WP 一致。剩余差异是 `TurnstileFeatherEffect`：原版会把每个被羽化元素的透视原点平移到页面的垂直中心（`GlobalOffsetY` 加一个补偿用的 RenderTransform）。`ProjectionHost` 的尺寸等于被包裹元素的尺寸，并且会裁剪 3D 内容，因此本移植版让每个元素围绕自身的垂直中心旋转。旋转角度、错峰延迟和透明度时序与原版完全一致。
 3. **`Matrix3DProjection`**：矩阵按 0..1 归一化坐标解释，再转换为像素空间。复杂矩阵应做视觉验证；并非所有 Silverlight 矩阵约定都有测试。
-4. **包装限制**：`ProjectionService` 可包装 Panel 直接子元素和部分 content control。赋投影使用同一规则：元素按需被包装，投影被清除时释放该包装。它有意不包装 `ListBoxItem` 或 `ContentPresenter`，因为替换这些元素会破坏 item 生成和模板化。需要逐 item 投影的效果会跳过这类目标。元素级效果始终使用**直接包含该元素**的宿主：复用祖先宿主会把整页一起投影，因为页面本身是由转场 Frame 的 presenter 承载的。
+4. **包装限制**：`ProjectionService` 可包装某个 Panel 的直接子元素，但该 Panel 不能是 `ItemsControl` 的 items panel。赋投影使用同一规则：元素按需被包装，投影被清除时释放该包装。item 容器（如 `ListBoxItem`、`ComboBoxItem` 或自定义容器）会被跳过，因为 items panel 的子元素由 WPF 管理，直接修改会抛出 `InvalidOperationException`；需要逐 item 投影的效果会跳过这类目标。`ContentPresenter` 与其他 Panel 子元素一样可以包装：WPF 在重新挂载后会保留它的 `TemplatedParent`、TemplateBinding 和具名模板部件。元素级效果始终使用**直接包含该元素**的宿主：复用祖先宿主会把整页一起投影，因为页面本身是由转场 Frame 的 presenter 承载的。
 5. **布局**：Host 同时 measure/arrange 2D 子元素和隐藏的 3D viewport。期望尺寸取子元素的期望尺寸；投影固定尺寸内容时建议给 Host 设置显式 `Width`/`Height`。
 6. **命中测试**：已验证 Host 和内容。嵌套 Host 和变换后的内容可能改变命中坐标，应用交互需自行验证。
 7. **文本清晰度**：`Viewport2DVisual3D` 把内容作为纹理渲染，因此元素处于投影状态时 ClearType 子像素渲染会变成灰度抗锯齿。几何保持 1:1（identity 投影与 2D 布局的偏差在 0.01 px 以内）；转场在准备阶段设置 `ProjectionHost.Prefer3D`，让渲染路径切换发生在首帧之前而不是首帧上。不再使用位图缓存：WPF 3D 管线本身就会栅格化内容，额外的 `BitmapCache` 只会让它变糊。

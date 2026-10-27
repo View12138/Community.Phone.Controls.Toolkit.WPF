@@ -23,7 +23,8 @@ namespace Microsoft.Phone.Controls
     /// before a projection is assigned. The same property enables storyboard
     /// animation using the familiar
     /// <c>(UIElement.Projection).(PlaneProjection.RotationY)</c> style
-    /// property path.
+    /// property path. Item containers of an <see cref="ItemsControl"/> cannot
+    /// be wrapped; see <see cref="EnsureProjectionHost(FrameworkElement)"/>.
     /// </remarks>
     public static class ProjectionService
     {
@@ -228,14 +229,18 @@ namespace Microsoft.Phone.Controls
         /// <summary>
         /// Ensures that an element is hosted in a <see cref="ProjectionHost"/>.
         /// If the element is already hosted, the existing host is returned. If
-        /// the element is a direct child of a panel, it is temporarily wrapped
-        /// in a host, preserving layout properties.
+        /// the element is a direct child of a regular panel, it is temporarily
+        /// wrapped in a host, preserving layout properties.
         /// </summary>
         /// <remarks>
-        /// Item containers (such as <see cref="ListBoxItem"/>) are not wrapped
-        /// because replacing them can break item container generation and
-        /// virtualization. Callers should place such content inside a
-        /// <see cref="ProjectionHost"/> explicitly.
+        /// The element must be a direct child of a panel that is not an items
+        /// host. Item containers (such as <see cref="ListBoxItem"/>) are not
+        /// wrapped because WPF owns the children of an
+        /// <see cref="ItemsControl"/>'s items panel and throws
+        /// <see cref="InvalidOperationException"/> when they are modified.
+        /// Callers that need to project an item should place the content that
+        /// should move inside a <see cref="ProjectionHost"/> in the item
+        /// template instead.
         /// </remarks>
         public static ProjectionHost EnsureProjectionHost(FrameworkElement element)
         {
@@ -259,12 +264,12 @@ namespace Microsoft.Phone.Controls
                 return existing;
             }
 
-            if (element is ListBoxItem || element is ContentPresenter)
-            {
-                return null;
-            }
-
-            if (element.Parent is not Panel panel)
+            // WPF's UIElementCollection refuses writes to a panel that is an
+            // ItemsControl's items host (the ItemsControl generates its
+            // children), so item containers (ListBoxItem, ComboBoxItem, ...)
+            // cannot be re-parented into a host. Every other direct child of a
+            // regular panel - ContentPresenter included - can.
+            if (element.Parent is not Panel panel || panel.IsItemsHost)
             {
                 return null;
             }

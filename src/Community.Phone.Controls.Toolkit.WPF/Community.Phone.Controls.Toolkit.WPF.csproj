@@ -34,10 +34,10 @@
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\README_zh-CN.md" Pack="true" PackagePath="\" />
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-		<None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
-		<None Include="..\..\THIRD-PARTY-NOTICES_zh-CN.md" Pack="true" PackagePath="\" />
-		<None Include="..\..\docs\en\*.md" Pack="true" PackagePath="docs\en\" />
-		<None Include="..\..\docs\zh-CN\*.md" Pack="true" PackagePath="docs\zh-CN\" />
+		<None Include="..\..\THIRD-PARTY-NOTICES.md" Link="Properties\docs\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
+		<None Include="..\..\THIRD-PARTY-NOTICES_zh-CN.md" Link="Properties\docs\THIRD-PARTY-NOTICES_zh-CN.md" Pack="true" PackagePath="\" />
+		<None Include="..\..\docs\en\*.md" Link="Properties\docs\en\%(Filename)%(Extension)" Pack="true" PackagePath="docs\en\" />
+		<None Include="..\..\docs\zh-CN\*.md" Link="Properties\docs\zh-CN\%(Filename)%(Extension)" Pack="true" PackagePath="docs\zh-CN\" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -198,6 +198,22 @@
 			<SubType>Designer</SubType>
 			<Generator>MSBuild:Compile</Generator>
 		</Resource>
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Controls\Pivot\" />
 	</ItemGroup>
 
 </Project>

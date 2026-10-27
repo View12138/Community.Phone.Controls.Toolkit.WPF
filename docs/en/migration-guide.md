@@ -132,7 +132,7 @@ myGrid.Projection = new PlaneProjection { RotationY = -35 };
 myGrid.Projection = null;   // releases the on-demand wrapper
 ```
 
-The on-demand wrapper requires the element to be a direct child of a `Panel`; item containers (`ListBoxItem`) and `ContentPresenter` are skipped because replacing them breaks item generation. The wrapper is released when the projection is cleared, so the visual tree ends up unchanged. Use an explicit `ProjectionHost` in templates or when the element is not a panel child.
+The on-demand wrapper requires the element to be a direct child of a `Panel` that is not an `ItemsControl` items panel. Item containers (`ListBoxItem`, `ComboBoxItem`, custom containers) are skipped because WPF owns the items panel's children; `ContentPresenter` is wrapped like any other panel child. The wrapper is released when the projection is cleared, so the visual tree ends up unchanged. Use an explicit `ProjectionHost` in templates or when the element is not a panel child.
 
 ### 4.4 Animations
 
@@ -252,7 +252,7 @@ A press creates a `PlaneProjection` and animates it. Mouse input is supported in
 <TextBlock Text="Second" phone:TurnstileFeatherEffect.FeatheringIndex="1" />
 ```
 
-Targets must be wrappable by a `ProjectionHost`. A target inside a `ListBoxItem` is skipped because replacing the item container would break item generation.
+Targets must be wrappable by a `ProjectionHost`: a direct child of a panel that is not an `ItemsControl` items panel. The item container itself (`ListBoxItem`) cannot be wrapped because WPF owns the items panel's children; put the feathering index on content inside the item's template instead.
 
 ### Not migrated
 

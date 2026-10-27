@@ -132,7 +132,7 @@ myGrid.Projection = new PlaneProjection { RotationY = -35 };
 myGrid.Projection = null;   // 释放按需创建的包装
 ```
 
-按需包装要求元素是 `Panel` 的直接子元素；`ListBoxItem` 与 `ContentPresenter` 会被跳过，因为替换它们会破坏 item 生成。投影被清除时包装会自动释放，因此最终的可视树与原来一致。模板中或元素不是 panel 子元素时，请显式使用 `ProjectionHost`。
+按需包装要求元素是某个 `Panel` 的直接子元素，且该 Panel 不是 `ItemsControl` 的 items panel。item 容器（`ListBoxItem`、`ComboBoxItem`、自定义容器）会被跳过，因为 items panel 的子元素由 WPF 管理；`ContentPresenter` 与其他 Panel 子元素一样可以包装。投影被清除时包装会自动释放，因此最终的可视树与原来一致。模板中或元素不是 panel 子元素时，请显式使用 `ProjectionHost`。
 
 ### 4.4 动画
 
@@ -252,7 +252,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 <TextBlock Text="Second" phone:TurnstileFeatherEffect.FeatheringIndex="1" />
 ```
 
-目标必须可被 `ProjectionHost` 包装。`ListBoxItem` 内的目标会被跳过，因为替换 item 容器会破坏生成。
+目标必须可被 `ProjectionHost` 包装：它是某个 Panel 的直接子元素，且该 Panel 不是 `ItemsControl` 的 items panel。item 容器本身（`ListBoxItem`）无法包装，因为 items panel 的子元素由 WPF 管理；请把 feathering index 放到 item 模板内部的内容上。
 
 ### 未迁移
 

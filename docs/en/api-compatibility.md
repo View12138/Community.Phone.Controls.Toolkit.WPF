@@ -138,7 +138,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `<phone:ToggleSwitch ... />`, `<phone:Rating ... />`, `<phone:WrapPanel ... />` | Works with migration of the namespace only (and WPF resource keys if the app uses Metro text styles). |
 | `<toolkit:TransitionService.NavigationInTransition>...` with `phone:` prefix | Works. |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | Does not compile in WPF; use `ProjectionService.Projection` (wrapped on demand) or a `ProjectionHost`. |
-| `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel) and unwrapped when the projection is cleared. |
+| `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel that is not an items panel) and unwrapped when the projection is cleared. |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | Works. |
 | Original `PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the port’s `shell` namespace; visual chrome is limited. |
 | Original `shell:ApplicationBar` XAML | Works: the bar is rendered by the frame chrome (`ApplicationBarPresenter`), including its menu, minimized mode and the page space it reserves. |
@@ -150,7 +150,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 1. **Projection and 3D** — real 3D rendering and animation are implemented. The original `<Grid.Projection>` form does not compile, but assigning `ProjectionService.Projection` (or `element.Projection`) to any element wraps it in a `ProjectionHost` on demand, so no manual wrapper is needed; explicit hosts remain the form for templates. The camera reproduces XAML's fixed 999 DIP perspective depth, so scale and foreshortening match WP; only effects that rely on the perspective origin moving outside the element bounds differ (see known limitations).
 2. **Transitions** — timing, angles and modes match the original storyboards. Storyboard state is tracked by the port because WPF’s `GetCurrentState()` requires a controllable containing object.
 3. **Navigation** — WPF `Frame`/`Page` behavior and journal are retained, but WP page lifecycle is raised by the port’s frame; `PhoneApplicationService` idle-detection policy has no WPF system equivalent.
-4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped (item containers/content presenters) are skipped.
+4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped are skipped: item containers (WPF owns the items panel's children) and elements that are not direct children of a panel. A `ContentPresenter` that is a panel child is wrapped normally.
 5. **Controls** — DP surfaces and core behavior are preserved; visual details and modal hosts differ where WPF has no WP picker/popup infrastructure.
 6. **Localization** — all original resx resources are included; `CurrentUICulture` is used by `ControlResources`.
 7. **Unsupported modules** — AutoCompleteBox, LongListSelector, LongListMultiSelector, MultiselectList, maps, transfer, speech, Pivot/LockablePivot, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed.

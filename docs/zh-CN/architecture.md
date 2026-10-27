@@ -114,11 +114,11 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 <Grid phone:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
 ```
 
-`ProjectionService` 把投影应用到**直接包含**该元素的宿主；若元素尚未被宿主包装，则按 `EnsureProjectionHost` 的规则（Panel 的直接子元素；item 容器跳过）按需创建宿主。这样创建的宿主会在投影被清除时自动释放，因此“赋投影 → 清除投影”不会改变最终的可视树。代码中最短的形式是 `element.Projection = new PlaneProjection { RotationY = -35 };`；storyboard 路径仍然是 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。原始 `<Grid.Projection>` 形式依然**不兼容源码**，需用上面任一形式替代。
+`ProjectionService` 把投影应用到**直接包含**该元素的宿主；若元素尚未被宿主包装，则按 `EnsureProjectionHost` 的规则（Panel 的直接子元素，且该 Panel 不是 items panel；item 容器跳过）按需创建宿主。这样创建的宿主会在投影被清除时自动释放，因此“赋投影 → 清除投影”不会改变最终的可视树。代码中最短的形式是 `element.Projection = new PlaneProjection { RotationY = -35 };`；storyboard 路径仍然是 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。原始 `<Grid.Projection>` 形式依然**不兼容源码**，需用上面任一形式替代。
 
 ### 4.5 效果集成
 
-`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。给元素赋投影（`ProjectionService.SetProjection`、`element.Projection` 或 XAML 附加属性）遵循同一规则：元素尚未被宿主包装时按需包装，并在投影被清除时释放这个按需创建的宿主。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在被羽化元素订阅时完成包装（清空 feathering index 时解包），因此转场动画期间不会重新挂载内容。`ListBoxItem` 和 `ContentPresenter` 会被有意跳过，因为替换 item 容器会破坏生成和虚拟化。
+`ProjectionService.EnsureProjectionHost` 可把 Panel 的直接子元素包进 `ProjectionHost`，并复制布局属性（尺寸、Margin、对齐、Grid 行列、ZIndex、Dock、Canvas 位置）。只有**直接包含该元素**的宿主才会被复用：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影而不是只投影该元素。给元素赋投影（`ProjectionService.SetProjection`、`element.Projection` 或 XAML 附加属性）遵循同一规则：元素尚未被宿主包装时按需包装，并在投影被清除时释放这个按需创建的宿主。`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），因此指针按下期间不会修改视觉树；`TurnstileFeatherEffect` 在被羽化元素订阅时完成包装（清空 feathering index 时解包），因此转场动画期间不会重新挂载内容。item 容器（`ListBoxItem`、`ComboBoxItem`、自定义容器）会被跳过，因为 `ItemsControl` 的 items panel 子元素由 WPF 生成，直接修改会抛出 `InvalidOperationException`。`ContentPresenter` 与其他 Panel 子元素一样可以包装；重新挂载后 WPF 会保留它的 `TemplatedParent`、TemplateBinding 和具名模板部件，因此模板内容仍然正常。
 
 由于**出站转场取自被离开的页面**，想要特定退场动画的页面必须自己声明（或在导航前动态设置）。示例在 `SampleNavigator` 中采用后者，使进入和离开羽化示例都使用 feather 族。
 

@@ -9,13 +9,24 @@ using System.Collections.Generic;
 namespace Microsoft.Phone.Controls
 {
     /// <summary>
-    /// Utilities for working with collections of weak references.
+    /// A helper class that provides useful utilities to
+    /// work with weak references.
     /// </summary>
     public static class WeakReferenceHelper
     {
         /// <summary>
-        /// Determines whether the collection contains a reference to the target.
+        /// Determine if there is a reference to a known target in an object
+        /// that implements IEnumerable.
         /// </summary>
+        /// <param name="references">
+        /// The object that implements IEnumerable.
+        /// </param>
+        /// <param name="target">
+        /// The known target.
+        /// </param>
+        /// <returns>
+        /// True if a reference to the known target exists in the list. False otherwise.
+        /// </returns>
         public static bool ContainsTarget(IEnumerable<WeakReference> references, object target)
         {
             if (references == null)
@@ -23,9 +34,9 @@ namespace Microsoft.Phone.Controls
                 return false;
             }
 
-            foreach (WeakReference reference in references)
+            foreach (WeakReference r in references)
             {
-                if (ReferenceEquals(target, reference.Target))
+                if (target == r.Target)
                 {
                     return true;
                 }
@@ -35,8 +46,14 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Removes a reference to the target from the list.
+        /// Remove a reference to a known target from an object
+        /// that implement IList.
         /// </summary>
+        /// <param name="references">The list to be examined.</param>
+        /// <param name="target">The known target.</param>
+        /// <returns>
+        /// Try if the target was successsfully removed.
+        /// </returns>
         public static bool TryRemoveTarget(IList<WeakReference> references, object target)
         {
             if (references == null)
@@ -46,7 +63,7 @@ namespace Microsoft.Phone.Controls
 
             for (int i = 0; i < references.Count; i++)
             {
-                if (ReferenceEquals(references[i].Target, target))
+                if (references[i].Target == target)
                 {
                     references.RemoveAt(i);
                     return true;
@@ -57,8 +74,12 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Removes references whose target has been collected.
+        /// Removes all the weak references with null targets from an object
+        /// that implements IList.
         /// </summary>
+        /// <param name="references">
+        /// The object that implements IList.
+        /// </param>
         public static void RemoveNullTargetReferences(IList<WeakReference> references)
         {
             if (references == null)
@@ -66,11 +87,12 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            for (int i = references.Count - 1; i >= 0; i--)
+            for (int i = 0; i < references.Count; i++)
             {
                 if (references[i].Target == null)
                 {
                     references.RemoveAt(i);
+                    i--;
                 }
             }
         }

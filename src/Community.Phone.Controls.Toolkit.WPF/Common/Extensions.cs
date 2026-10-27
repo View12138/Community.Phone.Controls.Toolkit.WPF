@@ -90,7 +90,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="uri">The uri</param>
         public static bool IsExternalNavigation(this Uri uri)
         {
-            return (null != uri) && (ExternalAddress == uri.ToString());
+            return (ExternalAddress == uri?.ToString());
         }
 
         /// <summary>
@@ -109,26 +109,5 @@ namespace Microsoft.Phone.Controls
 
             element.SetBinding(prop, new Binding(propertyName) { Source = element });
         }
-
-        public static object FindThemeResource(this FrameworkElement element, object key)
-        {
-            object value = element.TryFindResource(key);
-            if (value != null)
-            {
-                return value;
-            }
-
-            if (Application.Current != null)
-            {
-                value = Application.Current.TryFindResource(key);
-                if (value != null)
-                {
-                    return value;
-                }
-            }
-
-            return null;
-        }
-
     }
 }

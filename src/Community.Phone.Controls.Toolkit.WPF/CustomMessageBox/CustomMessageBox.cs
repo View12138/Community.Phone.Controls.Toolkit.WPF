@@ -657,5 +657,25 @@ namespace Microsoft.Phone.Controls
                 return Visibility.Visible;
             }
         }
+
+        public object FindThemeResource(object key)
+        {
+            object value = TryFindResource(key);
+            if (value != null)
+            {
+                return value;
+            }
+
+            if (Application.Current != null)
+            {
+                value = Application.Current.TryFindResource(key);
+                if (value != null)
+                {
+                    return value;
+                }
+            }
+
+            return null;
+        }
     }
 }

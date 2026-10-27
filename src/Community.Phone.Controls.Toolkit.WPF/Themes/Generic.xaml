@@ -12,6 +12,7 @@
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/Dark.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/Button.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/CustomMessageBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/HubTile.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/ListBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/ListPicker.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/TextBlock.xaml" />

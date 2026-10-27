@@ -138,7 +138,7 @@
 | `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 仅修改命名空间即可（以及应用使用的 WPF 资源键）。 |
 | 使用 `phone:` 前缀的 `<toolkit:TransitionService.NavigationInTransition>...` | 可用。 |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection`（按需包装）或 `ProjectionHost`。 |
-| `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 panel 的直接子元素），清除投影时自动解包。 |
+| `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 Panel 的直接子元素，且该 Panel 不是 items panel），清除投影时自动解包。 |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | 可用。 |
 | 使用 `shell:SystemTray.IsVisible` 的原始 `PhoneApplicationPage` XAML | 使用移植 `shell` 命名空间可解析；视觉 chrome 有限。 |
 | 原始 `shell:ApplicationBar` XAML | 可用：应用栏（含菜单、最小化模式与为页面预留的空间）由 frame chrome（`ApplicationBarPresenter`）渲染。 |
@@ -150,7 +150,7 @@
 1. **投影与 3D**：真实 3D 渲染和动画已实现。原始 `<Grid.Projection>` 形式不编译，但把 `ProjectionService.Projection`（或 `element.Projection`）赋给任意元素时会按需把它包进 `ProjectionHost`，无需手动包装；模板中仍建议显式使用 Host。相机复现了 XAML 固定的 999 DIP 透视深度，因此缩放与透视收缩与 WP 一致；只有依赖“透视原点移出元素边界”的效果存在差异（见已知限制）。
 2. **转场**：时序、角度和模式与原始 storyboard 一致。由于 WPF `GetCurrentState()` 需要可控宿主，移植版自行跟踪 storyboard 状态。
 3. **导航**：保留 WPF `Frame`/`Page` 和 journal 行为，但 WP 页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 检测策略没有 WPF 系统等价物。
-4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线；无法包装的 item 容器/content presenter 会被跳过。
+4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线。无法包装的目标会被跳过：items panel 内的 item 容器（子元素由 WPF 管理）以及不是 Panel 直接子元素的元素；作为 Panel 子元素的 `ContentPresenter` 可以正常包装。
 5. **控件**：DP 面和核心行为保留；WPF 没有对应 picker/popup 基础设施时，视觉细节和模态宿主不同。
 6. **本地化**：包含原始 resx 资源；`ControlResources` 使用 `CurrentUICulture`。
 7. **不支持模块**：AutoCompleteBox、LongListSelector、LongListMultiSelector、MultiselectList、地图、传输、语音、Pivot/LockablePivot、SlideInEffect 和手势 API 明确不支持，没有空壳。

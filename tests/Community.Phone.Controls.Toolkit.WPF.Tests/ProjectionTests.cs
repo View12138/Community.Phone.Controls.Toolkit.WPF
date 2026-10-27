@@ -758,6 +758,162 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void ProjectionService_WrapsAContentPresenterDeclaredInAPanel()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                ContentPresenter presenter = new ContentPresenter { Content = "Projected", Width = 200, Height = 100 };
+                panel.Children.Add(presenter);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    PlaneProjection projection = new PlaneProjection { RotationY = 30 };
+                    presenter.Projection = projection;
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost host = ProjectionService.GetProjectionHost(presenter);
+                    Assert.NotNull(host);
+                    Assert.Same(presenter, host.Content);
+                    Assert.Same(projection, host.Projection);
+                    Assert.True(host.IsRenderingIn3D);
+
+                    presenter.Projection = null;
+
+                    Assert.Same(panel, VisualTreeHelper.GetParent(presenter));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_KeepsTemplateBindingsWhenWrappingATemplatedContentPresenter()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Button button = new Button { Content = "hello", Width = 200, Height = 60 };
+
+                FrameworkElementFactory grid = new FrameworkElementFactory(typeof(Grid));
+                FrameworkElementFactory presenterFactory =
+                    new FrameworkElementFactory(typeof(ContentPresenter), "PART_Content");
+                presenterFactory.SetValue(
+                    ContentPresenter.ContentProperty,
+                    new TemplateBindingExtension(ContentControl.ContentProperty));
+                grid.AppendChild(presenterFactory);
+                button.Template = new ControlTemplate(typeof(Button)) { VisualTree = grid };
+                panel.Children.Add(button);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    ContentPresenter presenter = FindVisualChild<ContentPresenter>(button);
+                    Assert.NotNull(presenter);
+
+                    presenter.Projection = new PlaneProjection { RotationX = 20 };
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost host = ProjectionService.GetProjectionHost(presenter);
+                    Assert.NotNull(host);
+                    Assert.Same(host, ProjectionService.GetDirectProjectionHost(presenter));
+                    Assert.True(host.IsRenderingIn3D);
+
+                    // Re-parenting must not detach the presenter from the
+                    // control's template: template bindings and named template
+                    // parts keep working.
+                    Assert.Same(button, presenter.TemplatedParent);
+                    Assert.Equal("hello", presenter.Content);
+                    Assert.Same(presenter, button.Template.FindName("PART_Content", button));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_DoesNotWrapItemContainersInAnItemsPanel()
+        {
+            StaTest.Run(() =>
+            {
+                ListBox list = new ListBox { Width = 300, Height = 200 };
+                list.Items.Add("one");
+                list.Items.Add("two");
+
+                Window window = new Window { Width = 360, Height = 260, Content = list };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    list.UpdateLayout();
+
+                    ListBoxItem item = (ListBoxItem)list.ItemContainerGenerator.ContainerFromIndex(0);
+                    Assert.NotNull(item);
+                    Panel itemsPanel = (Panel)VisualTreeHelper.GetParent(item);
+                    int childCount = itemsPanel.Children.Count;
+
+                    // WPF owns the items panel's children, so the item must be
+                    // refused instead of throwing from UIElementCollection.
+                    Assert.Null(ProjectionService.EnsureProjectionHost(item));
+                    item.Projection = new PlaneProjection { RotationY = 30 };
+
+                    Assert.Null(ProjectionService.GetDirectProjectionHost(item));
+                    Assert.Same(itemsPanel, VisualTreeHelper.GetParent(item));
+                    Assert.Equal(childCount, itemsPanel.Children.Count);
+                    Assert.Same(item, list.ItemContainerGenerator.ContainerFromIndex(0));
+
+                    item.Projection = null;
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void ProjectionService_WrapsAnItemContainerOutsideAnItemsControl()
+        {
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                ListBoxItem item = new ListBoxItem { Content = "Standalone", Width = 200, Height = 60 };
+                panel.Children.Add(item);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    PlaneProjection projection = new PlaneProjection { RotationY = 25 };
+                    item.Projection = projection;
+                    WpfTestHelper.PumpDispatcher();
+
+                    ProjectionHost host = ProjectionService.GetProjectionHost(item);
+                    Assert.NotNull(host);
+                    Assert.Same(item, host.Content);
+                    Assert.Same(projection, host.Projection);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
         public void ProjectionService_DoesNotProjectThePageHostOfAContainedElement()
         {
             StaTest.Run(() =>
@@ -895,6 +1051,27 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.Equal(9, minY);
                 Assert.Equal(40, maxY);
             });
+        }
+
+        private static T FindVisualChild<T>(DependencyObject root) where T : DependencyObject
+        {
+            int count = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(root, i);
+                if (child is T match)
+                {
+                    return match;
+                }
+
+                T nested = FindVisualChild<T>(child);
+                if (nested != null)
+                {
+                    return nested;
+                }
+            }
+
+            return null;
         }
 
         private static MatrixTransform3D GetProjectedTransform(ProjectionHost host)
