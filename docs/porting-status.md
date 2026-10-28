@@ -12,7 +12,7 @@ English · [中文](zh-CN/porting-status.md)
 | 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
 | ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
 
-**Evidence snapshot (2026-10-22):** cold Release build 0 errors (22 pre-existing warnings, all in `LongListSelector`, `ViewportControl` and `WindowHelper`) · **109/109 tests pass** in Release (about 35 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer) · `build/verify-package.ps1` passes · earlier sample runs: the Controls sample (both list pickers) loads without an animation exception, the ListPicker full-mode page shows the original `ApplicationBar` (circular check/cancel buttons), and the Menus sample draws the ported application bar. The latest ListPicker fixes were verified in an offscreen `RenderTargetBitmap` harness (480×800) that reproduces the page and the full-mode round trip; the sample itself was smoke-run (starts, no error file).
+**Evidence snapshot (2026-10-27):** Release build 0 errors (22 pre-existing warnings, all in `LongListSelector`, `ViewportControl` and `WindowHelper`) · **124/124 tests pass** in Release (about 44 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer) · `build/verify-package.ps1` passes (the fresh consumer window contains a `Pivot`) · sample smoke run: the main page lists the `Pivot` sample, opening it renders the pivot item, the header strip and the `SelectedIndex 0 of 3` status, and no new entry is written to the sample error log. `WINDOWS_PHONE;WP8` is defined in every configuration, which is what makes the Release compilation of the ported sources work at all.
 
 ---
 
@@ -63,7 +63,7 @@ English · [中文](zh-CN/porting-status.md)
 |---|---|---|
 | `TiltEffect` | ✅ Verified | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`, `TiltEffect_DoesNotTiltThePageThatHostsTheElement`, `TiltEffect_DoesNotWrapWhenSuppressed`; press direction cross-checked analytically against XAML conventions |
 | `TurnstileFeatherEffect` | 🟡 Implemented / unverified | Same tests as the feather transition (`…_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget`) plus `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`; targets are collected from the page's visual tree and the host wrap is deferred to the dispatcher. Per-item hosts and page-level projection work; perspective origin differs from the original |
-| `SlideInEffect` | ⛔ Not implemented | Requires Pivot |
+| `SlideInEffect` | ⛔ Not implemented | The effect animates pivot items when the selection changes; `Pivot` now exists, the effect itself is still not ported |
 
 ## 5. Controls
 
@@ -75,7 +75,7 @@ English · [中文](zh-CN/porting-status.md)
 | `PhoneTextBox` | ✅ Verified (behaviour) | `PhoneTextBox_ShowsHintWhenEmpty`, `…_TemplatePartsAndTwoWayText`, `…_InnerEditorIsVisibleAndReceivesFocus`. The hint now starts where the caret does (measured: 12 px) and is hidden while focused or during an IME composition; hint animation visuals unverified |
 | `ListPicker` / `ListPickerItem` | ✅ Verified (behaviour) | `ListPicker_SelectionRoundTrips`, `…_ExpandedModeSelectsItemAndCollapses`, `…_OpenWithoutItemsExpands`, `…_FullModeWithoutFrameStaysUsable`, `…_FullModeNavigatesToPickerPageAndCommitsSelection`, `…_PageWithPickersLoadsWithoutAnimationErrors`, `…_HighlightedVisualStateUsesBrushResources`, `…_FullModePageUsesTheApplicationBarForSingleSelection`, `…_FullModePageCommitsFromTheApplicationBarDoneButton` (the page's original app bar, its localized texts, its library icons and the done→commit flow), `…_FullModePageAnimatesEveryItemInView` (every item has a `ProjectionHost`, starts edge-on and ends flat), `…_FullModeSingleSelectionUsesThePhoneItemStyle` (no desktop selection fill, accent foreground, 98 px rows instead of the desktop 118), `…_MultipleSelectionCheckBoxUsesThePhoneStyle` (transparent fill, white border), `…_ReturnsFromFullModeShowsTheSelectedItem` (the presenter translate offset moves to the chosen row), `…_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt` (120 virtualized items: no `NullReferenceException`, the selection is scrolled into view and animated, no container left edge-on). The full-mode page's chrome and spacing were compared with WP 8.1 screenshots |
 | `ExpanderView` | 🟡 Implemented / unverified | `ExpanderView_TogglesAndRaisesEvents` covers behaviour; height animation and the header rule's spacing are visual-only |
-| `HubTile` / `HubTileService` | 🟡 Implemented / unverified | `HubTile_PropertiesAndGroupFreeze`; the template now follows the WP8 original (sliding surface + `RotationX` flip, verified numerically with a probe: `0→180→0`, panels swapped at 185 ms), pixel fidelity unverified |
+| `HubTile` / `HubTileService` | ✅ Verified | `HubTile_PropertiesAndGroupFreeze`, `HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel`; the template is the WP8 original (sliding surface + `RotationX` flip): Expanded/Semiexpanded slide the surface to `-H`/`-0.4566H`, the flip rotates `0→180` and renders the back panel because the projected quad is double-sided, and the `Source` image is verified from rendered pixels at 96 DPI |
 | `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`; the dialog swivels in (`BackwardIn`) and out (`BackwardOut`) with the real projection pipeline (probe: `RotationX −45°→0°` on show, `0°→42°` on dismiss before the window closes). `Show()` also works in a host without an `Application` (it falls back to the theme colours and a default size), which is how the test drives it |
 | `ContextMenu` / `ContextMenuService` | ✅ Verified | `ContextMenuService_AttachesMenu`, `ContextMenu_OpensAndCloses` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ Verified (behaviour) | `DateTimePickers_HaveExpectedDefaultsAndFormatting`, `DateTimePickers_FormatValuesAndRaiseValueChanged`, `RecurringDaysPicker_SummarizesWeekdays`. Picker *pages* and `LoopingSelector` are not ported (WPF dialogs are used) |
@@ -92,7 +92,8 @@ English · [中文](zh-CN/porting-status.md)
 | `SpeechTextBox` | ⛔ Not implemented | Requires WP speech APIs |
 | `TransferControl` | ⛔ Not implemented | Requires the WP background-transfer service |
 | `GestureListener` / `GestureService` | ⛔ Not implemented | WPF manipulation events are used instead |
-| `LockablePivot` / `Pivot` | ⛔ Not implemented | — |
+| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | ✅ Verified (behaviour) / 🟡 (pointer drag) | `Pivot_ShowsTheFirstItemAndBuildsTheHeaderStrip`, `…_SelectedIndexSlidesTheIncomingItemAndCompletes`, `…_BackwardSelectionEntersFromTheLeft`, `…_ClickingAHeaderSelectsItsItem`, `…_HeaderRunWrapsAroundAfterTheLastHeader`, `…_KeyboardNavigatesAndWrapsAround`, `…_IsLockedRefusesProgrammaticNavigationAndFadesHeaders`, `…_RaisesTheItemLifecycleEventsInOrder`, `…_ItemsAddedAfterTheTemplateAppears`, `…_OutOfRangeSelectionIsRejected`, `…_RendersTheTitleHeadersAndContent` (96 DPI render: title, header and content pixels in the expected bands). The pointer-drag path (capture, 600 px/s tracking, half-viewport threshold) has no automated test and could not be exercised interactively here (no pointer reaches the window); it is implemented but unverified. Input is a mouse drag plus arrow keys instead of DirectManipulation; the header run is circular like the original but drawn once (`docs/*/known-limitations.md`) |
+| `LockablePivot` | ⛔ Not implemented | The toolkit's WP7 helper is superseded by `Pivot.IsLocked`, which the port implements on `Pivot` itself |
 
 ## 6. Theme, localization, packaging
 
@@ -101,15 +102,15 @@ English · [中文](zh-CN/porting-status.md)
 | Metro theme + WP base-control styles | ✅ Verified (presence) / 🟡 (fidelity) | `Theme_ContainsMetroResources`; `Generic.xaml` styles `Button`, `TextBox`, `ComboBox`, `CheckBox`, `RadioButton`, `ListBox`, `ScrollBar`, `ContextMenu`, `ProgressBar`, `ToolTip` and the toolkit controls. Pixel parity with WP was never compared side by side |
 | Localization resources | ✅ Verified | 50 cultures + neutral, satellites in the package; `OffOnConverterUsesLocalizedStrings` |
 | NuGet package | ✅ Verified | `build\verify-package.ps1`: `Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`, fresh consumer builds and runs |
-| Sample application | ✅ Verified (runs) | Mirrors the original `PhoneToolkitSample8` layout: `MainPage` lists samples and each sample is its own page (`ControlsPage`, `ProjectionPage`, `TransitionsPage`, `TransitionTargetPage`, `FeatherPage`, `MenusPage`). UI-automation smoke 2026-10-19: all five samples open and return; `Accent button` stable at 644×66 |
+| Sample application | ✅ Verified (runs) | Mirrors the original `PhoneToolkitSample8` layout: `MainPage` lists samples and each sample is its own page (`ControlsPage`, `ProjectionPage`, `TransitionsPage`, `TransitionTargetPage`, `FeatherPage`, `MenusPage`, `ListPickerSample`, `CustomMessageBoxSample`, `PivotSample`, `HubTileSample`). UI-automation smoke 2026-10-27: the Pivot sample opens (active `PivotItem`, headers, status text), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original HubTiles and images) renders its text and images. Both configurations were rebuilt first: adding `Resource` images to the sample project needs a rebuild, otherwise the `.g.resources` keeps the previous file list and the pack URIs fail |
 
 ---
 
 ## 7. Re-verification commands
 
 ```powershell
-dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
-dotnet test  Community.Phone.Controls.Toolkit.slnx -c Release
+dotnet build PhoneToolkit.WPF.slnx -c Release
+dotnet test  PhoneToolkit.WPF.slnx -c Release
 powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 # sample (stop it before rebuilding)
 .\src\Community.Phone.Controls.Toolkit.WPF.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.WPF.Sample.exe

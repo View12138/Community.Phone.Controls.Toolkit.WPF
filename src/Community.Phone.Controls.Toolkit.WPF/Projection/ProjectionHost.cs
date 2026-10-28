@@ -117,6 +117,7 @@ namespace Microsoft.Phone.Controls
         private Projection _subscribedProjection;
         private bool _using3D;
         private Size _geometrySize = Size.Empty;
+        private Size _surfaceClipSize = Size.Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProjectionHost"/> class.
@@ -145,9 +146,20 @@ namespace Microsoft.Phone.Controls
             _viewport = new Viewport3D
             {
                 Camera = _camera,
-                ClipToBounds = true,
+
+                // The projected quad is not clipped to the host: a XAML
+                // projection rotates the element's raster and lets the result
+                // draw outside the element's layout slot (the near half of a
+                // rotated tile is magnified and pokes out). Only the content
+                // is clipped, and that happens on the surface (see
+                // ArrangeOverride).
+                ClipToBounds = false,
                 IsHitTestVisible = true
             };
+
+            // The 2D path has no plane, so the overflowing content is clipped
+            // by the host itself. Ensure3D turns it off again.
+            ClipToBounds = true;
             _viewport.Children.Add(new ModelVisual3D
             {
                 Content = new AmbientLight(Colors.White)
@@ -222,6 +234,22 @@ namespace Microsoft.Phone.Controls
                     }
 
                     _surface.Arrange(new Rect(finalSize));
+
+                    // The content is rasterized into the layout slot before it
+                    // is mapped onto the quad: XAML projections clip the
+                    // element's content to its bounds but not the projected
+                    // result. Clipping the surface instead of the viewport also
+                    // keeps the brush mapping one-to-one when a child overflows
+                    // its slot (the HubTile surface is two tiles high inside a
+                    // one-tile-high viewport).
+                    if (_surfaceClipSize != finalSize)
+                    {
+                        _surfaceClipSize = finalSize;
+
+                        RectangleGeometry surfaceClip = new RectangleGeometry(new Rect(finalSize));
+                        surfaceClip.Freeze();
+                        _surface.Clip = surfaceClip;
+                    }
                 }
                 else
                 {
@@ -409,6 +437,11 @@ namespace Microsoft.Phone.Controls
             _visual3D.Visual = _surface;
             AddVisualChild(_viewport);
             _using3D = true;
+
+            // The result of the projection may draw outside the slot, so the
+            // host stops clipping and the surface clip (ArrangeOverride) takes
+            // over the job of cutting the content.
+            ClipToBounds = false;
             InvalidateMeasure();
             InvalidateArrange();
             UpdateScene(RenderSize);
@@ -426,6 +459,10 @@ namespace Microsoft.Phone.Controls
 
             RemoveVisualChild(_viewport);
             _using3D = false;
+
+            // Back in the 2D path there is no surface to clip the content, so
+            // the host clips its own rendering again.
+            ClipToBounds = true;
 
             if (Content != null)
             {
@@ -504,7 +541,15 @@ namespace Microsoft.Phone.Controls
             Int32Collection triangleIndices = new Int32Collection
             {
                 0, 2, 1,
-                0, 3, 2
+                0, 3, 2,
+
+                // XAML projections are double sided: they rotate the element's
+                // rasterized content, so a rotation past 90 degrees shows the
+                // mirrored content instead of nothing. WPF culls back faces, so
+                // the quad carries the reversed winding as well; the front and
+                // the back triangles never rasterize at the same time.
+                0, 1, 2,
+                0, 2, 3
             };
 
             _mesh.Positions = positions;

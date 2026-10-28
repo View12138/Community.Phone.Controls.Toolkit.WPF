@@ -3,10 +3,12 @@
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
 
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace Microsoft.Phone.Controls
 {
@@ -71,6 +73,32 @@ namespace Microsoft.Phone.Controls
         private const string TitlePanel = "TitlePanel";
 
         /// <summary>
+        /// Titles Panel offset that shows the image (the original template's
+        /// HeightConverter multiplier for Expanded and Flipped).
+        /// </summary>
+        private const double SurfaceExpandedFraction = -1.0;
+
+        /// <summary>
+        /// Titles Panel offset for Semiexpanded (the original template's
+        /// HeightConverter multiplier).
+        /// </summary>
+        private const double SurfaceSemiexpandedFraction = -0.4566;
+
+        /// <summary>
+        /// Titles Panel offset for Collapsed (the original template's literal).
+        /// </summary>
+        private const double SurfaceCollapsedFraction = 0.0;
+
+        /// <summary>
+        /// Duration of the surface movement, from the original template's
+        /// GeneratedDuration.
+        /// </summary>
+        private const double SurfaceAnimationSeconds = 0.85;
+
+        private static readonly Duration SurfaceAnimationDuration =
+            new Duration(TimeSpan.FromSeconds(SurfaceAnimationSeconds));
+
+        /// <summary>
         /// Notification Block template part.
         /// </summary>
         private TextBlock _notificationBlock;
@@ -81,9 +109,22 @@ namespace Microsoft.Phone.Controls
         private TextBlock _messageBlock;
 
         /// <summary>
-        /// Title Panel template part.
+        /// Title Panel template part, which carries the sliding offset.
         /// </summary>
         private Panel _titlePanel;
+
+        /// <summary>
+        /// The transform that slides the title panel. HubTile creates it rather
+        /// than declaring it in the template: a Freezable that appears in a
+        /// template is frozen, and a frozen transform cannot be animated.
+        /// </summary>
+        private TranslateTransform _surfaceTransform;
+
+        /// <summary>
+        /// Whether the visual states have been applied at least once; the first
+        /// application snaps instead of animating.
+        /// </summary>
+        private bool _visualStateApplied;
 
         /// <summary>
         /// Back Title Block template part.
@@ -357,32 +398,56 @@ namespace Microsoft.Phone.Controls
         {
             HubTile hubTile = (HubTile)obj;
 
-            // And now we'll update the width and height to match the new size.
-            switch (hubTile.Size)
-            {
-                case TileSize.Default:
-                    hubTile.Width = 173;
-                    hubTile.Height = 173;
-                    break;
-
-                case TileSize.Small:
-                    hubTile.Width = 99;
-                    hubTile.Height = 99;
-                    break;
-
-                case TileSize.Medium:
-                    hubTile.Width = 210;
-                    hubTile.Height = 210;
-                    break;
-
-                case TileSize.Large:
-                    hubTile.Width = 432;
-                    hubTile.Height = 210;
-                    break;
-            }
+            hubTile.Width = GetTileWidth(hubTile.Size);
+            hubTile.Height = GetTileHeight(hubTile.Size);
+            hubTile.ApplySurfaceOffset();
 
             hubTile.SizeChanged += OnHubTileSizeChanged;
             HubTileService.FinalizeReference(hubTile);
+        }
+
+        /// <summary>
+        /// The width a tile size occupies, in DIPs.
+        /// </summary>
+        /// <param name="size">The tile size.</param>
+        /// <returns>The width of the tile.</returns>
+        internal static double GetTileWidth(TileSize size)
+        {
+            switch (size)
+            {
+                case TileSize.Small:
+                    return 99;
+
+                case TileSize.Medium:
+                    return 210;
+
+                case TileSize.Large:
+                    return 432;
+
+                default:
+                    return 173;
+            }
+        }
+
+        /// <summary>
+        /// The height a tile size occupies, in DIPs.
+        /// </summary>
+        /// <param name="size">The tile size.</param>
+        /// <returns>The height of the tile.</returns>
+        internal static double GetTileHeight(TileSize size)
+        {
+            switch (size)
+            {
+                case TileSize.Small:
+                    return 99;
+
+                case TileSize.Medium:
+                case TileSize.Large:
+                    return 210;
+
+                default:
+                    return 173;
+            }
         }
 
         static void OnHubTileSizeChanged(object sender, SizeChangedEventArgs e)
@@ -391,24 +456,14 @@ namespace Microsoft.Phone.Controls
             hubTile.SizeChanged -= OnHubTileSizeChanged;
 
             // In order to avoid getting into a bad state, we'll shift the HubTile
-            // back to the Expanded state.  If we were already in the Expanded state,
-            // then we'll manually shift the title panel to the right location,
-            // since the visual state manager won't do it for us in that case.
+            // back to the Expanded state.
             if (hubTile.State != ImageState.Expanded)
             {
                 hubTile.State = ImageState.Expanded;
                 VisualStateManager.GoToState(hubTile, Expanded, false);
             }
-            else if (hubTile._titlePanel != null)
-            {
-                TranslateTransform titlePanelTransform = hubTile._titlePanel.RenderTransform as TranslateTransform;
 
-                if (titlePanelTransform != null)
-                {
-                    titlePanelTransform.Y = -hubTile.Height;
-                }
-            }
-
+            hubTile.ApplySurfaceOffset();
             HubTileService.InitializeReference(hubTile);
         }
 
@@ -427,9 +482,6 @@ namespace Microsoft.Phone.Controls
             {
                 switch (State)
                 {
-                    case ImageState.Expanded:
-                        state = Expanded;
-                        break;
                     case ImageState.Semiexpanded:
                         state = Semiexpanded;
                         break;
@@ -449,7 +501,72 @@ namespace Microsoft.Phone.Controls
                 state = Expanded;
             }
 
-            VisualStateManager.GoToState(this, state, true);
+            bool animate = _visualStateApplied;
+            _visualStateApplied = true;
+
+            VisualStateManager.GoToState(this, state, animate);
+            MoveSurface(animate);
+        }
+
+        /// <summary>
+        /// Gets the offset of the sliding surface for a state, as a fraction of
+        /// the tile height. The original template expressed it as a
+        /// HeightConverter multiplier: -1 shows the image band (Expanded and
+        /// Flipped), -0.4566 half of it (Semiexpanded) and 0 the title band
+        /// (Collapsed).
+        /// </summary>
+        /// <param name="state">The state of the tile.</param>
+        /// <returns>The offset as a fraction of the tile height.</returns>
+        private static double GetSurfaceOffsetFraction(ImageState state)
+        {
+            switch (state)
+            {
+                case ImageState.Semiexpanded:
+                    return SurfaceSemiexpandedFraction;
+
+                case ImageState.Collapsed:
+                    return SurfaceCollapsedFraction;
+
+                default:
+                    return SurfaceExpandedFraction;
+            }
+        }
+
+        /// <summary>
+        /// Moves the sliding surface to the offset of the current state.
+        /// </summary>
+        /// <param name="animate">Whether the movement is animated.</param>
+        private void MoveSurface(bool animate)
+        {
+            TranslateTransform transform = _surfaceTransform;
+            if (transform == null)
+            {
+                return;
+            }
+
+            ImageState state = Size == TileSize.Small ? ImageState.Expanded : State;
+            double offset = GetSurfaceOffsetFraction(state) * GetTileHeight(Size);
+
+            if (!animate)
+            {
+                transform.BeginAnimation(TranslateTransform.YProperty, null);
+                transform.Y = offset;
+                return;
+            }
+
+            DoubleAnimation animation = new DoubleAnimation(offset, SurfaceAnimationDuration)
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            transform.BeginAnimation(TranslateTransform.YProperty, animation);
+        }
+
+        /// <summary>
+        /// Applies the current offset immediately, for a new size or template.
+        /// </summary>
+        private void ApplySurfaceOffset()
+        {
+            MoveSurface(false);
         }
 
         /// <summary>
@@ -463,6 +580,12 @@ namespace Microsoft.Phone.Controls
             _messageBlock = base.GetTemplateChild(MessageBlock) as TextBlock;
             _backTitleBlock = base.GetTemplateChild(BackTitleBlock) as TextBlock;
             _titlePanel = base.GetTemplateChild(TitlePanel) as Panel;
+            _surfaceTransform = null;
+            if (_titlePanel != null)
+            {
+                _surfaceTransform = new TranslateTransform();
+                _titlePanel.RenderTransform = _surfaceTransform;
+            }
 
             //Do binding in code to avoid exposing unnecessary value converters.
             if (_notificationBlock != null)
@@ -494,6 +617,8 @@ namespace Microsoft.Phone.Controls
                 _backTitleBlock.SetBinding(TextBlock.TextProperty, bindTitle);
             }
 
+            ApplySurfaceOffset();
+            _visualStateApplied = false;
             UpdateVisualState();
         }
 

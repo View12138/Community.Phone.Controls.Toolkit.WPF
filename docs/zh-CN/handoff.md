@@ -4,7 +4,7 @@
 
 **用途。** 这是新会话的入口：记录工作区里**真实成立**的东西——已验证的构建/测试/运行结果、已确认的设计决策、不能丢失的未提交修改，以及具体的下一步。它不重述原始任务计划（`.github/Guide.md`），也不替代完整 API 矩阵。
 
-**最后更新：** 2026-10-19 17:24（本地时间），分支 `main`，工作区**有未提交修改**（25 个修改，其中 4 个删除；13 个新增文件，见 §10）。上一轮工作已提交为 `bc0e22e`。
+**最后更新：** 2026-10-27（本地时间），分支 `main`，工作区**有未提交修改** —— `Pivot` 控件（源码、主题、测试、示例页）、`HubTile` 滑面与翻转修复（主题、代码、测试，含投影裁剪修复）以及文档更新尚未提交。上一轮工作已提交为 `9a980ea`。
 
 ---
 
@@ -21,19 +21,25 @@
 
 ---
 
-## 2. 当前已验证状态（2026-10-22）
+## 2. 当前已验证状态（2026-10-27）
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release --no-incremental`（或删除 `obj`/`bin` 后重建） | **0 错误**；警告只来自未跟踪的进行中文件（`LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` —— 未使用事件 / 不可达代码）。已跟踪代码（含转场与投影子系统）零警告 |
-| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **109 通过 / 0 失败 / 0 跳过**，约 35 秒 —— 所有转场/导航/投影/效果/ListPicker/应用栏测试均通过，包括此前失败的 `ControlTests.CustomMessageBox_ShowDismissRaisesLifecycleEvents` |
-| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **109 通过 / 0 失败** |
-| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原并运行成功 |
-| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并逐个打开示例 | **五个示例均可打开并返回**（Controls、Projection、Transitions → 目标页 → 返回、Feathering → 进入 → 返回、Menus）；Controls 页（含两个 list picker）加载时不再抛动画异常，`RecurringDaysPicker` 能打开完整模式 `ListPickerPage`（标题 `REPEATS`、七行星期、原版 `ApplicationBar` 的「完成/取消」图标按钮），点「完成」返回 Controls 页；Menus 页绘制出移植版应用栏（图标、标签、菜单按钮与菜单）；进程存活且无错误日志。**最近一轮未重复该验证** —— 交互式桌面不可用（`CopyFromScreen` 报 "句柄无效"，UIA 点击落不到窗口）；该路径由三个 `ListPickerPage` 测试覆盖 |
+| Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 22 个既有警告** —— `LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` 里的 CS0067/CS0162（未使用事件、不可达代码）；它们已在 `HEAD` 中，与本轮改动无关。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
+| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **130 通过 / 0 失败 / 0 跳过**，约 47 秒 |
+| Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **130 通过 / 0 失败** |
+| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原、零警告构建并运行（窗口内含 `Pivot`） |
+| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
 
-测试清单（109 个用例、105 个方法）：`ControlTests` 34、`ProjectionTests` 25、`NavigationTests` 16、`TransitionStoryboardTests` 9 方法 / 13 用例、`EffectsTests` 7、`ShellTests` 11、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+测试清单（130 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 16、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`EffectsTests` 7、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+
+**2026-10-27 —— `Pivot`。** `Controls/Pivot/` 现包含 `Pivot`、`PivotItem`、`PivotItemEventArgs`、`PivotHeadersControl`、`PivotHeaderItem` 和内部 `SelectedIndexChangedEventArgs`；`Themes/Controls/Pivot.xaml` 提供标题/页眉/项样式（数值取自手机主题）并合并进 `Generic.xaml`。手机控件由 DirectManipulation 与合成器驱动，因此移植版用代码动画并沿用原版数值：内容滑动 0.25 秒（`QuarticEase`）、页眉滚动 0.5 秒、指针跟踪 600 px/s。输入是指针拖拽加半视口阈值、点击页眉，以及 Left/Right/PageUp/PageDown/Home/End；`Pivot.IsLocked` 用 200 毫秒淡出页眉并拒绝修改项。有两个主题细节是必需的：`Themes/Controls/*.xaml` 必须各自合并 `Theme/Dark.xaml`（延迟 Setter 里的 `StaticResource` 只在所属字典内解析——否则 `PivotTitleStyle` 的前景色会变成 `DependencyProperty.UnsetValue` 并抛异常）；`PivotHeaderItem` 的容器样式需要 `BasedOn="{StaticResource {x:Type primitives:PivotHeaderItem}}"`，因为 WPF 在显式赋样式时会替换隐式样式。前进/后退的进入方向现在每次选中变化都按索引位移推断；原版保留上次的方向提示，使绑定 `SelectedIndex` 的滑动方向出错。`ControlTests.HubTile_PropertiesAndGroupFreeze` 在本轮之前就是失败的：它在从未布局过 tile 的情况下调用 `FreezeGroup`，而 tile 要在第一次 `SizeChanged` 时才加入 `HubTileService`，因此该测试改为把 tile 放进窗口。
 
 `NavigationTests.TransitionFrame_FallsBackWhenTransitionFactoryThrows` 已随移植版的 `TransitionFailed` 事件一起删除：现在与原版一致，`TransitionElement` 工厂抛出的异常会向上传播，而不是降级成无转场导航。
+
+**2026-10-27 —— `HubTile`。** 修复两个长期缺陷：`Source` 图片从不显示、翻转从不产生动画。当时生效的模板是 `Themes/Generic.xaml` 里的内联副本（它会遮蔽合并进来的 `Themes/Controls/HubTile.xaml`），而它从不移动滑动表面 —— 偏移来自视觉状态 storyboard 里绑定 `HeightConverter` 的值，而 WPF 会静默丢弃绑定模板父级的 storyboard 值，于是 `TitlePanel.Y` 一直是 `0`，图片带从未进入一瓦片高的视口。现在内联副本已删除（`Themes/Controls/HubTile.xaml` 是唯一模板，并合并 `Theme/Dark.xaml`），偏移改由代码施加：Expanded/Flipped 为 `-H`、Semiexpanded 为 `-0.4566H`、Collapsed 为 `0`，时长与缓动沿用原版 0.85 秒 `CubicEase` EaseOut。此后翻转超过 90° 仍然什么都不渲染，因为 WPF 会剔除背面，所以 `ProjectionHost` 的四边形同时带上反向绕序：XAML 投影从两侧都可见，翻转必须继续显示镜像内容（`ProjectionHost_RendersContentPastNinetyDegrees`）。另外三处 WPF 细节：滑动的 `TranslateTransform` 在 `OnApplyTemplate` 里创建，因为模板中声明的 `Freezable` 会被冻结、无法动画；视口套在普通 `Grid` 里，因为 `ProjectionService` 只包装父级是面板的元素（模板里是 `Border`）；`DiscreteObjectKeyFrame` 的值用 `{x:Static Visibility.Collapsed}`，因为模板 storyboard 里的普通字符串不会被转换成 `Visibility`。`CenterOfRotationY` 在移植版里取 `0.5`（原版 `0.25` × 两倍高表面，在宿主投影的一倍高平面上是同一条线）—— 用 `0.25` 时翻转后的表面会落在控件上方半个瓦片处。`ControlTests.HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel` 校验 Expanded/Semiexpanded 偏移、`0→180` 旋转、正反面切换以及渲染像素。
+
+**2026-10-27 —— 投影裁剪。** 手机版 Toolkit 会把投影结果画到元素边界之外：`HubTile` 翻转时被透视放大的近端会压到相邻瓦片上，而不是在瓦片边缘被切掉。移植版被裁剪了两次 —— `ProjectionHost` 把 `Viewport3D` 裁到宿主槽，`HubTile` 模板又加了 `Grid ClipToBounds="True"` —— 于是翻转看起来像在一扇窗后面进行。现在的规则与平台一致：*内容*被栅格化进布局槽，*投影结果*不裁剪。`Viewport3D.ClipToBounds` 为 `false`，内部 `ProjectedSurface` 带一个布局槽大小的 `RectangleGeometry` 裁剪（这同时保证子元素溢出时贴图映射仍一一对应 —— `HubTile` 的表面有两倍瓦片高、视口只有一倍高），宿主自己只在 2D 渲染（此时没有平面）时设置 `ClipToBounds`。模板保留外层普通 `Grid`（为 `ProjectionService` 提供面板父级）但不带裁剪。测试：`HubTile_FlipDrawsOutsideTheTileBounds`（滑动带仍在界内，45° 翻转画到界外）、`ProjectionHost_DoesNotClipTheProjectedResult`、`ProjectionHost_ClipsItsContentToTheLayoutSlot`。
 
 已没有任何测试依赖操作系统指针。原 `ControlTests.Rating_MouseClickChangesValue`（移动物理光标，桌面不允许时自行跳过）改为 `Rating_PointerPositionUpdatesValue`，直接调用控件 `internal` 的 `UpdateValueFromMouse`，因此锁屏、被遮挡或虚拟化的桌面既不会造成失败，也不会被静默跳过。五个 `TransitionFrame_NavigatesWithEveryFamily` 用例以及效果/导航的等待不再固定 sleep 2000–3000 ms，而是通过 `WpfTestHelper.PumpUntil(condition, timeout)` 轮询可观察状态 —— 这也是测试耗时从约 45 秒降到约 30 秒的原因。
 

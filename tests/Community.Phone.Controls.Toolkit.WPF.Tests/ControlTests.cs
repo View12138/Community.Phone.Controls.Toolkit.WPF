@@ -1154,17 +1154,306 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     GroupTag = "group-a"
                 };
 
-                Assert.Equal("News", tile.Title);
-                Assert.True(tile.DisplayNotification);
-                Assert.False(tile.IsFrozen);
+                // A tile joins the service pools from its first SizeChanged, which
+                // is what FreezeGroup walks; without a layout pass the group call
+                // has nothing to freeze.
+                Window window = new Window { Width = 260, Height = 260, Content = tile };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
 
-                HubTileService.FreezeGroup("group-a");
-                HubTileService.FreezeHubTile(tile);
-                Assert.True(tile.IsFrozen);
-                HubTileService.UnfreezeGroup("group-a");
-                HubTileService.UnfreezeHubTile(tile);
-                Assert.False(tile.IsFrozen);
+                    Assert.Equal("News", tile.Title);
+                    Assert.True(tile.DisplayNotification);
+                    Assert.False(tile.IsFrozen);
+
+                    HubTileService.FreezeGroup("group-a");
+                    Assert.True(tile.IsFrozen);
+                    HubTileService.UnfreezeGroup("group-a");
+                    Assert.False(tile.IsFrozen);
+
+                    HubTileService.FreezeHubTile(tile);
+                    HubTileService.UnfreezeHubTile(tile);
+                    Assert.False(tile.IsFrozen);
+                }
+                finally
+                {
+                    window.Close();
+                }
             });
+        }
+
+        [Fact]
+        public void HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel()
+        {
+            StaTest.Run(() =>
+            {
+                HubTile tile = new HubTile
+                {
+                    Title = "News",
+                    Message = "More",
+                    DisplayNotification = false,
+                    Source = CreateSolidBitmap(Colors.Red)
+                };
+
+                Window window = new Window { Width = 260, Height = 260, Content = tile };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    window.UpdateLayout();
+                    WpfTestHelper.PumpDispatcher();
+
+                    // HubTileService flips tiles from its own timer, so freeze this
+                    // one and observe only the states the test sets.
+                    HubTileService.FreezeHubTile(tile);
+
+                    Grid titlePanel = (Grid)tile.Template.FindName("TitlePanel", tile);
+                    FrameworkElement viewport = (FrameworkElement)tile.Template.FindName("Viewport", tile);
+                    PlaneProjection projection = ProjectionService.GetProjection(viewport) as PlaneProjection;
+                    Border image = (Border)tile.Template.FindName("Image", tile);
+                    FrameworkElement backPanel = (FrameworkElement)tile.Template.FindName("BackPanel", tile);
+
+                    Assert.NotNull(titlePanel);
+                    Assert.NotNull(projection);
+
+                    // The template slides a two-tile-high surface through a
+                    // one-tile-high viewport, so Expanded has to move the second
+                    // band (the Source image) into view.
+                    double height = tile.ActualHeight;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() => Math.Abs(SurfaceOffset(titlePanel) + height) < 0.5),
+                        "Expanded must slide the image band into the viewport.");
+                    Assert.True(
+                        CountRedPixels(tile) > 1000,
+                        "The Expanded tile has to show the Source image.");
+
+                    tile.State = ImageState.Semiexpanded;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(
+                            () => Math.Abs(SurfaceOffset(titlePanel) + (0.4566 * height)) < 1.0),
+                        "Semiexpanded must slide the surface to the original offset.");
+
+                    tile.State = ImageState.Flipped;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() => Math.Abs(Math.Abs(projection.RotationX) - 180.0) < 1.0),
+                        "The flip has to rotate the viewport to 180 degrees.");
+                    Assert.Equal(Visibility.Collapsed, image.Visibility);
+                    Assert.Equal(Visibility.Visible, backPanel.Visibility);
+                    Assert.Equal(0, CountRedPixels(tile));
+                    Assert.True(
+                        CountOpaquePixels(tile) > 1000,
+                        "A projection past 90 degrees has to keep rendering its content.");
+
+                    tile.State = ImageState.Expanded;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() => CountRedPixels(tile) > 1000),
+                        "Returning to Expanded has to show the image again.");
+                    Assert.Equal(Visibility.Visible, image.Visibility);
+                    Assert.Equal(Visibility.Collapsed, backPanel.Visibility);
+                }
+                finally
+                {
+                    HubTileService.UnfreezeHubTile(tile);
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void HubTile_FlipDrawsOutsideTheTileBounds()
+        {
+            StaTest.Run(() =>
+            {
+                // The phone toolkit projects the tile's rasterized content and
+                // lets the rotated result draw outside the tile: the near half
+                // of the flip is magnified and overlaps the tile's neighbours.
+                // Only the content may be clipped, so neither the tile nor the
+                // template's wrapper panel may carry a clip in the 3D path.
+                const int TileLeft = 70;
+                const int TileTop = 80;
+
+                HubTile tile = new HubTile
+                {
+                    Title = "News",
+                    Message = "More",
+                    DisplayNotification = false,
+                    Source = CreateSolidBitmap(Colors.Red)
+                };
+
+                Canvas canvas = new Canvas();
+                Canvas.SetLeft(tile, TileLeft);
+                Canvas.SetTop(tile, TileTop);
+                canvas.Children.Add(tile);
+
+                Grid root = new Grid
+                {
+                    Width = 320,
+                    Height = 340,
+                    Background = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                root.Children.Add(canvas);
+
+                Window window = new Window { Width = 380, Height = 400, Content = root };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    window.UpdateLayout();
+                    WpfTestHelper.PumpDispatcher();
+
+                    HubTileService.FreezeHubTile(tile);
+
+                    FrameworkElement viewport = (FrameworkElement)tile.Template.FindName("Viewport", tile);
+                    PlaneProjection projection = ProjectionService.GetProjection(viewport) as PlaneProjection;
+                    Assert.NotNull(projection);
+
+                    Rect tileBounds = new Rect(TileLeft, TileTop, tile.ActualWidth, tile.ActualHeight);
+                    Assert.True(tileBounds.Width > 100, "The tile has to be laid out before the flip.");
+
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() => CountRedPixelsInside(root, tileBounds) > 1000),
+                        "The Expanded tile has to show the Source image.");
+
+                    // The band of the sliding surface that has left the
+                    // viewport stays clipped while the tile is flat.
+                    Assert.Equal(0, CountRedPixelsOutside(root, tileBounds));
+
+                    projection.BeginAnimation(PlaneProjection.RotationXProperty, null);
+                    projection.RotationX = 45;
+                    Assert.True(
+                        WpfTestHelper.PumpUntil(() => CountRedPixelsInside(root, tileBounds) > 500),
+                        "The rotated tile has to keep rendering its content.");
+
+                    Assert.True(
+                        CountRedPixelsOutside(root, tileBounds) > 20,
+                        "The projected half of the flip has to draw outside the tile bounds.");
+                }
+                finally
+                {
+                    HubTileService.UnfreezeHubTile(tile);
+                    window.Close();
+                }
+            });
+        }
+
+        private static double SurfaceOffset(Grid titlePanel)
+        {
+            TranslateTransform transform = titlePanel.RenderTransform as TranslateTransform;
+            return transform == null ? double.NaN : transform.Y;
+        }
+
+        private static BitmapSource CreateSolidBitmap(Color color)
+        {
+            const int Size = 8;
+            int stride = Size * 4;
+            byte[] pixels = new byte[stride * Size];
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                pixels[i] = color.B;
+                pixels[i + 1] = color.G;
+                pixels[i + 2] = color.R;
+                pixels[i + 3] = 255;
+            }
+
+            BitmapSource bitmap = BitmapSource.Create(Size, Size, 96, 96, PixelFormats.Pbgra32, null, pixels, stride);
+            bitmap.Freeze();
+            return bitmap;
+        }
+
+        private static byte[] RenderPixels(FrameworkElement element)
+        {
+            RenderTargetBitmap bitmap = new RenderTargetBitmap(
+                Math.Max(1, (int)Math.Ceiling(element.ActualWidth)),
+                Math.Max(1, (int)Math.Ceiling(element.ActualHeight)),
+                96,
+                96,
+                PixelFormats.Pbgra32);
+            bitmap.Render(element);
+
+            int stride = bitmap.PixelWidth * 4;
+            byte[] buffer = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(buffer, stride, 0);
+            return buffer;
+        }
+
+        private static int CountRedPixels(FrameworkElement element)
+        {
+            byte[] buffer = RenderPixels(element);
+
+            int count = 0;
+            for (int i = 0; i < buffer.Length; i += 4)
+            {
+                if (buffer[i + 3] > 30 && buffer[i + 2] > 190 && buffer[i] < 70 && buffer[i + 1] < 70)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static int CountRedPixelsInside(FrameworkElement element, Rect bounds)
+        {
+            return CountRedPixels(element, bounds, true);
+        }
+
+        private static int CountRedPixelsOutside(FrameworkElement element, Rect bounds)
+        {
+            return CountRedPixels(element, bounds, false);
+        }
+
+        private static int CountRedPixels(FrameworkElement element, Rect bounds, bool inside)
+        {
+            RenderTargetBitmap bitmap = new RenderTargetBitmap(
+                Math.Max(1, (int)Math.Ceiling(element.ActualWidth)),
+                Math.Max(1, (int)Math.Ceiling(element.ActualHeight)),
+                96,
+                96,
+                PixelFormats.Pbgra32);
+            bitmap.Render(element);
+
+            int stride = bitmap.PixelWidth * 4;
+            byte[] buffer = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(buffer, stride, 0);
+
+            int count = 0;
+            for (int y = 0; y < bitmap.PixelHeight; y++)
+            {
+                for (int x = 0; x < bitmap.PixelWidth; x++)
+                {
+                    if (bounds.Contains(x + 0.5, y + 0.5) != inside)
+                    {
+                        continue;
+                    }
+
+                    int offset = (y * bitmap.PixelWidth + x) * 4;
+                    if (buffer[offset + 3] > 30 && buffer[offset + 2] > 190 && buffer[offset] < 70 && buffer[offset + 1] < 70)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private static int CountOpaquePixels(FrameworkElement element)
+        {
+            byte[] buffer = RenderPixels(element);
+
+            int count = 0;
+            for (int i = 3; i < buffer.Length; i += 4)
+            {
+                if (buffer[i] > 30)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         [Fact]

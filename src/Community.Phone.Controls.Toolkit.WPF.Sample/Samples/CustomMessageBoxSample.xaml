@@ -36,6 +36,97 @@
         </toolkit:NavigationOutTransition>
     </toolkit:TransitionService.NavigationOutTransition>
 
+    <!--Resources-->
+    <phone:PhoneApplicationPage.Resources>
+        <DataTemplate x:Key="PivotContentTemplate">
+            <controls:Pivot Margin="-12,0,0,0" Title="WHAT CAN I SAY?" Height="672">
+                <controls:PivotItem Header="call" FontFamily="{StaticResource PhoneFontFamilySemiLight}" FontSize="32">
+                    <StackPanel Margin="12,0,0,0">
+                        <TextBlock Text="Call anyone in your contacts list." 
+                                   FontSize="30" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        <TextBlock Text="Try saying" Foreground="{StaticResource PhoneSubtleBrush}" 
+                                   FontSize="{StaticResource PhoneFontSizeMedium}" Margin="0,0,0,8"/>
+                        <TextBlock FontSize="32" Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Call</Run>
+                            <Run>Bryce&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Call</Run>
+                            <Run>Shannon, mobile&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Call</Run>
+                            <Run>Alex on speakerphone&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Call</Run>
+                            <Run>voicemail&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Redial</Run><Run>&quot;</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </controls:PivotItem>
+                <controls:PivotItem Header="find" FontFamily="{StaticResource PhoneFontFamilySemiLight}" FontSize="32">
+                    <StackPanel Margin="12,0,0,0">
+                        <TextBlock Text="Find what you're looking for with Bing." 
+                                   FontSize="30" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        <TextBlock Text="Try saying" Foreground="{StaticResource PhoneSubtleBrush}" 
+                                   FontSize="{StaticResource PhoneFontSizeMedium}" Margin="0,0,0,8"/>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Find</Run>
+                            <Run>Coffee in Seattle&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Find</Run>
+                            <Run>a shoe store&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Find</Run>
+                            <Run>weather in Kansas City&quot;</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </controls:PivotItem>
+                <controls:PivotItem Header="open" FontFamily="{StaticResource PhoneFontFamilySemiLight}" FontSize="32">
+                    <StackPanel Margin="12,0,0,0">
+                        <TextBlock Text="Start any application you've installed." 
+                                   FontSize="30" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        <TextBlock Text="Try saying" Foreground="{StaticResource PhoneSubtleBrush}" 
+                                   FontSize="{StaticResource PhoneFontSizeMedium}" Margin="0,0,0,8"/>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Open</Run>
+                            <Run>Maps&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Start</Run>
+                            <Run>Office&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Open</Run>
+                            <Run>Marketplace&quot;</Run>
+                        </TextBlock>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Open</Run>
+                            <Run>Settings&quot;</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </controls:PivotItem>
+                <controls:PivotItem Header="text" FontFamily="{StaticResource PhoneFontFamilySemiLight}" FontSize="32">
+                    <StackPanel Margin="12,0,0,0">
+                        <TextBlock Text="Text your friends without even looking at the screen." 
+                                   FontSize="30" Margin="0,0,0,20" TextWrapping="Wrap"/>
+                        <TextBlock Text="Try saying" Foreground="{StaticResource PhoneSubtleBrush}" 
+                                   FontSize="{StaticResource PhoneFontSizeMedium}" Margin="0,0,0,8"/>
+                        <TextBlock Margin="0,0,0,12">
+                            <Run>&quot;</Run><Run Foreground="{StaticResource PhoneAccentBrush}">Text</Run>
+                            <Run>Jane&quot;</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </controls:PivotItem>
+            </controls:Pivot>
+        </DataTemplate>
+    </phone:PhoneApplicationPage.Resources>
+
     <!--  LayoutRoot  -->
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <Grid.RowDefinitions>

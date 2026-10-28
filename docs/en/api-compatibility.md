@@ -30,6 +30,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `Microsoft.Phone.Controls.ITransition` and transition types | same names | A/B | Same surface; WPF storyboards and state tracking. |
 | `Microsoft.Phone.Controls.ContextMenu` | `Microsoft.Phone.Controls.ContextMenu` | B/C | Derives from WPF `ContextMenu`. |
 | `Microsoft.Phone.Controls.WrapPanel` | `Microsoft.Phone.Controls.WrapPanel` | A | WPF’s own `System.Windows.Controls.WrapPanel` remains separate. |
+| `Microsoft.Phone.Controls.Pivot`, `PivotItem`, `Microsoft.Phone.Controls.Primitives.PivotHeadersControl`, `PivotHeaderItem` | same names | A/B | `phone:` / `primitives:` prefixes; the header primitives stay public and `PivotHeadersControl.VisualFirstIndex` keeps its meaning (index at the left edge). |
 | `System.Windows.Controls.HierarchicalDataTemplate` (toolkit) | `System.Windows.HierarchicalDataTemplate` | A | Use WPF native. |
 | `System.Windows.Controls.HeaderedItemsControl` (toolkit) | `System.Windows.Controls.HeaderedItemsControl` | A | Use WPF native. |
 | `System.Windows.Controls.LengthConverter` / `TimeTypeConverter` (toolkit) | not redefined | E | Use WPF type converters or parse values in app code. |
@@ -41,11 +42,11 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 
 | Original type | Port | Level | XAML change | Behavior difference |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; assign to an element or a `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; XAML's fixed 999 DIP perspective depth; rotation, center, and offset signs match XAML. An element that receives a projection is wrapped in a `ProjectionHost` on demand. |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` prefix; assign to an element or a `ProjectionHost` | Real WPF 3D via `Viewport2DVisual3D`; XAML's fixed 999 DIP perspective depth; rotation, center, and offset signs match XAML. The element's content is clipped to its layout bounds while the projected result is not, exactly like the platform. An element that receives a projection is wrapped in a `ProjectionHost` on demand. |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | Same | Matrix normalized 0..1; converted to pixel space. |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` works on containers | Plain controls are wrapped on demand; `PreviewMouseDown/Move/Up` support means a container can tilt a child button without consuming its click; list item containers are skipped. |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | Requires wrappable targets; skipped item containers/content presenters. |
-| `SlideInEffect` | not implemented | E | — | Depends on WP Pivot. |
+| `SlideInEffect` | not implemented | E | — | Animates pivot items on selection changes; `Pivot` is ported, the effect is not. |
 
 ## Navigation and transitions
 
@@ -80,7 +81,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `TimePicker` | Implemented | B | Same | Uses hour/minute ComboBoxes in a modal Window. |
 | `RecurringDaysPicker` | Implemented | A/B | Weekday list, multiple selection, summary | Built on the WPF `ListPicker`; localized day names. |
 | `ExpanderView` | Implemented | B | `Expander`, `ExpanderTemplate`, `NonExpandableHeader`, `HasItems`, `IsExpanded`, `Expanded`/`Collapsed` | WPF `HeaderedItemsControl`; simplified height animation; parts `Presenter`/`ExpanderPanel`/`ItemsCanvas`. |
-| `HubTile` | Implemented | B | `Source`, `Title`, `Notification`, `Message`, `DisplayNotification`, `IsFrozen`, `GroupTag`, `Size`; `HubTileService` | Timer-driven cycle; animation timing approximate. |
+| `HubTile` | Implemented | B | `Source`, `Title`, `Notification`, `Message`, `DisplayNotification`, `IsFrozen`, `GroupTag`, `Size`; `HubTileService` | Timer-driven cycle. Template-only adaptation: the sliding offset is applied from code, the flip renders through the 3D path (double-sided), and `CenterOfRotationY` is `0.5` (the original’s `0.25` measured against the two-tile-high surface). |
 | `ListPicker` | Implemented | A/B | `SelectedIndex`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `Header`, `FullModeHeader`, `FullModeItemTemplate`, `ItemCountThreshold`, `ExpansionMode`, `PickerPageUri`, `Open()`, `SelectionChanged`, `ListPickerMode` | Full mode navigates to the original `ListPickerPage` (`PickerPageUri`) and commits on `Done`/back; the page uses the original `ApplicationBar` (check/cancel icon buttons) for its actions. Normal mode animates the template canvas like the original. |
 | `LongListSelector` (WP7) | Not implemented | E | — | Virtualized Silverlight control; large remaining item. |
 | `LongListMultiSelector` (WP8) | Not implemented | E | — | Depends on WP8 list infrastructure. |
@@ -94,7 +95,9 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `PerformanceProgressBar` | Implemented | B | `IsIndeterminate`, `ActualIsIndeterminate` | Indeterminate template; simple fade. |
 | `RelativeAnimatingContentControl` | Implemented | B | Public content control | Magic-number relative animation rewriting not ported. |
 | `WrapPanel` | Implemented | A | `ItemHeight`, `ItemWidth`, `Orientation`, layout algorithm | None observed in tests. |
-| `LockablePivot` | Not implemented | E | — | Requires WP Pivot. |
+| `Pivot` / `PivotItem` | Implemented | A/B | `HeaderTemplate`, `SelectedIndex`, `SelectedItem`, `Title`, `TitleTemplate`, `ItemContainerStyle`, `IsLocked`, `LoadingPivotItem`, `LoadedPivotItem`, `UnloadingPivotItem`, `UnloadedPivotItem`, `SelectionChanged`; template parts `PivotItemPresenter`, `HeadersListElement`, `TitleElement`; `PivotItem.Header` and the `Position States` visual states | Items are stacked in a `Grid`; only the active one is visible and hit-testable. A pointer drag (or a flick past half the viewport), a header click, and Left/Right/Home/End navigate; the incoming item slides in over 0.25 s with a `QuarticEase` while the outgoing one slides out, and the header run scrolls over 0.5 s. A drag follows the pointer at the original 600 px/s. `Pivot.IsLocked` fades the headers out and refuses item changes. |
+| `PivotHeadersControl` / `PivotHeaderItem` | Implemented | A/B | `VisualFirstIndex`, `ItemContainerStyle`, `IsSelected`, `SelectionStates` visual states | Circular header run on a `Canvas` (the first header follows the last one), scrolled with a 0.5 s `QuarticEase`; the phone version let the compositor move the same run |
+| `LockablePivot` | Not implemented | E | — | Superseded by `Pivot.IsLocked` (the phone 8.1 `Pivot` already provides it). |
 | `GestureListener` / `GestureService` | Not implemented | E | — | WPF touch/manipulation APIs differ. |
 | `LoopingSelector` / `LoopingSelectorItem` | Not implemented | E | — | Used by WP date/time pages; not needed for the ported picker windows. |
 | `ClipToBounds` | Implemented | A | `IsEnabled` attached property | Uses WPF `Clip`. |
@@ -153,7 +156,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped are skipped: item containers (WPF owns the items panel's children) and elements that are not direct children of a panel. A `ContentPresenter` that is a panel child is wrapped normally.
 5. **Controls** — DP surfaces and core behavior are preserved; visual details and modal hosts differ where WPF has no WP picker/popup infrastructure.
 6. **Localization** — all original resx resources are included; `CurrentUICulture` is used by `ControlResources`.
-7. **Unsupported modules** — AutoCompleteBox, LongListSelector, LongListMultiSelector, MultiselectList, maps, transfer, speech, Pivot/LockablePivot, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed.
+7. **Unsupported modules** — AutoCompleteBox, LongListSelector, LongListMultiSelector, MultiselectList, maps, transfer, speech, `LockablePivot`, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed.
 
 ## Verification status
 
@@ -162,6 +165,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | Build (library, sample, tests) | `dotnet build -c Debug/Release` |
 | Projection rendering/orientation/hit-test tests | `tests/.../ProjectionTests.cs` |
 | Control/API tests | `tests/.../ControlTests.cs` |
+| Pivot tests | `tests/.../PivotTests.cs` |
 | Navigation/transition tests | `tests/.../NavigationTests.cs` |
 | Sample runtime smoke test | `src/Community.Phone.Controls.Toolkit.WPF.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
 | Package install test | `build/verify-package.ps1` + `tests/PackageConsumer` (fresh isolated cache, build and run) |

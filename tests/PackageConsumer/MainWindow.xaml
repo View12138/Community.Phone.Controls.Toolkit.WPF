@@ -12,6 +12,14 @@
         <phone:ToggleSwitch Header="Package installed" IsChecked="True" Margin="0,8,0,8" />
         <phone:Rating Value="3" AllowHalfItemIncrement="True" Margin="0,8,0,8" />
         <phone:PhoneTextBox Hint="Type here" LengthIndicatorVisible="True" MaxLength="40" Margin="0,8,0,8" />
+        <phone:Pivot Title="PACKAGE" Height="200" Margin="0,8,0,8">
+            <phone:PivotItem Header="first">
+                <TextBlock Style="{StaticResource PhoneTextNormalStyle}" Text="Pivot from the package" />
+            </phone:PivotItem>
+            <phone:PivotItem Header="second">
+                <TextBlock Style="{StaticResource PhoneTextNormalStyle}" Text="Second item" />
+            </phone:PivotItem>
+        </phone:Pivot>
         <phone:ProjectionHost Width="440" Height="180">
             <Border Background="#FF2D2D30">
                 <TextBlock Text="Real 3D from the package"

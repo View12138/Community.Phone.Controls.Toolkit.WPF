@@ -75,6 +75,12 @@
                     <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="ContextMenu, CustomMessageBox, ApplicationBar and SystemTray state." TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
+            <ListBoxItem Tag="pivot">
+                <StackPanel Margin="0,10,0,10">
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="Pivot" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="Swipe, flick, click a header or use the arrow keys to move between pivot items." TextWrapping="Wrap" />
+                </StackPanel>
+            </ListBoxItem>
             <ListBoxItem Tag="ListPicker">
                 <StackPanel Margin="0,10,0,10">
                     <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="ListPicker" />
@@ -85,6 +91,12 @@
                 <StackPanel Margin="0,10,0,10">
                     <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="CustomMessageBox" />
                     <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="CustomMessageBox" TextWrapping="Wrap" />
+                </StackPanel>
+            </ListBoxItem>
+            <ListBoxItem Tag="HubTile">
+                <StackPanel Margin="0,10,0,10">
+                    <TextBlock Style="{StaticResource PhoneTextAccentStyle}" Text="HubTile" />
+                    <TextBlock Style="{StaticResource PhoneTextSubtleStyle}" Text="HubTile" TextWrapping="Wrap" />
                 </StackPanel>
             </ListBoxItem>
         </ListBox>

@@ -208,6 +208,10 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 <phone:ListPicker Header="Choose" SelectedIndex="0" />
 <phone:ExpanderView Header="Details">...</phone:ExpanderView>
 <phone:HubTile Title="News" Message="Back" />
+<phone:Pivot Title="MY APP">
+    <phone:PivotItem Header="first">...</phone:PivotItem>
+    <phone:PivotItem Header="second">...</phone:PivotItem>
+</phone:Pivot>
 <phone:WrapPanel ItemWidth="80">...</phone:WrapPanel>
 <phone:PerformanceProgressBar IsIndeterminate="True" />
 <phone:ContextMenuService.ContextMenu>
@@ -228,6 +232,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 | `ListPicker` | 普通（展开）模式行为不变；完整模式通过宿主 frame 导航到 `ListPickerPage`，使用 `PickerPageUri` 中的 pack URI。页面的「完成/取消」与原版一致，声明在 `ApplicationBar` 里（勾/叉图标按钮；多选时显示、单选时隐藏）。 |
 | `ExpanderView` | 模板部件是 `Presenter`、`ExpanderPanel`、`ItemsCanvas`；高度动画在代码中完成。 |
 | `HubTile` | 定时器驱动状态循环；支持 `HubTileService.FreezeGroup/UnfreezeGroup`。 |
+| `Pivot` | 保留 `Title`、`SelectedIndex`/`SelectedItem`、`IsLocked`、四个 item 生命周期事件和 `HeaderTemplate`，以及 `PivotItem.Header` 和 `PivotItemPresenter`/`HeadersListElement`/`TitleElement` 模板部件。滑动改为指针拖拽（超过半个视口的快速滑动同样切换）；点击页眉、方向键也可切换。滑动（0.25 秒）、页眉滚动（0.5 秒）和 600 px/s 拖拽速度均为原版数值。`LockablePivot` 由 `Pivot.IsLocked` 取代。 |
 | `PhoneTextBox` | 内部 TextBox 使用双向文本绑定；保留 hint/action/length indicator 行为。 |
 | `Rating` | 星形项目在代码中生成并使用 `RatingItem`；模板部件名称与原始一致。 |
 | `TiltEffect` | 在容器上设置 `phone:TiltEffect.IsTiltEnabled="True"`。普通控件会临时包进 `ProjectionHost`；列表 item 容器不包装。 |
@@ -256,7 +261,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 ### 未迁移
 
-- `SlideInEffect` 依赖 WP `Pivot`，未实现。
+- `SlideInEffect` 在 Pivot 选中项变化时播放逐项动画；`Pivot` 已移植，效果本身未实现。
 - `GestureListener`/`GestureService` 未实现；使用 WPF 鼠标/触摸/manipulation 事件或专用手势库。
 - 地图、后台传输、语音未实现；请定义应用自己的服务接口，把平台相关代码隔离在共享 UI 之外。
 

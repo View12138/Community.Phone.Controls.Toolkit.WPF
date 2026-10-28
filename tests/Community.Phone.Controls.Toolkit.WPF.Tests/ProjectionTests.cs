@@ -566,6 +566,92 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void ProjectionHost_RendersContentPastNinetyDegrees()
+        {
+            StaTest.Run(() =>
+            {
+                // XAML projections rotate the element's rasterized content, so a
+                // rotation past 90 degrees shows the mirrored content. WPF culls
+                // back faces, so without the reversed winding of the quad the
+                // second half of a flip renders nothing (HubTile relies on it).
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 200,
+                    Height = 200,
+                    Content = new Border { Background = Brushes.Red, Width = 200, Height = 200 },
+                    Projection = new PlaneProjection { RotationX = 180 }
+                };
+
+                host.Measure(new Size(200, 200));
+                host.Arrange(new Rect(0, 0, 200, 200));
+                host.UpdateLayout();
+
+                Assert.True(host.IsRenderingIn3D);
+
+                RenderTargetBitmap bitmap = Render(host);
+                Assert.InRange(GetWidestRowSpan(bitmap), 199, 200);
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_ClipsItsContentToTheLayoutSlot()
+        {
+            StaTest.Run(() =>
+            {
+                // A XAML projection rasterizes the element's content into its
+                // layout bounds, so content that overflows the element (the
+                // HubTile surface is two tiles high inside a one-tile-high
+                // viewport) is cut. This is the clip the HubTile template used
+                // to get from a ClipToBounds container, which also clipped the
+                // projected result.
+                Canvas content = new Canvas();
+                content.Children.Add(new Border { Width = 100, Height = 260, Background = Brushes.Red });
+
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 100,
+                    Height = 100,
+                    Prefer3D = true,
+                    Content = content
+                };
+
+                RenderTargetBitmap bitmap = RenderInSlot(host, out Rect slot);
+
+                Assert.True(host.IsRenderingIn3D);
+                Assert.True(CountNonTransparentPixels(bitmap, slot, true) > 9000);
+                Assert.Equal(0, CountNonTransparentPixels(bitmap, slot, false));
+            });
+        }
+
+        [Fact]
+        public void ProjectionHost_DoesNotClipTheProjectedResult()
+        {
+            StaTest.Run(() =>
+            {
+                // XAML rotates the element's raster and draws the result as-is:
+                // the near half of a rotated element is magnified by the
+                // perspective and paints outside the element's layout slot.
+                // Clipping the projected result to the slot would crop every
+                // tilt, flip and transition (HubTile relies on the spill).
+                ProjectionHost host = new ProjectionHost
+                {
+                    Width = 100,
+                    Height = 100,
+                    Content = new Border { Background = Brushes.Red, Width = 100, Height = 100 },
+                    Projection = new PlaneProjection { RotationX = 45 }
+                };
+
+                RenderTargetBitmap bitmap = RenderInSlot(host, out Rect slot);
+
+                Assert.True(host.IsRenderingIn3D);
+                Assert.True(CountNonTransparentPixels(bitmap, slot, true) > 5000);
+                Assert.True(
+                    CountNonTransparentPixels(bitmap, slot, false) > 20,
+                    "The magnified half of the rotated element has to draw outside its slot.");
+            });
+        }
+
+        [Fact]
         public void ProjectionHost_AppliesTheXamlPerspectiveDepth()
         {
             StaTest.Run(() =>
@@ -1222,6 +1308,52 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 PixelFormats.Pbgra32);
             bitmap.Render(element);
             return bitmap;
+        }
+
+        private static RenderTargetBitmap RenderInSlot(ProjectionHost host, out Rect slot)
+        {
+            // The host sits in the middle of a larger canvas so that the
+            // projected result has room to draw outside its own bounds.
+            const double SlotLeft = 100;
+            const double SlotTop = 100;
+
+            Canvas root = new Canvas { Width = 300, Height = 300 };
+            Canvas.SetLeft(host, SlotLeft);
+            Canvas.SetTop(host, SlotTop);
+            root.Children.Add(host);
+
+            root.Measure(new Size(300, 300));
+            root.Arrange(new Rect(0, 0, 300, 300));
+            root.UpdateLayout();
+
+            slot = new Rect(SlotLeft, SlotTop, host.Width, host.Height);
+            return Render(root);
+        }
+
+        private static int CountNonTransparentPixels(RenderTargetBitmap bitmap, Rect bounds, bool inside)
+        {
+            int stride = bitmap.PixelWidth * 4;
+            byte[] pixels = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(pixels, stride, 0);
+
+            int count = 0;
+            for (int y = 0; y < bitmap.PixelHeight; y++)
+            {
+                for (int x = 0; x < bitmap.PixelWidth; x++)
+                {
+                    if (bounds.Contains(x + 0.5, y + 0.5) != inside)
+                    {
+                        continue;
+                    }
+
+                    if (pixels[((y * bitmap.PixelWidth) + x) * 4 + 3] > 30)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
         }
 
         private static Color GetPixel(RenderTargetBitmap bitmap, int x, int y)

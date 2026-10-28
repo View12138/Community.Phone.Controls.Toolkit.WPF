@@ -208,6 +208,10 @@ These controls preserve their public surface; change `toolkit:` to `phone:` and 
 <phone:ListPicker Header="Choose" SelectedIndex="0" />
 <phone:ExpanderView Header="Details">...</phone:ExpanderView>
 <phone:HubTile Title="News" Message="Back" />
+<phone:Pivot Title="MY APP">
+    <phone:PivotItem Header="first">...</phone:PivotItem>
+    <phone:PivotItem Header="second">...</phone:PivotItem>
+</phone:Pivot>
 <phone:WrapPanel ItemWidth="80">...</phone:WrapPanel>
 <phone:PerformanceProgressBar IsIndeterminate="True" />
 <phone:ContextMenuService.ContextMenu>
@@ -228,6 +232,7 @@ These controls preserve their public surface; change `toolkit:` to `phone:` and 
 | `ListPicker` | Normal (expanded) mode is unchanged; full mode navigates to `ListPickerPage` through the host frame, using the pack URI in `PickerPageUri`. The page declares its Done/Cancel actions in an `ApplicationBar` with check/cancel icon buttons, exactly like the original (shown for multiple selection, hidden for single selection). |
 | `ExpanderView` | Template parts are `Presenter`, `ExpanderPanel`, `ItemsCanvas`; height animation is performed in code. |
 | `HubTile` | Timer-driven state cycle; `HubTileService.FreezeGroup/UnfreezeGroup` are supported. |
+| `Pivot` | `Title`, `SelectedIndex`/`SelectedItem`, `IsLocked`, the four item lifecycle events and `HeaderTemplate` are preserved, as are the `PivotItem.Header` value and the `PivotItemPresenter`/`HeadersListElement`/`TitleElement` template parts. The swipe becomes a pointer drag (plus a flick past half the viewport); clicking a header and the arrow keys also navigate. The slide (0.25 s), the header scroll (0.5 s) and the 600 px/s drag speed are the original values. `LockablePivot` is replaced by `Pivot.IsLocked`. |
 | `PhoneTextBox` | The inner TextBox uses a two-way text binding; hint/action/length indicator behavior is preserved. |
 | `Rating` | The star items are generated in code and use `RatingItem`; template part names match the original. |
 | `TiltEffect` | Apply `phone:TiltEffect.IsTiltEnabled="True"` to a container. Plain controls are temporarily wrapped in a `ProjectionHost`; list item containers are not wrapped. |
@@ -256,7 +261,7 @@ Targets must be wrappable by a `ProjectionHost`: a direct child of a panel that 
 
 ### Not migrated
 
-- `SlideInEffect` depends on the WP `Pivot` control; not implemented.
+- `SlideInEffect` animates pivot items on selection changes; `Pivot` is ported, the effect is not.
 - `GestureListener`/`GestureService` are not implemented. Use WPF mouse/touch/manipulation events or a WPF gesture library.
 - Maps, background transfer, and speech are not implemented; define an application-specific service interface and keep platform-specific code out of shared UI.
 

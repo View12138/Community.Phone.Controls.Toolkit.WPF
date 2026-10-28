@@ -43,11 +43,17 @@ namespace PhoneToolkitSample.Pages
                 case "menus":
                     target = new MenusPage();
                     break;
+                case "pivot":
+                    target = new PivotSample();
+                    break;
                 case "ListPicker":
                     target = new ListPickerSample();
                     break;
                 case "CustomMessageBox":
                     target = new CustomMessageBoxSample();
+                    break;
+                case "HubTile":
+                    target = new HubTileSample();
                     break;
                 default:
                     return;

@@ -13,8 +13,8 @@
 | `Maps` / `MapExtensions` | 未实现 | 没有 WPF 地图提供程序；依赖 `Microsoft.Phone.Maps`。 |
 | `TransferControl` | 未实现 | 依赖 `Microsoft.Phone.BackgroundTransfer`。 |
 | `SpeechTextBox` | 未实现 | 依赖 `Windows.Phone.Speech.Recognition`。 |
-| `LockablePivot` / Pivot 集成 | 未实现 | 依赖 WP `Pivot` 控件。 |
-| `SlideInEffect` | 未实现 | 依赖 `Pivot` 及其选择事件。 |
+| `LockablePivot` | 未实现 | WP7 辅助控件已被 `Pivot.IsLocked` 取代，移植版直接在 `Pivot` 上实现。 |
+| `SlideInEffect` | 未实现 | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已移植，效果本身尚未实现。 |
 | `GestureListener` / `GestureService` | 未实现 | WP 触摸手势服务，含 flick/垂直/水平检测。请使用 WPF `Touch`/`Manipulation` 事件或专用手势库。 |
 | `LoopingSelector` | 未实现 | WP picker 内部实现；移植的日期/时间 picker 使用 WPF 模态窗口。 |
 | Picker pages（`DatePickerPage`、`TimePickerPage`） | 未实现 | picker 使用自己的模态窗口完成等价的值编辑。`PickerPageUri` 保留但不导航。 |
@@ -57,7 +57,7 @@
 4. **导航行为差异**：原版 `TransitionFrame` 会忽略非应用发起的导航（应用停用时由 shell 播放的退场）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，也没有 shell 发起的导航，因此移植版去掉该判断。原版不捕获转场工厂异常，移植版保持一致：`TransitionElement` 抛异常会让导航失败，没有回退事件。`Transitions.ProjectionTransition` 在带投影的转场完成或停止时清除投影，使空闲页面回到纯 2D 路径。
 5. **TurnstileFeatherEffect**：使用逐元素包装和交错动画；目标在合成 storyboard 时从页面可视树收集（附加属性订阅只负责准备包装，并且延迟到 dispatcher，因此绝不会在布局过程中修改可视树）。无法包装的目标会跳过。清理会恢复原始视觉树，但不适合在效果活动期间重建视觉树的控件。页面没有可羽化元素时，羽化转场没有动画可播放，会立即完成而不是阻塞导航。
 6. **TiltEffect**：通过 `ProjectionService` 设置倾斜投影，该服务会按需把普通控件包装进 `ProjectionHost`，并在倾斜投影清除后释放包装，因此只倾斜该控件本身，且不会在指针按下期间修改视觉树。旋转以控件的**第一个可视子元素**（模板根）为中心，与原工具包的 `GetChild(control, 0)` 一致，`CenterOfRotation` 相对布局槽表达。支持鼠标输入（通过隧道的 preview 事件），因此容器可以在不吞掉子按钮点击的情况下倾斜它；列表 item 容器会跳过。最大倾斜/回弹行为是近似值，触摸 manipulation 是更完整的输入路径。
-7. **SlideInEffect**：未实现（需要 Pivot）。
+7. **SlideInEffect**：未实现（`Pivot` 已实现，效果本身尚未移植）。
 8. **FeatheredTransition**：已实现，但原始 `TurnstileFeatherTransition` 面向 Pivot 内页面内容；移植版将其应用于转场 Frame 的页面宿主。
 
 ## 6. 控件
@@ -67,7 +67,7 @@
 3. **`ListPicker`**：移植了原版 WP8 源码，包括普通模式对模板 Canvas 的高度/位移动画，以及完整模式导航到 `ListPickerPage`——完整模式通过宿主 `PhoneApplicationFrame` 推入页面（`PickerPageUri` 中的 pack URI），点 `Done` 或离开页面时提交选择。差异：页面的操作按钮使用原版 `ApplicationBar`（圆形勾/叉图标按钮 + 本地化的 `done`/`cancel` 文本，多选时显示、单选时隐藏，图标来自工具包自带的 `Content/ApplicationBar.*.png` 资源），页面转场使用移植的 Turnstile 投影；页面由控件自身创建、挂树之前看不到 `Application.Resources`，因此在自身 `Resources` 中合并 `Themes/Theme/Dark.xaml` 携带手机颜色，模板关键帧的值改用 `StaticResource`（这种场景下模板 storyboard 里的 `DynamicResource` 不会生效）。完整模式的项目逐个翻转展开：item 容器不能包进 `ProjectionHost`，所以由页面的 item 模板承载一个 `ProjectionHost`，动画直接作用于它。普通模式的 Canvas 高度和位移改为直接调用 `BeginAnimation`（storyboard 无法驱动模板里的 `TranslateTransform`），因此从完整模式返回后会显示新选中的项目而不是第一项；高度动画仍要等选中项完成测量后才开始（WPF 不允许以未设置的原点（NaN）对 `Height` 做动画，Silverlight 允许）。长列表使用默认虚拟化也能正常工作：动画只收集视口内的容器（未实现的容器会被跳过），并且页面会在 dispatcher 轮次里重复 `ScrollIntoView`，直到选中项的容器存在且位于屏幕上——因为 `Loaded` 期间发出的请求会被 WPF 丢弃。支持 `SelectedItems`、`SelectionMode` 和多选摘要。
 4. **`DatePicker`/`TimePicker`**：在模态窗口中使用 WPF `DatePicker`/小时分钟选择器。未复刻 WP 的 looping selector、picker page 转场和日期时间 picker 应用栏。支持 `ValueStringFormat`、`ValueString`、`ValueChanged` 和 `Header`。`ValueStringFormat` 是复合格式字符串（例如 `"{0:yyyy-MM-dd}"`）。
 5. **`ExpanderView`**：高度动画简化；任意嵌套内容的布局可能与 WP 不同。保留原始 `ItemsCanvas`/`ExpanderPanel` 部件名。展开区使用 18 像素内容缩进，避免竖线与文本相贴。
-6. **`HubTile`**：模板遵循 WP8 原版 —— 一块高度为瓦片两倍的表面用 `TranslateTransform` 在标题带、图片与背面之间滑动，翻转是真实的 `PlaneProjection.RotationX` 动画（`0→180`、`180→360`），并在表面侧立时切换正反面。两处 WPF 差异：背面用 `ScaleTransform ScaleY=-1` 预镜像（视觉等价于原版 `PlaneProjection RotationX=180`，但更省），翻转期间宿主切到 `Prefer3D`。像素保真度未验证。支持 `HubTileService` 组冻结/解冻。
+6. **`HubTile`**：模板遵循 WP8 原版 —— 一块高度为瓦片两倍的表面用 `TranslateTransform` 在标题带、图片与背面之间滑动，翻转是真实的 `PlaneProjection.RotationX` 动画（`0→180`、`180→360`），并在表面侧立时切换正反面。模板只保留在 `Themes/Controls/HubTile.xaml`（`Themes/Generic.xaml` 里早先的内联副本会遮蔽它，且从不滑动）。四处 WPF 差异：滑动偏移由代码施加，因为 WPF 不会应用绑定到模板父级的 storyboard 值；`TranslateTransform` 由代码创建，因为模板里声明的 `Freezable` 会被冻结、无法动画；视口外面套了一个普通面板，因为 `ProjectionService` 只包装父级是面板的元素；`CenterOfRotationY` 取 `0.5` —— 即原版 `0.25` 相对两倍高表面的同一条线。裁剪行为与平台投影一致：`ProjectionHost` 只把*内容*裁剪到布局槽，而不裁剪投影结果，所以滑出视口的那条带子仍然被隐藏，而翻转时被透视放大的近端会画到瓦片边界之外，而不是在瓦片边缘被切掉。`HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel` 会校验偏移与渲染像素，`HubTile_FlipDrawsOutsideTheTileBounds` 校验翻转溢出瓦片边界；由于 `ProjectionHost` 的四边形是双面的，投影超过 90° 仍会继续渲染。屏幕上的像素保真度未测量。支持 `HubTileService` 组冻结/解冻。
 7. **`PhoneTextBox`**：实现了 hint、action icon 和长度指示行为。占位符起点与光标一致，并在编辑器获得键盘焦点或输入法合成期间隐藏（合成字符尚未进入 `Text`），因此拼音输入不再残留占位符。内部编辑器可见，并会从模板控件接收焦点；WP 内置文本选择和输入作用域边界在 WPF 中仍可能不同。
 8. **`Rating`**：项目在代码中生成；半星和零值选择已实现。除触摸 manipulation 外，也支持鼠标点击/拖动选择。**偏离**：原工具包在 `AllowHalfItemIncrement` 时把翻倍后的位置数写入 `Value`，导致填充区域是指针位置的两倍；本移植版以“星”为单位存储（`ceil(位置 / 宽度 * 2N) / 2`）。保留模板部件名，但自定义模板必须提供预期部件。
 9. **`ToggleSwitch`**：支持 header、switch foreground、checked/unchecked/indeterminate 和 click。状态变化时滑块和背景使用动画过渡；系统 accent 集成仍是近似。
@@ -76,6 +76,7 @@
 12. **`RelativeAnimatingContentControl`**：控件存在，但原始 magic-number 相对动画重写没有移植。
 13. **`WrapPanel`**：移植原始布局算法并测试。WPF 自带 `WrapPanel` 是独立类型。
 14. **`RecurringDaysPicker`**：基于移植的 `ListPicker`；提供本地化星期名，但未复刻 WP 视觉 chrome。
+15. **`Pivot`**：手机版本由 DirectManipulation 与合成器驱动；移植版用 WPF 动画产生相同的运动（内容切换 0.25 秒 `QuarticEase`、页眉条 0.5 秒滚动、拖拽以原版 600 px/s 跟随指针）。差异：(a) 输入是鼠标拖拽加 Left/Right/PageUp/PageDown/Home/End，而不是触摸 manipulation——在 pivot 上启用 `IsManipulationEnabled` 会让触摸输入不再到达子控件（如按钮）；(b) 没有快速滑动速度判定，拖拽超过半个视口即切换；(c) 页眉条与原版一样循环排布（最后一个页眉之后接第一个），但只绘制一圈，因此当页眉总宽小于视口时，最后一个页眉之后会留白；(d) `IsLocked` 是依赖属性（平台上是普通属性），并用 200 毫秒动画淡出页眉；(e) 没有自定义自动化对等体，辅助技术看到的是 WPF 默认的 `ItemsControl` 对等体；(f) 只有当前项可见，离开项在其滑动结束后折叠；(g) 越界设置 `SelectedIndex`/`SelectedItem` 仍会抛异常，与手机行为一致。
 
 ## 7. 本地化
 
@@ -116,7 +117,7 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 1. 确认窗口打开并显示 Home 页。
 2. 点击 **Open detail (turnstile)** 确认进入转场执行；点击 **Go back** 确认返回转场执行。
 3. 点击 **Animate projection**；状态行应显示 `RotationX` 变化，投影面板在真实 3D 中倾斜；面板同时持续进行 `RotationY` 旋转。第二个面板没有 `ProjectionHost`（投影直接赋给元素、按需包装），也会自行旋转。
-4. 切换 ToggleSwitch 并确认滑块有动画；在 Rating 星星上点击/拖动；在 hint 文本框输入；打开 ListPicker 并检查悬停/选中样式；展开 ExpanderView；打开 ContextMenu；显示 CustomMessageBox；检查 DatePicker、TimePicker、RecurringDaysPicker、PerformanceProgressBar、WrapPanel、HubTile 和 WPF 基础控件。
+4. 切换 ToggleSwitch 并确认滑块有动画；在 Rating 星星上点击/拖动；在 hint 文本框输入；打开 ListPicker 并检查悬停/选中样式；展开 ExpanderView；打开 ContextMenu；显示 CustomMessageBox；检查 DatePicker、TimePicker、RecurringDaysPicker、PerformanceProgressBar、WrapPanel、HubTile 和 WPF 基础控件；在 Pivot 示例中拖拽/点击页眉切换页面并勾选锁定。
 5. 关闭后检查 `%TEMP%\community-phone-toolkit-sample-error.txt`；不应存在或应为空。
 
 ### TiltEffect
@@ -155,6 +156,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 3. Frame 模板中的应用栏和系统栏视觉呈现器。
 4. 更精确的 WP 投影校准和视觉回归测试。
 5. 使用 WPF 触摸/manipulation 的 `GestureService`。
-6. 基于 WPF Pivot-like 控件的 `SlideInEffect`。
+6. 基于已移植 `Pivot` 的 `SlideInEffect`。
 7. 所有控件模板的视觉状态和主题一致性。
 8. 模态 picker、消息框和转场的自动化 UI 测试。

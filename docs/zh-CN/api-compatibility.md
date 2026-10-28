@@ -30,6 +30,7 @@
 | `Microsoft.Phone.Controls.ITransition` 及转场类型 | 同名 | A/B | 相同 API 面；使用 WPF Storyboard 和状态跟踪。 |
 | `Microsoft.Phone.Controls.ContextMenu` | 同名 | B/C | 继承 WPF `ContextMenu`。 |
 | `Microsoft.Phone.Controls.WrapPanel` | 同名 | A | 与 WPF 自带 `System.Windows.Controls.WrapPanel` 并存。 |
+| `Microsoft.Phone.Controls.Pivot`、`PivotItem`、`Microsoft.Phone.Controls.Primitives.PivotHeadersControl`、`PivotHeaderItem` | 同名 | A/B | 使用 `phone:` / `primitives:` 前缀；页眉基础类型保持公开，`PivotHeadersControl.VisualFirstIndex` 语义不变（左边缘的索引）。 |
 | `System.Windows.Controls.HierarchicalDataTemplate`（toolkit） | `System.Windows.HierarchicalDataTemplate` | A | 使用 WPF 原生类型。 |
 | `System.Windows.Controls.HeaderedItemsControl`（toolkit） | `System.Windows.Controls.HeaderedItemsControl` | A | 使用 WPF 原生类型。 |
 | `System.Windows.Controls.LengthConverter` / `TimeTypeConverter`（toolkit） | 未重新定义 | E | 使用 WPF 类型转换器或在应用代码中解析。 |
@@ -42,11 +43,11 @@
 
 | 原始类型 | 移植 | 级别 | XAML 修改 | 行为差异 |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；赋给元素或 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。接收投影的元素会按需被包进 `ProjectionHost`。 |
+| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；赋给元素或 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。元素的内容会被裁剪到布局边界，但投影结果不会被裁剪（与平台一致）。接收投影的元素会按需被包进 `ProjectionHost`。 |
 | `Matrix3DProjection` | `Matrix3DProjection` | C/D | 同上 | 矩阵归一化 0..1，转换为像素空间。 |
 | `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` 可用于容器 | 普通控件按需包装；使用 `PreviewMouseDown/Move/Up`，容器可倾斜子按钮而不吞按钮点击；跳过列表 item 容器。 |
 | `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标必须可包装；跳过 item 容器/content presenter。 |
-| `SlideInEffect` | 未实现 | E | — | 依赖 WP Pivot。 |
+| `SlideInEffect` | 未实现 | E | — | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已实现，效果本身尚未移植。 |
 
 ## 导航与转场
 
@@ -80,7 +81,7 @@
 | `TimePicker` | 已实现 | B | 同上 | 在模态 Window 中使用小时/分钟 ComboBox。 |
 | `RecurringDaysPicker` | 已实现 | A/B | 星期列表、多选、摘要 | 基于移植的 `ListPicker`；使用本地化星期名。 |
 | `ExpanderView` | 已实现 | B | `Expander`、`ExpanderTemplate`、`NonExpandableHeader`、`HasItems`、`IsExpanded`、`Expanded`/`Collapsed` | WPF `HeaderedItemsControl`；简化高度动画；部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas`。 |
-| `HubTile` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`Size`；`HubTileService` | 定时器驱动循环；动画时序近似。 |
+| `HubTile` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`Size`；`HubTileService` | 定时器驱动循环。仅模板层面的适配：滑动偏移由代码施加，翻转走 3D 路径（双面），`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面）。 |
 | `ListPicker` | 已实现 | A/B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`FullModeHeader`、`FullModeItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`Open()`、`SelectionChanged`、`ListPickerMode` | 完整模式导航到原版 `ListPickerPage`（pack URI 来自 `PickerPageUri`），点 `Done`/返回时提交选择；页面操作用原版 `ApplicationBar`（勾/叉图标按钮）。普通模式与原版一致，对模板 Canvas 做高度动画。 |
 | `LongListSelector`（WP7） | 未实现 | E | — | 大型虚拟化 Silverlight 控件。 |
 | `LongListMultiSelector`（WP8） | 未实现 | E | — | 依赖 WP8 列表基础设施。 |
@@ -94,7 +95,9 @@
 | `PerformanceProgressBar` | 已实现 | B | `IsIndeterminate`、`ActualIsIndeterminate` | 不确定模板；简单淡入淡出。 |
 | `RelativeAnimatingContentControl` | 已实现 | B | 公共 content control | 未移植 magic-number 相对动画重写。 |
 | `WrapPanel` | 已实现 | A | `ItemHeight`、`ItemWidth`、`Orientation`、布局算法 | 测试未发现差异。 |
-| `LockablePivot` | 未实现 | E | — | 需要 WP Pivot。 |
+| `Pivot` / `PivotItem` | 已实现 | A/B | `HeaderTemplate`、`SelectedIndex`、`SelectedItem`、`Title`、`TitleTemplate`、`ItemContainerStyle`、`IsLocked`、`LoadingPivotItem`、`LoadedPivotItem`、`UnloadingPivotItem`、`UnloadedPivotItem`、`SelectionChanged`；模板部件 `PivotItemPresenter`、`HeadersListElement`、`TitleElement`；`PivotItem.Header` 与 `Position States` 视觉状态 | 各项在 `Grid` 中堆叠，只有当前项可见且可交互。鼠标拖拽（或超过半个视口的快速滑动）、点击页眉、方向键 Left/Right/Home/End 均可切换；进入项以 0.25 秒 `QuarticEase` 滑入、离开项滑出，页眉条以 0.5 秒滚动；拖拽跟随指针速度为原版 600 px/s。`Pivot.IsLocked` 会淡出页眉并拒绝修改项。 |
+| `PivotHeadersControl` / `PivotHeaderItem` | 已实现 | A/B | `VisualFirstIndex`、`ItemContainerStyle`、`IsSelected`、`SelectionStates` 视觉状态 | 页眉条在 `Canvas` 上循环排布（最后一个页眉之后接第一个），以 0.5 秒 `QuarticEase` 滚动；手机版本由合成器移动同一条页眉带 |
+| `LockablePivot` | 未实现 | E | — | 已由 `Pivot.IsLocked` 取代（手机 8.1 的 `Pivot` 本身即提供该属性）。 |
 | `GestureListener` / `GestureService` | 未实现 | E | — | WPF 触摸/manipulation API 不同。 |
 | `LoopingSelector` / `LoopingSelectorItem` | 未实现 | E | — | WP 日期/时间页内部使用；移植 picker 不需要。 |
 | `ClipToBounds` | 已实现 | A | `IsEnabled` 附加属性 | 使用 WPF `Clip`。 |
@@ -153,7 +156,7 @@
 4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线。无法包装的目标会被跳过：items panel 内的 item 容器（子元素由 WPF 管理）以及不是 Panel 直接子元素的元素；作为 Panel 子元素的 `ContentPresenter` 可以正常包装。
 5. **控件**：DP 面和核心行为保留；WPF 没有对应 picker/popup 基础设施时，视觉细节和模态宿主不同。
 6. **本地化**：包含原始 resx 资源；`ControlResources` 使用 `CurrentUICulture`。
-7. **不支持模块**：AutoCompleteBox、LongListSelector、LongListMultiSelector、MultiselectList、地图、传输、语音、Pivot/LockablePivot、SlideInEffect 和手势 API 明确不支持，没有空壳。
+7. **不支持模块**：AutoCompleteBox、LongListSelector、LongListMultiSelector、MultiselectList、地图、传输、语音、`LockablePivot`、SlideInEffect 和手势 API 明确不支持，没有空壳。
 
 ## 验证状态
 
@@ -162,6 +165,7 @@
 | 构建（库、示例、测试） | `dotnet build -c Debug/Release` |
 | 投影渲染/方向/命中测试 | `tests/.../ProjectionTests.cs` |
 | 控件/API 测试 | `tests/.../ControlTests.cs`、`ShellTests.cs`、`ConverterTests.cs` |
+| Pivot 测试 | `tests/.../PivotTests.cs` |
 | 导航/转场测试 | `tests/.../NavigationTests.cs` |
 | 效果测试 | `tests/.../EffectsTests.cs` |
 | 示例运行冒烟 | `src/Community.Phone.Controls.Toolkit.WPF.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |

@@ -14,7 +14,7 @@ The port therefore uses **compatibility types in the original `Microsoft.Phone.C
 ## 2. Repository and projects
 
 ```text
-Community.Phone.Controls.Toolkit.slnx
+PhoneToolkit.WPF.slnx
 ├─ src/Community.Phone.Controls.Toolkit.WPF/          (single distributable assembly)
 │  ├─ Projection/    Projection, PlaneProjection, Matrix3DProjection, ProjectionHost, ProjectionService
 │  ├─ Navigation/    PhoneApplicationFrame, PhoneApplicationPage, orientation types
@@ -22,8 +22,8 @@ Community.Phone.Controls.Toolkit.slnx
 │  ├─ Transitions/   ITransition/Transition, TransitionFrame, TransitionService, transition families
 │  ├─ Effects/       TiltEffect, TurnstileFeatherEffect
 │  ├─ Controls/      WrapPanel, ToggleSwitch, Rating, PhoneTextBox, ExpanderView, HubTile,
-│  │                 ListPicker, ContextMenu, CustomMessageBox, DatePicker/TimePicker,
-│  │                 PerformanceProgressBar, converters, helpers
+│  │                 ListPicker, Pivot (with PivotHeadersControl/PivotHeaderItem), ContextMenu,
+│  │                 CustomMessageBox, DatePicker/TimePicker, PerformanceProgressBar, converters, helpers
 │  ├─ LocalizedResources/  51 .resx resources copied from the original localization project
 │  └─ Themes/Generic.xaml  Metro palette, fonts, frame templates, control templates
 ├─ src/Community.Phone.Controls.Toolkit.WPF.Sample/   runnable WPF sample
@@ -31,6 +31,8 @@ Community.Phone.Controls.Toolkit.slnx
 ```
 
 The single package ID is `Community.Phone.Controls.Toolkit.WPF`. The package contains the main assembly, its satellite resources, theme dictionary, XML documentation, README, and license. There are no internal packages that a consumer must install separately.
+
+The library keeps the original toolkit sources, which branch on `#if WINDOWS_PHONE` to select the compatible namespaces (`Microsoft.Phone.Controls`) and the localized resources. `WINDOWS_PHONE;WP8` is therefore defined for **every** configuration; a Release-only build without it cannot compile `LengthConverter`, `TypeConverters`, `RoutedPropertyChangingEventArgs` or `InteractionHelper`.
 
 ## 3. Namespace and API strategy
 
@@ -72,7 +74,7 @@ The host creates a rectangular mesh centered at the element origin:
 ```text
 positions (Y up):  (-w/2, +h/2, 0), (+w/2, +h/2, 0), (+w/2, -h/2, 0), (-w/2, -h/2, 0)
 texture coords:    (0,0), (1,0), (1,1), (0,1)
-triangles:         0,2,1 and 0,3,2
+triangles:         0,2,1 and 0,3,2 (front); 0,1,2 and 0,2,3 (reversed winding)
 ```
 
 A `PerspectiveCamera` is placed at `(0, 0, depth)` with `depth = PerspectiveDepth`, which defaults to `999` DIP. The field of view is derived from the viewport **width**: `fov = 2 * atan(viewportWidth / (2 * depth))`. WPF's `PerspectiveCamera.FieldOfView` is horizontal and derives the vertical field of view from the viewport aspect ratio, so a width-based field of view keeps an identity projection exactly 1:1 with the layout slot. Deriving the field of view from the height instead shrinks every projected element by the aspect ratio (a 480x800 page rendered at 288x480 during every 3D transition and snapped back to full size when the transition finished).
@@ -90,7 +92,9 @@ RotationY is negated because XAML's positive RotationY brings the right edge tow
 the viewer, while a positive rotation around WPF's +Y axis moves it away.
 ```
 
-The matrix is assigned to `Viewport2DVisual3D.Transform`. Camera clipping, back-face behavior, and hit testing are handled by WPF’s 3D pipeline. The host recomputes the geometry, the camera field of view, and the transform when the size or the projection changes.
+The matrix is assigned to `Viewport2DVisual3D.Transform`. Camera clipping and hit testing are handled by WPF’s 3D pipeline. WPF culls back faces, whereas a XAML projection stays visible from both sides, so the quad also carries the reversed winding: a rotation past 90 degrees – the second half of the `HubTile` flip, for example – keeps rendering the mirrored content instead of disappearing (`ProjectionHost_RendersContentPastNinetyDegrees`). The host recomputes the geometry, the camera field of view, and the transform when the size or the projection changes.
+
+The projected result is **not** clipped to the host’s layout slot. A XAML projection rotates the element’s raster and draws the result as-is, so the magnified near half of a rotated element paints outside its bounds – a `HubTile` flip overlaps the tiles next to it, and a turnstile page can swing past the frame. `Viewport3D.ClipToBounds` is therefore `false` in the 3D path, and the host clips its own rendering (`ClipToBounds`) only while it renders in 2D. What *is* clipped is the content: the surface carries a `RectangleGeometry` clip of the layout slot, which reproduces the platform’s “rasterize the content into the element’s bounds” rule – the `HubTile` surface is two tiles high inside a one-tile-high viewport, so the band that has slid out of view is cut – and keeps the brush mapping one-to-one when a child overflows its slot. `ProjectionHost_DoesNotClipTheProjectedResult` and `ProjectionHost_ClipsItsContentToTheLayoutSlot` guard both halves.
 
 ### 4.4 XAML compatibility boundary
 
@@ -127,7 +131,7 @@ Because the outgoing transition is read from the page being left, a page that wa
 
 A host renders through the 2D path while its projection is the identity and through the `Viewport3D` path otherwise. Both paths are geometrically identical — an identity projection matches the 2D layout to within 0.01 px — but they rasterize text differently (ClearType versus grayscale anti-aliasing of the 3D texture). `ProjectionHost.Prefer3D` keeps the 3D path active while the projection is still the identity, so `TransitionFrame`, `TiltEffect`, and `TurnstileFeatherEffect` switch the render path while they prepare the animation instead of on its first frame. Transition presenters do not apply a `BitmapCache`: the 3D pipeline already rasterizes the content, and an extra 1x cache only softened it.
 
-`Viewport2DVisual3D` maps the projected visual's **painted bounds** onto the quad, not its layout slot. Content that paints less than its slot — a left-aligned `CheckBox`, a short `TextBlock`, anything arranged wider than it draws — would be stretched across the projected plane (this made a tilted `CheckBox` render its box and label ~1.8x too wide). The host therefore projects an internal surface that fills the **layout slot**: the surface paints a transparent rectangle of the slot size, is pinned to the slot (the 3D visual host lays it out at its desired size), and the plane geometry as well as `CenterOfRotation`/`LocalOffset`/`GlobalOffset` are computed from the slot, not from the size the child happened to be arranged or measured at. A child that is smaller than the host therefore keeps its 2D size and position. `ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot` and `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize` guard this.
+`Viewport2DVisual3D` maps the projected visual's **painted bounds** onto the quad, not its layout slot. Content that paints less than its slot — a left-aligned `CheckBox`, a short `TextBlock`, anything arranged wider than it draws — would be stretched across the projected plane (this made a tilted `CheckBox` render its box and label ~1.8x too wide). The host therefore projects an internal surface that fills the **layout slot**: the surface paints a transparent rectangle of the slot size, is clipped to the slot (see above), is pinned to the slot (the 3D visual host lays it out at its desired size), and the plane geometry as well as `CenterOfRotation`/`LocalOffset`/`GlobalOffset` are computed from the slot, not from the size the child happened to be arranged or measured at. A child that is smaller than the host therefore keeps its 2D size and position. `ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot` and `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize` guard this.
 
 Measured frame pacing on the development machine (`CompositionTarget.Rendering`, 480×800 content): 2D baseline ~150 fps, a projected page ~92–96 fps, six independently projected feather items ~64–68 fps, and the 2D→3D switch costs a single ~6 ms frame. Wrapping a feather target up front (at subscribe time) keeps that cost out of the transition, because re-parenting elements while the animation runs forces a full layout pass per target.
 
@@ -229,6 +233,7 @@ Design decisions per control:
 - **CustomMessageBox**: `ContentControl` API with `Show()`/`Dismiss()` hosted in a WPF Window.
 - **DatePicker/TimePicker**: original Value/ValueString/Header/PickerPageUri API, implemented with WPF date/time UI in modal Windows.
 - **PerformanceProgressBar**: embedded WPF `ProgressBar` and `ActualIsIndeterminate`; simple opacity fade.
+- **Pivot / PivotItem / PivotHeadersControl / PivotHeaderItem**: the phone control is moved by DirectManipulation and the compositor, and the original `PivotItem` position states carry no storyboards (the theme defines empty `Left`/`Center`/`Right` states). The port keeps that contract and animates in code: the containers sit in a `Grid` items panel, only the selected one is visible, and a selection change animates the incoming container from `±ActualWidth` to `0` with a `QuarticEase` over the original 0.25 s while the outgoing one animates out and is collapsed when the slide completes. A pointer drag moves the `ItemsPresenter` and the header canvas at the original 600 px/s and a release past half the viewport navigates. The header strip is an `ItemsControl` over a `Canvas`: `PivotHeadersControl` sets `Canvas.Left` for every header (circular, starting at `VisualFirstIndex`, so the first header follows the last one) and scrolls the canvas over the original 0.5 s; the phone version let the compositor move the same run. `Pivot.IsLocked` fades the headers over 200 ms and refuses item changes. Every animation completes through `DoubleAnimation.Completed`, which keeps the content interactive and lets queued navigation requests run.
 - **Converters/localization**: original formatting rules and 51 resx files (the `qps-ploc` pseudo-locale is excluded from packaging).
 
 ## 8. Packaging

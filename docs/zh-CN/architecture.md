@@ -14,7 +14,7 @@
 ## 2. 仓库与工程
 
 ```text
-Community.Phone.Controls.Toolkit.slnx
+PhoneToolkit.WPF.slnx
 ├─ src/Community.Phone.Controls.Toolkit.WPF/          （单一可分发程序集）
 │  ├─ Projection/    Projection、PlaneProjection、Matrix3DProjection、ProjectionHost、ProjectionService
 │  ├─ Navigation/    PhoneApplicationFrame、PhoneApplicationPage、NavigationContext、方向类型
@@ -22,8 +22,8 @@ Community.Phone.Controls.Toolkit.slnx
 │  ├─ Transitions/   ITransition/Transition、TransitionFrame、TransitionService、各转场系列
 │  ├─ Effects/       TiltEffect、TurnstileFeatherEffect
 │  ├─ Controls/      WrapPanel、ToggleSwitch、Rating、PhoneTextBox、ExpanderView、HubTile、
-│  │                 ListPicker、ContextMenu、CustomMessageBox、DatePicker/TimePicker、
-│  │                 PerformanceProgressBar、转换器、辅助类
+│  │                 ListPicker、Pivot（含 PivotHeadersControl/PivotHeaderItem）、ContextMenu、
+│  │                 CustomMessageBox、DatePicker/TimePicker、PerformanceProgressBar、转换器、辅助类
 │  ├─ LocalizedResources/  51 个从原始本地化工程复制的 .resx
 │  └─ Themes/Generic.xaml  Metro 调色板、字体、Frame 模板、控件模板
 ├─ src/Community.Phone.Controls.Toolkit.WPF.Sample/   可运行 WPF 示例
@@ -31,6 +31,8 @@ Community.Phone.Controls.Toolkit.slnx
 ```
 
 包 ID 为 `Community.Phone.Controls.Toolkit.WPF`。包中只包含一个主程序集及其卫星资源、主题字典、XML 文档、README、许可证和文档，不需要额外安装内部包。
+
+库保留了原工具包源码，这些文件通过 `#if WINDOWS_PHONE` 选择兼容命名空间（`Microsoft.Phone.Controls`）和本地化资源，因此 `WINDOWS_PHONE;WP8` 在**所有**配置下都必须定义；只有 Release 不定义时，`LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会编译失败。
 
 ## 3. 命名空间与 API 策略
 
@@ -71,7 +73,7 @@ Host 创建一个以元素原点为中心的矩形网格：
 ```text
 positions (Y up):  (-w/2, +h/2, 0), (+w/2, +h/2, 0), (+w/2, -h/2, 0), (-w/2, -h/2, 0)
 texture coords:    (0,0), (1,0), (1,1), (0,1)
-triangles:         0,2,1 and 0,3,2
+triangles:         0,2,1 and 0,3,2（正面）；0,1,2 and 0,2,3（反向绕序）
 ```
 
 `PerspectiveCamera` 位于 `(0, 0, depth)`，`depth = PerspectiveDepth`，默认 `999` DIP。视场角由视口**宽度**推导：`fov = 2 * atan(viewportWidth / (2 * depth))`。WPF 的 `PerspectiveCamera.FieldOfView` 是水平视场角，垂直视场角由视口宽高比推导，因此按宽度推导可以保证 identity 投影与布局槽位严格 1:1。若按高度推导，每个 3D 转场中的元素都会按宽高比缩小（480x800 的页面被渲染成 288x480），转场结束时再跳回全尺寸。
@@ -89,7 +91,9 @@ RotationY 取反，因为 XAML 中正的 RotationY 会让右边缘靠近观察�
 而在 WPF 的 +Y 轴上正向旋转会让右边缘远离观察者。
 ```
 
-矩阵赋给 `Viewport2DVisual3D.Transform`。裁剪、背面和命中测试由 WPF 3D 管线处理。Host 在尺寸或投影变化时重新计算几何、相机视场角和变换。
+矩阵赋给 `Viewport2DVisual3D.Transform`。裁剪与命中测试由 WPF 3D 管线处理。WPF 会剔除背面，而 XAML 投影从两侧都可见，所以四边形同时带上反向绕序的三角形：超过 90° 的旋转（例如 `HubTile` 翻转的后半段）仍然渲染镜像内容，而不是消失（`ProjectionHost_RendersContentPastNinetyDegrees`）。Host 在尺寸或投影变化时重新计算几何、相机视场角和变换。
+
+投影结果**不会**被裁剪到 Host 的布局槽。XAML 投影旋转的是元素的栅格，并把结果原样画出，所以旋转元素被透视放大的近端会画到自身边界之外 —— `HubTile` 翻转会压到相邻瓦片，Turnstile 页面可以摆出 frame 之外。因此 3D 路径下 `Viewport3D.ClipToBounds` 为 `false`，Host 只在 2D 渲染时给自己的渲染加裁剪（`ClipToBounds`）。被裁剪的是**内容**：surface 带一个布局槽大小的 `RectangleGeometry` 裁剪，这复现了平台“把内容栅格化进元素边界”的规则 —— `HubTile` 的表面有两倍瓦片高、视口只有一倍高，滑出视口的那条带子因此被切掉 —— 同时让子元素溢出布局槽时贴图映射仍保持一一对应。`ProjectionHost_DoesNotClipTheProjectedResult` 与 `ProjectionHost_ClipsItsContentToTheLayoutSlot` 分别覆盖这两半。
 
 ### 4.4 XAML 兼容边界
 
@@ -126,7 +130,7 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 
 投影为 identity 时 Host 走 2D 路径，否则走 `Viewport3D` 路径。两条路径的**几何完全一致**（identity 投影与 2D 布局的偏差在 0.01 px 以内），但文本栅格化方式不同（ClearType 与 3D 纹理的灰度抗锯齿）。`ProjectionHost.Prefer3D` 让 Host 在投影仍是 identity 时就保持 3D 路径，因此 `TransitionFrame`、`TiltEffect`、`TurnstileFeatherEffect` 在**准备动画时**就切换渲染路径，而不是等到动画首帧。转场的 presenter 不再使用 `BitmapCache`：3D 管线本身就会栅格化内容，额外的 1x 缓存只会让它变糊。
 
-`Viewport2DVisual3D` 把被投影可视对象的**绘制边界**（painted bounds）映射到四边形上，而不是布局槽。绘制范围小于布局槽的内容（左对齐的 `CheckBox`、较短的 `TextBlock`、任何被拉宽但只画一部分的元素）会被拉伸到整个投影平面（这曾让倾斜的 `CheckBox` 方框和文字横向被拉宽约 1.8 倍）。因此 Host 投影一个填满**布局槽**的内部 surface：它按布局槽尺寸绘制透明矩形，并被固定为布局槽尺寸（3D 可视宿主会按 desired size 布局它），平面几何以及 `CenterOfRotation`/`LocalOffset`/`GlobalOffset` 都以布局槽为准，而不是子元素碰巧被测量/排列出的大小。因此比宿主小的子元素会保持它在 2D 下的大小和位置。`ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot` 与 `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize` 覆盖这两点。
+`Viewport2DVisual3D` 把被投影可视对象的**绘制边界**（painted bounds）映射到四边形上，而不是布局槽。绘制范围小于布局槽的内容（左对齐的 `CheckBox`、较短的 `TextBlock`、任何被拉宽但只画一部分的元素）会被拉伸到整个投影平面（这曾让倾斜的 `CheckBox` 方框和文字横向被拉宽约 1.8 倍）。因此 Host 投影一个填满**布局槽**的内部 surface：它按布局槽尺寸绘制透明矩形，被裁剪到布局槽（见上），并被固定为布局槽尺寸（3D 可视宿主会按 desired size 布局它），平面几何以及 `CenterOfRotation`/`LocalOffset`/`GlobalOffset` 都以布局槽为准，而不是子元素碰巧被测量/排列出的大小。因此比宿主小的子元素会保持它在 2D 下的大小和位置。`ProjectionHost_DoesNotStretchContentThatPaintsLessThanItsSlot` 与 `ProjectionHost_ProjectsTheLayoutSlotNotTheChildSize` 覆盖这两点。
 
 开发机实测帧率（`CompositionTarget.Rendering`，480×800 内容）：2D 基线约 150 fps、整页投影约 92–96 fps、6 个独立羽化元素约 64–68 fps，2D→3D 切换只花一帧（约 6 ms）。把羽化目标在**订阅时**提前包装可以把这部分开销移出转场过程，因为动画期间重新挂载元素会让每个目标触发一次完整布局。
 
@@ -228,6 +232,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 - **CustomMessageBox**：`ContentControl` API，`Show()`/`Dismiss()` 由 WPF Window 承载。
 - **DatePicker/TimePicker**：保留 Value/ValueString/Header/PickerPageUri API，用 WPF 日期/时间 UI 在模态 Window 中实现。
 - **PerformanceProgressBar**：内嵌 WPF `ProgressBar` 和 `ActualIsIndeterminate`；简单透明度淡入淡出。
+- **Pivot / PivotItem / PivotHeadersControl / PivotHeaderItem**：手机版本由 DirectManipulation 与合成器驱动，原版 `PivotItem` 的位置状态不含 storyboard（主题里的 `Left`/`Center`/`Right` 状态都是空的）。移植版保持该契约并在代码中做动画：容器堆叠在 `Grid` items panel 中，只有当前项可见；切换时进入项从 `±ActualWidth` 动画到 `0`（`QuarticEase`，沿用原版 0.25 秒），离开项同时滑出并在动画结束后折叠。指针拖拽会以原版 600 px/s 移动 `ItemsPresenter` 与页眉画布，超过半个视口即切换。页眉条是放在 `Canvas` 上的 `ItemsControl`：`PivotHeadersControl` 为每个页眉设置 `Canvas.Left`（循环排布，从 `VisualFirstIndex` 开始，最后一个之后接第一个），并以原版 0.5 秒滚动画布；手机版本由合成器移动同一条页眉带。`Pivot.IsLocked` 用 200 毫秒淡出页眉并拒绝修改项。所有动画都通过 `DoubleAnimation.Completed` 收尾，使内容保持可交互并让排队的切换请求继续执行。
 - **转换器/本地化**：保留原始格式化规则和 51 个 resx 文件（`qps-ploc` 伪语言不打包）。
 
 ## 8. 打包

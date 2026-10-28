@@ -26,7 +26,14 @@
 		<RootNamespace>Microsoft.Phone.Controls</RootNamespace>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	<PropertyGroup>
+		<!--
+			The port keeps the original toolkit sources, which branch on
+			WINDOWS_PHONE to select the compatible namespaces and the localized
+			resources. Both configurations must define it: Release used to omit
+			it and failed to compile LengthConverter, TypeConverters,
+			RoutedPropertyChangingEventArgs and InteractionHelper.
+		-->
 		<DefineConstants>$(DefineConstants);WINDOWS_PHONE;WP8</DefineConstants>
 	</PropertyGroup>
 
@@ -211,9 +218,6 @@
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Controls\Pivot\" />
 	</ItemGroup>
 
 </Project>

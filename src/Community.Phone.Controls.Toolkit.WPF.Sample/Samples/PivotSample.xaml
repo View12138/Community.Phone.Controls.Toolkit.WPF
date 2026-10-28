@@ -1,0 +1,88 @@
+﻿<!--
+// (c) Copyright Microsoft Corporation.
+// This source is subject to the Microsoft Public License (Ms-PL).
+// Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
+// All other rights reserved.
+-->
+
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Samples.PivotSample"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape"
+    Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <toolkit:TransitionService.NavigationInTransition>
+        <toolkit:NavigationInTransition>
+            <toolkit:NavigationInTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardIn" />
+            </toolkit:NavigationInTransition.Backward>
+            <toolkit:NavigationInTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardIn" />
+            </toolkit:NavigationInTransition.Forward>
+        </toolkit:NavigationInTransition>
+    </toolkit:TransitionService.NavigationInTransition>
+
+    <toolkit:TransitionService.NavigationOutTransition>
+        <toolkit:NavigationOutTransition>
+            <toolkit:NavigationOutTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardOut" />
+            </toolkit:NavigationOutTransition.Backward>
+            <toolkit:NavigationOutTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardOut" />
+            </toolkit:NavigationOutTransition.Forward>
+        </toolkit:NavigationOutTransition>
+    </toolkit:TransitionService.NavigationOutTransition>
+
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            Drag the content horizontally, flick, click a header, or press
+            Left/Right to change the item. The header run scrolls with the content.
+        -->
+        <phone:Pivot
+            x:Name="SamplePivot"
+            Title="PIVOT SAMPLE"
+            SelectionChanged="OnPivotSelectionChanged">
+            <phone:PivotItem Header="item 1">
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Drag this content horizontally, flick, or click a header." Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="The next item slides in from the right; going back slides in from the left." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                </StackPanel>
+            </phone:PivotItem>
+            <phone:PivotItem Header="item 2">
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Second item" Style="{StaticResource PhoneTextNormalStyle}" />
+                    <TextBlock Text="The selected header always sits at the left edge of the header strip." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                </StackPanel>
+            </phone:PivotItem>
+            <phone:PivotItem Header="item 3">
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Third item" Style="{StaticResource PhoneTextNormalStyle}" />
+                    <TextBlock Text="Navigating past the last item wraps around to the first." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                </StackPanel>
+            </phone:PivotItem>
+        </phone:Pivot>
+
+        <StackPanel Grid.Row="1" Margin="12,0,12,12">
+            <TextBlock x:Name="SelectionStatus" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,8" />
+            <CheckBox
+                x:Name="LockToggle"
+                Content="Lock the pivot (IsLocked)"
+                Checked="OnLockChanged"
+                Unchecked="OnLockChanged" />
+            <Button Content="Go back" Click="OnGoBack" />
+        </StackPanel>
+    </Grid>
+</phone:PhoneApplicationPage>

@@ -12,7 +12,7 @@
 - **导航**：`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext`、页面状态、方向、返回键和页面生命周期分发。
 - **转场**：`TransitionFrame`、`ITransition`、`NavigationInTransition` / `NavigationOutTransition`，以及 Roll、Rotate、Slide、Swivel、Turnstile、TurnstileFeather 系列（原 19 个 storyboard）。
 - **效果**：`TiltEffect`、`TurnstileFeatherEffect`，基于真实投影管线。
-- **控件**：`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ExpanderView`、`ListPicker`、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`RecurringDaysPicker`、`PerformanceProgressBar`，以及相关转换器和辅助类。
+- **控件**：`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ExpanderView`、`ListPicker`、`Pivot`（含 `PivotItem` 与页眉基础类型）、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`RecurringDaysPicker`、`PerformanceProgressBar`，以及相关转换器和辅助类。
 - **Shell**：`Microsoft.Phone.Shell.ApplicationBar` 移植了原版 API（`IApplicationBar`、图标按钮、菜单项、`Mode`、`StateChanged`、4/50 上限与 item 校验），由 frame 的 `ApplicationBarPresenter` 绘制；`SystemTray` 仍是 API/状态模型。`ListPicker` 完整模式页面的「完成/取消」使用真实 `ApplicationBar`。
 - **本地化**：50 个真实文化加中性资源，由原始 designer/资源生成。
 - **主题**：Metro 调色板、字体、文本样式、Frame 模板和控件模板位于 `Themes/Generic.xaml`。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。
@@ -153,10 +153,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 
 ## 验证状态
 
-- Release 构建：0 errors（2026-10-22 重新验证）；仅有的警告来自未跟踪的进行中 `LongListSelector`/`ViewportControl`/`WindowHelper` 文件。
-- 自动化测试：Release 与 Debug 下均 103 passed，0 failed（约 30 秒；覆盖投影、控件、转换器、效果、导航/转场和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）以及 `ListPicker` 完整模式页面的应用栏。
+- Release 构建：0 errors（2026-10-27 重新验证）；仅有的警告来自未跟踪的进行中 `LongListSelector`/`ViewportControl`/`WindowHelper` 文件。`WINDOWS_PHONE;WP8` 常量在所有配置下都定义，因为移植源码用它们选择兼容命名空间和本地化资源。
+- 自动化测试：Release 与 Debug 下均 124 passed，0 failed（约 44 秒；覆盖投影、控件、转换器、效果、导航/转场、Pivot 和 Shell API）。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）、`ListPicker` 完整模式页面的应用栏，以及 `Pivot` 的滑动/页眉/锁定行为（含 96 DPI 渲染检查）。
 - 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
-- 示例：启动成功；UI 自动化逐个打开全部示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus）并每次返回示例索引，未产生启动错误。
+- 示例：启动成功；UI 自动化逐个打开示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus、Pivot）并每次返回示例索引，未产生启动错误。
 - 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。
 
 ## 运行示例
@@ -165,7 +165,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ```
 
-示例结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页 —— `ControlsPage`（带 WP 样式的 WPF 基础控件 + 全部已实现工具包控件）、`ProjectionPage`、`TransitionsPage`（可选任意转场族，包括羽化，并用它导航）、`FeatherPage`、`MenusPage`（ContextMenu、CustomMessageBox、ApplicationBar/SystemTray 状态）。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。
+示例结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页 —— `ControlsPage`（带 WP 样式的 WPF 基础控件 + 全部已实现工具包控件）、`ProjectionPage`、`TransitionsPage`（可选任意转场族，包括羽化，并用它导航）、`FeatherPage`、`MenusPage`（ContextMenu、CustomMessageBox、ApplicationBar/SystemTray 状态）、`PivotSample`（拖拽、快速滑动、点击页眉、方向键、`IsLocked`）、`HubTileSample`（三项 `Pivot` + 原版 hub tile 与照片），以及 ListPicker 和消息框示例。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。往示例工程新增图片后请重建（`dotnet build -t:Rebuild`）：增量构建可能保留旧的 `.g.resources` 文件列表，pack URI 会报「找不到资源」。
 
 ## 文档
 
@@ -183,7 +183,7 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 
 ## 未实现模块
 
-当前 preview **不实现** `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService` 或 looping-selector/picker pages。原因和替代方案见 [已知限制](docs/zh-CN/known-limitations.md)。这些内容不会被宣称为兼容。
+当前 preview **不实现** `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`（已被 `Pivot.IsLocked` 取代）、`SlideInEffect`、`GestureListener`/`GestureService` 或 looping-selector/picker pages。原因和替代方案见 [已知限制](docs/zh-CN/known-limitations.md)。这些内容不会被宣称为兼容。
 
 ## 许可证与归属
 
