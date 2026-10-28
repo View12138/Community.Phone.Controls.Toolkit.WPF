@@ -4,6 +4,7 @@
     xmlns:Primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <Style x:Key="PhoneTextBlockBase" TargetType="TextBlock">

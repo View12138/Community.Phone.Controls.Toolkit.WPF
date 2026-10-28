@@ -4,20 +4,21 @@
     xmlns:Primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/Dark.xaml" />
+        <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />-->
     </ResourceDictionary.MergedDictionaries>
 
     <Style TargetType="controls:ListPicker">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneForegroundBrush}"/>
-        <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}"/>
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMediumLarge}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}"/>
+        <Setter Property="BorderThickness" Value="{DynamicResource PhoneBorderThickness}"/>
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeMediumLarge}"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Margin" Value="{StaticResource PhoneTouchTargetOverhang}"/>
+        <Setter Property="Margin" Value="{DynamicResource PhoneTouchTargetOverhang}"/>
         <Setter Property="PickerPageUri" Value="/Community.Phone.Controls.Toolkit.WPF;component/Controls/ListPicker/ListPickerPage.xaml"/>
 
         <Setter Property="Template">
@@ -34,7 +35,7 @@
                                             Storyboard.TargetProperty="Foreground"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneTextBoxForegroundBrush}"
+                                                Value="{DynamicResource PhoneTextBoxForegroundBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                         <ObjectAnimationUsingKeyFrames
@@ -42,7 +43,7 @@
                                             Storyboard.TargetProperty="Background"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneTextBoxEditBackgroundBrush}"
+                                                Value="{DynamicResource PhoneTextBoxEditBackgroundBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                         <ObjectAnimationUsingKeyFrames
@@ -50,7 +51,7 @@
                                             Storyboard.TargetProperty="BorderBrush"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneTextBoxEditBorderBrush}"
+                                                Value="{DynamicResource PhoneTextBoxEditBorderBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>
@@ -73,7 +74,7 @@
                                             Storyboard.TargetProperty="BorderBrush"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneDisabledBrush}"
+                                                Value="{DynamicResource PhoneDisabledBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                         <ObjectAnimationUsingKeyFrames
@@ -81,7 +82,7 @@
                                             Storyboard.TargetProperty="Foreground"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneDisabledBrush}"
+                                                Value="{DynamicResource PhoneDisabledBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>
@@ -91,8 +92,8 @@
                         <ContentControl
                             Content="{TemplateBinding Header}"
                             ContentTemplate="{TemplateBinding HeaderTemplate}"
-                            Foreground="{StaticResource PhoneSubtleBrush}"
-                            FontSize="{StaticResource PhoneFontSizeNormal}"
+                            Foreground="{DynamicResource PhoneSubtleBrush}"
+                            FontSize="{DynamicResource PhoneFontSizeNormal}"
                             HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                             Margin="0 0 0 8"/>
                         <Grid>
@@ -138,7 +139,7 @@
                                             Storyboard.TargetProperty="Foreground"
                                             Duration="0">
                                             <DiscreteObjectKeyFrame
-                                                Value="{StaticResource PhoneAccentBrush}"
+                                                Value="{DynamicResource PhoneAccentBrush}"
                                                 KeyTime="0"/>
                                         </ObjectAnimationUsingKeyFrames>
                                     </Storyboard>

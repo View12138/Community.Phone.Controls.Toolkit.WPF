@@ -9,6 +9,7 @@
             <sys:String x:Key="ApplicationTitle">WINDOWS PHONE TOOLKIT for WPF</sys:String>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/DarkCobalt.xaml" />-->
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

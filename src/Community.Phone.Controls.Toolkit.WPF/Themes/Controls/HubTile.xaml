@@ -4,10 +4,11 @@
     xmlns:Primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/Dark.xaml" />
+        <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />-->
     </ResourceDictionary.MergedDictionaries>
 
     <controls:TileSizeToWidthConverter x:Key="WidthConverter" />
@@ -17,7 +18,7 @@
         <Style.Setters>
             <Setter Property="Height" Value="173"/>
             <Setter Property="Width" Value="173"/>
-            <Setter Property="Background" Value="{StaticResource PhoneAccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource PhoneAccentBrush}"/>
             <Setter Property="Foreground" Value="#FFFFFFFF"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -164,7 +165,7 @@
                                         <TextBlock VerticalAlignment="Bottom"
                                                Margin="10,0,0,6"
                                                Text="{TemplateBinding Title}"
-                                               FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                               FontFamily="{DynamicResource PhoneFontFamilyNormal}"
                                                FontSize="41"
                                                Foreground="{TemplateBinding Foreground}"
                                                TextWrapping="NoWrap" 
@@ -188,8 +189,8 @@
                                         <TextBlock x:Name="NotificationBlock" Grid.Row="0"
                                                Margin="8,8,0,6"
                                                Text="{TemplateBinding Notification}"
-                                               FontFamily="{StaticResource PhoneFontFamilyNormal}"
-                                               FontSize="{StaticResource PhoneFontSizeLarge}"
+                                               FontFamily="{DynamicResource PhoneFontFamilyNormal}"
+                                               FontSize="{DynamicResource PhoneFontSizeLarge}"
                                                Foreground="{TemplateBinding Foreground}"
                                                TextWrapping="NoWrap"
                                                LineStackingStrategy="BlockLineHeight"
@@ -197,8 +198,8 @@
                                         <TextBlock x:Name="MessageBlock" Grid.Row="0"
                                                Margin="10,10,10,6"
                                                Text="{TemplateBinding Message}"
-                                               FontFamily="{StaticResource PhoneFontFamilyNormal}"
-                                               FontSize="{StaticResource PhoneFontSizeNormal}"
+                                               FontFamily="{DynamicResource PhoneFontFamilyNormal}"
+                                               FontSize="{DynamicResource PhoneFontSizeNormal}"
                                                Foreground="{TemplateBinding Foreground}"
                                                TextWrapping="Wrap"
                                                LineStackingStrategy="BlockLineHeight"
@@ -206,8 +207,8 @@
                                         <TextBlock x:Name="BackTitleBlock" Grid.Row="1" 
                                                VerticalAlignment="Bottom" 
                                                Margin="10,0,0,6"
-                                               FontFamily="{StaticResource PhoneFontFamilySemiBold}"
-                                               FontSize="{StaticResource PhoneFontSizeNormal}"
+                                               FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
+                                               FontSize="{DynamicResource PhoneFontSizeNormal}"
                                                Foreground="{TemplateBinding Foreground}"
                                                TextWrapping="NoWrap"/>
                                     </Grid>

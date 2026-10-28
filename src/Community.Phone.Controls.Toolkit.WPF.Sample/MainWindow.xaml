@@ -14,7 +14,7 @@
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
         <phone:TransitionFrame x:Name="Frame" />
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Background="{DynamicResource PhoneBackgroundBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
