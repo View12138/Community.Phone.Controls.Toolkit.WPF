@@ -1,3 +1,4 @@
+using PhoneToolkitSample8;
 using System.Windows;
 
 namespace PhoneToolkitSample
@@ -21,9 +22,9 @@ namespace PhoneToolkitSample
 
         private void Home_Button_Click(object sender, RoutedEventArgs e)
         {
-            if (PhoneFrame.Content.GetType() != typeof(Pages.MainPage))
+            if (PhoneFrame.Content.GetType() != typeof(MainPage))
             {
-                PhoneFrame.Navigate(new Pages.MainPage());
+                PhoneFrame.Navigate(new MainPage());
             }
         }
 

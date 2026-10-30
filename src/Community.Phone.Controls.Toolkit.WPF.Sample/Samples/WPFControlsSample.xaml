@@ -1,5 +1,5 @@
 <phone:PhoneApplicationPage
-    x:Class="PhoneToolkitSample.Pages.ControlsPage"
+    x:Class="PhoneToolkitSample.Pages.WPFControlsSample"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"

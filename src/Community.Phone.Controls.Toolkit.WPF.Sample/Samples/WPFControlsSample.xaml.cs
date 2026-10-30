@@ -5,9 +5,9 @@ using Microsoft.Phone.Controls;
 
 namespace PhoneToolkitSample.Pages
 {
-    public partial class ControlsPage : PhoneApplicationPage
+    public partial class WPFControlsSample : PhoneApplicationPage
     {
-        public ControlsPage()
+        public WPFControlsSample()
         {
             InitializeComponent();
         }

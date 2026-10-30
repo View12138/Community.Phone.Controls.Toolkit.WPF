@@ -1,3 +1,4 @@
+using PhoneToolkitSample8;
 using System;
 using System.IO;
 using System.Windows;
@@ -32,7 +33,7 @@ namespace PhoneToolkitSample
             if (sender is MainWindow window)
             {
                 window.Loaded -= Window_Loaded;
-                window.PhoneFrame.Navigate(new Pages.MainPage());
+                window.PhoneFrame.Navigate(new MainPage());
             }
         }
 
