@@ -50,7 +50,7 @@
 |---|---|---|
 | `TransitionFrame`（退场→入场串行、presenter 翻转、交互恢复） | ✅ 已验证 | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`、`…_HostsInitialContentInTheOutgoingPresenter`、`…_RapidNavigationDoesNotLeaveTransitionsActive`、`…_PlaysTurnstileTransition`、`…_UsesAnOutTransitionSetJustBeforeNavigating`（示例在导航前设置转场族）、`…_CompletesAFeatheredExitWithoutTargets`（空转场不得冻结新页面）。presenter 会做 `Prefer3D`/命中测试准备，但不加 `BitmapCache`（3D 路径本身已栅格化页面）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，因此原版针对 shell 导航的保护未移植。 |
 | `TurnstileTransition`（4 模式） | ✅ 已验证 | 使用原版 `Turnstile*` XAML 资源；`TurnstileTransition_AnimatesRotationYOverTheOriginalRange` + `TransitionFrame_PlaysTurnstileTransition`；实测入场 `−80°→0°` 为 420 ms、退场 `0→50°` 约 300 ms（0.35 s / 0.25 s 乘以 `TurnstileDurationScale = 1.2`），转场中间帧截图中页面呈透视梯形。几何按 999 DIP 解析模型实测。WP 对齐调优：`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`（`Transitions.cs` 中的单个常量；设为 `0` / `1` 即还原原工具包值）。 |
-| `TurnstileFeatherTransition` | 🟡 已实现、未验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget`、`TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` 覆盖动画、首次布局时的目标收集与清理；没有动画的转场（例如页面没有可羽化元素时的羽化）会正常完成而不冻结（`TransitionFrame_CompletesAFeatheredExitWithoutTargets`）。原版“页面中心透视原点”**未**复刻（已文档化），且无视觉对比。已实测帧率（6 个元素约 64–68 fps）。注意：出站转场属于被离开的页面——想要羽化退场必须由源页声明或动态设置（示例在 `SampleNavigator` 中完成，源页没有可羽化元素时回退为 turnstile 退场）。 |
+| `TurnstileFeatherTransition` | ✅ 已验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget`、`TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` 覆盖动画、首次布局时的目标收集与清理；没有动画的转场（例如页面没有可羽化元素时的羽化）会正常完成而不冻结（`TransitionFrame_CompletesAFeatheredExitWithoutTargets`）。示例中实测：入场转场按序羽化 `FeatherPage`，转场结束后页面正常重绘（转场后截屏）。原版“页面中心透视原点”**未**复刻（已文档化）。已实测帧率（6 个元素约 64–68 fps）。注意：出站转场属于被离开的页面——想要羽化退场必须由源页声明或动态设置（示例在 `SampleNavigator` 中完成，源页没有可羽化元素时回退为 turnstile 退场）。 |
 | `SlideTransition`（8 模式） | ✅ 已验证 | 原版 `Slide*Fade*` XAML 资源；`SlideTransition_AnimatesTheRenderTransformOverTheOriginalRange` 在运行时观察 `TranslateTransform.X`（200 → 0）和透明度 |
 | `RotateTransition`（8 模式） | ✅ 已验证 | 原版 `Rotate*` XAML 资源；`RotateTransition_AnimatesRotationZOverTheOriginalRange` 在运行时观察 `RotationZ`（90 → 0）；流方向适配由工厂覆盖 |
 | `SwivelTransition`（6 模式） | ✅ 已验证 | 原版 `Swivel*` XAML 资源；`SwivelTransition_AnimatesRotationXOverTheOriginalRange` 在运行时观察 `RotationX`（−45 → 0） |
@@ -62,7 +62,7 @@
 | 项目 | 状态 | 证据 / 说明 |
 |---|---|---|
 | `TiltEffect` | ✅ 已验证 | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`、`TiltEffect_DoesNotTiltThePageThatHostsTheElement`、`TiltEffect_DoesNotWrapWhenSuppressed`；按压方向已按 XAML 约定做解析验证 |
-| `TurnstileFeatherEffect` | 🟡 已实现、未验证 | 同羽化转场的测试，另加 `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`；目标从页面可视树收集，宿主包装延迟到 dispatcher。逐元素宿主与页面级投影可用，但透视原点与原版不同 |
+| `TurnstileFeatherEffect` | ✅ 已验证 | 同羽化转场的测试，另加 `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`；目标从页面可视树收集，宿主包装延迟到 dispatcher，元素卸载时释放包装。逐元素宿主与页面级投影可用，示例 `FeatherPage` 按序羽化且转场后正确重绘，但透视原点与原版不同 |
 | `SlideInEffect` | ⛔ 未实现 | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已实现，但效果本身尚未移植 |
 
 ## 5. 控件

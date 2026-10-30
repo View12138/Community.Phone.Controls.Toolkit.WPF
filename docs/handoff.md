@@ -4,7 +4,7 @@ English · [中文](zh-CN/handoff.md)
 
 **Purpose.** This is the entry point for a fresh session. It records what is actually true in the working tree: verified build/test/run results, confirmed design decisions, uncommitted work that must not be lost, and the concrete next steps. It does **not** restate the original task plan (`.github/Guide.md`) or the full API matrix.
 
-**Last updated:** 2026-10-27 (local), branch `main`, working tree **dirty** — the `Pivot` control (source, theme, tests, sample page), the `HubTile` sliding/flip fix (theme, code, tests) including the projection clipping fix, and the documentation updates are uncommitted. The previous session's work is committed as `9a980ea`.
+**Last updated:** 2026-10-30 (local), branch `main`, working tree **dirty** — the `TurnstileFeatherEffect` port (effect source, `FeatheredTransition`, `ApplicationExtensions.RootVisual` shim) and the documentation updates are uncommitted on top of `18e256b`.
 
 ---
 
@@ -26,7 +26,7 @@ Acceptance criteria in use:
 | Check | Command | Result |
 |---|---|---|
 | Release build | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 errors / 22 pre-existing warnings** — CS0067/CS0162 in `LongListSelector.cs`, `ViewportControl.cs` and `WindowHelper.cs` (unused events, unreachable code); they are in `HEAD` and unrelated to this work. A build that has nothing to recompile reports 0/0. `WINDOWS_PHONE;WP8` is defined in every configuration; without it the Release compilation of `LengthConverter`, `TypeConverters`, `RoutedPropertyChangingEventArgs` and `InteractionHelper` failed |
-| Release tests | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **130 passed / 0 failed / 0 skipped** in about 47 s |
+| Release tests | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **128 passed / 2 failed / 0 skipped** in about 45 s. The two failures are pre-existing and unrelated: `ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources` (both assert a resource key that resolves to `null`); they fail identically at `18e256b` with the feather work stashed |
 | Debug tests | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **130 passed / 0 failed** |
 | Package + consumer | `powershell -File build\verify-package.ps1` | **passed** — `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` (+ `.snupkg`), fresh consumer restored from the local feed, built with 0 warnings and ran with a `Pivot` on its window |
 | Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, open the Pivot and HubTile samples | **passed** — the main page lists the new `Pivot` entry, selecting it opens `PivotSample` (automation tree: the active `PivotItem`, its content, `SelectedIndex 0 of 3`, the lock check box and the back button), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original hub tiles) renders its text and images, in both Release and Debug. Processes stay alive and no new error file is written (`%TEMP%\community-phone-toolkit-sample-error.txt` is still the 2026-10-23 ListPicker leftover). `HubTileSample` first threw `Cannot locate resource 'images/dessert.jpg'` because an incremental build kept the old `.g.resources` file list after the photos were added as `Resource` items — a rebuild fixes it, and the README now says so |
@@ -260,6 +260,20 @@ A `ListPicker` with many items (the sample's 105-system-locale picker) crashed w
 Tests: `ListPicker_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt` (120 items, selected "item 60": opens without throwing, scrolls the selection into view, animates it, and no realized container is left edge-on); `ListPicker_FullModePageAnimatesEveryItemInView` now waits for the (deferred) animation and samples the minimum observed rotation instead of reading a single frame. Full suite **109/109** in Release (twice, ~35 s); sample builds and starts with no error file.
 
 Docs updated for this turn (both languages): this section, `known-limitations.md` §6.3, `architecture.md` (ListPicker decision), `porting-status.md` (evidence snapshot and ListPicker row).
+
+### 4.15 Latest turn: `TurnstileFeatherEffect` ported onto the port's projection model
+
+`Effects/TurnstileFeatherEffect.cs` was a near-verbatim copy of the original WP source and could not run on WPF: it walked `Application.Current.RootVisual`, animated `(UIElement.Projection)` storyboard paths and discovered targets only through the attached-property subscription. Four of the five feather tests failed (`NullReferenceException` in `ApplicationExtensions.get_RootVisual`, then a cross-thread `Dispatcher.VerifyAccess`).
+
+- **Targets** — `GetTargetsToAnimate(FrameworkElement pageElement)` collects the feathered elements from the page's visual tree in `FeatheringIndex` order (the original ListBox/Pivot expansion is kept) instead of relying on subscription order; `FeatheredTransition.Begin` passes the transitioned page, and the collection is sorted stably so equal indices keep tree order.
+- **Hosts** — `TryAttachProjectionAndTransform` wraps the element with `ProjectionService.EnsureProjectionHost`, sets `host.Prefer3D = true` *before* the projection changes, applies `GlobalOffsetY` to the element's projection and the compensating translate to the **wrapper** (the wrapper's surface is clipped to the element's layout slot, so translating the element itself cropped its content).
+- **Threading** — static effect state is dropped whenever `Dispatcher.CurrentDispatcher` changes, deferred `EnsureProjectionHost` calls are skipped once a restore is pending, and the static easing functions are frozen (a thread-affine `Freezable` cannot travel to the next test's STA thread). `Element.Unloaded` returns early while the element is inside a `ProjectionHost`, so the unload caused by wrapping cannot unwrap it again.
+- **Repaint** — after `Prefer3D` returns to `false` the wrapper's region kept the *last 3D frame* on screen (in the sample the page title stayed blank after the transition). `RestoreProjectionsAndTransforms` now invalidates the element and its wrapper once the projection and transform are restored.
+- **Storyboard path** — `RotationYPropertyPath` is built from `PlaneProjection.RotationYProperty` via `ProjectionService.GetProjectionPropertyPath` instead of the Silverlight string `"(UIElement.Projection).(PlaneProjection.RotationY)"`.
+
+Evidence: feather tests 5/5 green; full suite **128/130** with only the two pre-existing `ListPicker` failures (`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`, `…_HighlightedVisualStateUsesBrushResources`, both also fail at HEAD); Release build 0 errors / 22 pre-existing warnings; the sample feathers `FeatherPage` in order and paints it correctly after the transition (screen captures before and after the repaint fix).
+
+Docs updated for this turn (both languages): this section, `porting-status.md` (both feather rows → ✅), `known-limitations.md` §5.5 (wrapper lifecycle and the repaint invalidation).
 
 ---
 

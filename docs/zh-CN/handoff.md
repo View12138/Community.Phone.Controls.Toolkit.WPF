@@ -4,7 +4,7 @@
 
 **用途。** 这是新会话的入口：记录工作区里**真实成立**的东西——已验证的构建/测试/运行结果、已确认的设计决策、不能丢失的未提交修改，以及具体的下一步。它不重述原始任务计划（`.github/Guide.md`），也不替代完整 API 矩阵。
 
-**最后更新：** 2026-10-27（本地时间），分支 `main`，工作区**有未提交修改** —— `Pivot` 控件（源码、主题、测试、示例页）、`HubTile` 滑面与翻转修复（主题、代码、测试，含投影裁剪修复）以及文档更新尚未提交。上一轮工作已提交为 `9a980ea`。
+**最后更新：** 2026-10-30（本地时间），分支 `main`，工作区**有未提交修改** —— `TurnstileFeatherEffect` 移植（效果源码、`FeatheredTransition`、`ApplicationExtensions.RootVisual` 兼容层）与文档更新尚未提交，基于 `18e256b`。
 
 ---
 
@@ -26,7 +26,7 @@
 | 检查项 | 命令 | 结果 |
 |---|---|---|
 | Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 22 个既有警告** —— `LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` 里的 CS0067/CS0162（未使用事件、不可达代码）；它们已在 `HEAD` 中，与本轮改动无关。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
-| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **130 通过 / 0 失败 / 0 跳过**，约 47 秒 |
+| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **128 通过 / 2 失败 / 0 跳过**，约 45 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；把羽化相关改动 stash 掉后在 `18e256b` 上同样失败 |
 | Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **130 通过 / 0 失败** |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原、零警告构建并运行（窗口内含 `Pivot`） |
 | 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
@@ -259,6 +259,20 @@ items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式�
 测试：`ListPicker_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt`（120 项、选中第 60 项：不抛异常、把选中项滚入视口、对它做动画、且没有已实现容器停留在侧立状态）；`ListPicker_FullModePageAnimatesEveryItemInView` 改为等待（被推迟的）动画并采样最小观测角度，而不是只读一帧。完整套件 Release **109/109**（连跑两次，约 35 秒）；示例可构建并启动，无错误文件。
 
 本轮同步更新的文档（双语）：本节、`known-limitations.md` §6.3、`architecture.md`（ListPicker 决策）、`porting-status.md`（证据快照与 ListPicker 行）。
+
+### 4.15 本轮：`TurnstileFeatherEffect` 移植到本项目的投影模型
+
+`Effects/TurnstileFeatherEffect.cs` 之前几乎是原版 WP 源码的逐字拷贝，在 WPF 上跑不起来：它走 `Application.Current.RootVisual`、动画目标写成 `(UIElement.Projection)` 这类 Silverlight 属性路径，且只通过附加属性订阅来发现目标。5 个羽化测试里有 4 个失败（先是 `ApplicationExtensions.get_RootVisual` 的 `NullReferenceException`，之后是跨线程 `Dispatcher.VerifyAccess`）。
+
+- **目标收集** —— `GetTargetsToAnimate(FrameworkElement pageElement)` 改为在合成 storyboard 时按 `FeatheringIndex` 从页面可视树收集（保留原版对 ListBox/Pivot 的展开逻辑），不再依赖订阅顺序；`FeatheredTransition.Begin` 把被转场的页面传进来，收集结果做稳定排序，索引相同时保持树内顺序。
+- **宿主** —— `TryAttachProjectionAndTransform` 用 `ProjectionService.EnsureProjectionHost` 包装元素，在改投影**之前**把 `host.Prefer3D` 置为 `true`，`GlobalOffsetY` 加到元素投影上，补偿用的位移则加到**包装器**上（包装器的表面按元素布局槽裁剪，位移加在元素上会把内容裁掉）。
+- **线程** —— 只要 `Dispatcher.CurrentDispatcher` 变化就丢弃静态状态；一旦有待恢复的动画，延迟执行的 `EnsureProjectionHost` 直接跳过；静态缓动函数全部 `Freeze()`（线程亲和的 `Freezable` 不能带去下一个测试的 STA 线程）。`Element.Unloaded` 在元素仍位于 `ProjectionHost` 内时提前返回，避免"包装导致的卸载"又把包装拆掉。
+- **重绘** —— `Prefer3D` 改回 `false` 后包装区域的屏幕上仍是**最后一帧 3D 画面**（示例中转场结束后页面标题一片空白）。`RestoreProjectionsAndTransforms` 在恢复投影与变换之后，对元素和包装器都调用 `InvalidateVisual()`。
+- **属性路径** —— `RotationYPropertyPath` 改为由 `PlaneProjection.RotationYProperty` 经 `ProjectionService.GetProjectionPropertyPath` 生成，不再使用 Silverlight 字符串 `"(UIElement.Projection).(PlaneProjection.RotationY)"`。
+
+证据：羽化测试 5/5 通过；完整套件 **128/130**，仅剩两个与本次改动无关、改动前就存在的 `ListPicker` 失败（`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`、`…_HighlightedVisualStateUsesBrushResources`，在 HEAD 上同样失败）；Release 构建 0 错误 / 22 个既有警告；示例中 `FeatherPage` 能按序羽化，且转场结束后画面正常（重绘修复前后各有一张截屏对比）。
+
+本轮同步更新的文档（双语）：本节、`porting-status.md`（两个羽化条目改为 ✅）、`known-limitations.md` §5.5（包装器生命周期与重绘失效）。
 
 ---
 

@@ -207,7 +207,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 
 ### `TurnstileFeatherEffect`
 
-保留 `FeatheringIndex`、`NonPermittedTypes` 和原有交错时间常数。合成 storyboard 时，目标从页面的**可视树**收集（`CollectTargets`，按 index 稳定排序）—— 因为进场页面在接入可视树之前就被合成，此时附加属性的通知尚未运行；`TransitionFrame` 会在合成前对进场 presenter 强制执行一次布局，使目标具有真实几何。附加属性订阅只负责准备包装，并且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（在布局过程中包装会引发布局循环）；包装触发的 `Unloaded` 不会取消订阅。`TurnstileFeatherTransition` 开始时，为每个在屏幕内的目标确保 `ProjectionHost`，赋予中心 `CenterOfRotationX = -0.2` 的 `PlaneProjection`，并按原 40–50 ms 交错组合 RotationY/透明度动画。无法包装的目标（item 容器、content presenter）会跳过。清理时恢复透明度、移除投影并释放包装。
+保留 `FeatheringIndex`、`NonPermittedTypes` 和原有交错时间常数。合成 storyboard 时，目标从页面的**可视树**收集（`GetTargetsToAnimate` → `CollectFeatheringTargets`，按 index 稳定排序）—— 因为进场页面在接入可视树之前就被合成，此时附加属性的通知尚未运行；`TransitionFrame` 会在合成前对进场 presenter 强制执行一次布局，使目标具有真实几何。附加属性订阅只负责准备包装，并且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（在布局过程中包装会引发布局循环）；包装触发的 `Unloaded` 既不会取消订阅，也不会拆掉包装。`TurnstileFeatherTransition` 开始时，为每个在屏幕内的目标确保 `ProjectionHost`，并在赋 `PlaneProjection`（`CenterOfRotationX = -0.2`）**之前**先打开 `host.Prefer3D`，再按原 40–50 ms 交错组合 RotationY/透明度动画；storyboard 通过由 `PlaneProjection.RotationYProperty` 生成的属性路径定位投影，因为 WPF 没有 `(UIElement.Projection)` 这种路径写法。页面中心的 `GlobalOffsetY` 加在元素投影上，补偿位移加在**包装器**上（包装器的表面按元素布局槽裁剪）。无法包装的目标（item 容器、content presenter）会跳过。清理时恢复透明度、投影、渲染变换和 2D 渲染路径，然后让元素与其包装器失效重绘 —— 走过 3D 路径的包装器使用独立表面合成，否则屏幕上会残留最后一帧 3D 画面。包装器本身保留到元素卸载时才释放，因此一个元素在一次转场中不会被重复重新父级化。
 
 如果转场最终没有任何动画（例如对没有可羽化元素的页面做羽化），它会在下一个 dispatcher 周期立即完成，而不是阻塞 Frame —— 否则新页面会永远不可交互。
 

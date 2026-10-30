@@ -13,7 +13,7 @@ public static class ApplicationExtensions
         {
             get
             {
-                return application.MainWindow?.Content as UIElement;
+                return application?.MainWindow?.Content as UIElement;
             }
         }
     }
