@@ -4,10 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
+    xmlns:local="clr-namespace:PhoneToolkitSample8"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     Startup="OnStartup">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF.Sample;component/Themes/Generic.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            
             <sys:String x:Key="ApplicationTitle">WINDOWS PHONE TOOLKIT for WPF</sys:String>
 
             <Style x:Key="HyperlinkEmptyStyle" TargetType="{x:Type phone:HyperlinkButton}">
@@ -22,24 +28,24 @@
                 </Setter>
             </Style>
 
-            <Style x:Key="MultilineHyperlinkStyle" TargetType="localControls:HeaderedContentControl">
+            <Style x:Key="MultilineHyperlinkStyle" TargetType="{x:Type localControls:HeaderedContentControl}">
                 <Setter Property="HorizontalAlignment" Value="Stretch"/>
                 <Setter Property="HorizontalContentAlignment" Value="Left"/>
                 <Setter Property="Margin" Value="0,0,0,24"/>
                 <Setter Property="HeaderTemplate">
                     <Setter.Value>
-                        <DataTemplate>
+                        <DataTemplate DataType="{x:Type local:SampleItem}">
                             <TextBlock Style="{StaticResource PhoneTextLargeStyle}"
-                                   Text="{Binding}"/>
+                                   Text="{Binding Header}"/>
                         </DataTemplate>
                     </Setter.Value>
                 </Setter>
                 <Setter Property="ContentTemplate">
                     <Setter.Value>
-                        <DataTemplate>
+                        <DataTemplate DataType="{x:Type local:SampleItem}">
                             <TextBlock Style="{StaticResource PhoneTextNormalStyle}"
                                    Opacity=".5"
-                                   Text="{Binding}"/>
+                                   Text="{Binding Description}"/>
                         </DataTemplate>
                     </Setter.Value>
                 </Setter>
@@ -104,11 +110,7 @@
                BasedOn="{StaticResource PhoneTextSubtleStyle}">
                 <Setter Property="Margin" Value="12,0,12,-4" />
             </Style>
-
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
-                <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/DarkCobalt.xaml" />-->
-            </ResourceDictionary.MergedDictionaries>
+            
         </ResourceDictionary>
     </Application.Resources>
 

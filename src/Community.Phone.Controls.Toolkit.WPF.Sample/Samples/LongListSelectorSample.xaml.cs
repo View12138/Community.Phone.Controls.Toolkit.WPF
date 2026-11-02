@@ -1,90 +1,66 @@
+// (c) Copyright Microsoft Corporation.
+// This source is subject to the Microsoft Public License (Ms-PL).
+// Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
+// All other rights reserved.
+
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Microsoft.Phone.Controls;
+using PhoneToolkitSample.Data;
+using System.Globalization;
 
 namespace PhoneToolkitSample.Samples
 {
     public partial class LongListSelectorSample : PhoneApplicationPage
     {
+        public List<AlphaKeyGroup<Person>> Buddies { get; private set; }
+        public List<AlphaKeyGroup<Movie>> Movies { get; private set; }
+
         public LongListSelectorSample()
         {
             InitializeComponent();
-            SampleList.ItemsSource = CreateGroups();
-            UpdateStatus();
+            DataContext = this;
+
+            Buddies = AlphaKeyGroup<Person>.CreateGroups(AllPeople.Current, CultureInfo.CurrentUICulture, (p) => { return p.FirstName; }, true);
+            buddies.SelectionChanged += PersonSelectionChanged;
+
+            LoadLinqMovies();
+
+            MessageBox.ShowCustomer(
+@"The LongListSelector is now built into Windows Phone 8, for better performance and new features including grid layout mode and ""sticky headers"".
+
+This sample and the sample code demonstrates how to use the new, improved LongListSelector.");
         }
 
-        private static List<SampleGroup> CreateGroups()
+        private void LoadLinqMovies()
         {
-            List<SampleGroup> groups = new List<SampleGroup>
+            List<Movie> movies = new List<Movie>();
+
+            for (int i = 0; i < 50; ++i)
             {
-                new SampleGroup("A", "Amsterdam", "Athens", "Auckland"),
-                new SampleGroup("B", "Berlin", "Boston", "Brussels", "Budapest"),
-                // Deliberately empty: HideEmptyGroups removes it from the list
-                // and from the jump list.
-                new SampleGroup("C"),
-                new SampleGroup("D", "Delhi", "Dublin"),
-                new SampleGroup("E", "Edinburgh", "El Paso"),
-                new SampleGroup("F", "Florence", "Frankfurt"),
-            };
-
-            return groups;
-        }
-
-        private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            UpdateStatus();
-        }
-
-        private void OnJumpListOpening(object sender, EventArgs e)
-        {
-            StatusText.Text = "Jump list opening";
-        }
-
-        private void OnJumpListClosed(object sender, EventArgs e)
-        {
-            UpdateStatus();
-        }
-
-        private void OnToggleLayout(object sender, RoutedEventArgs e)
-        {
-            SampleList.LayoutMode = SampleList.LayoutMode == LongListSelectorLayoutMode.List
-                ? LongListSelectorLayoutMode.Grid
-                : LongListSelectorLayoutMode.List;
-            SampleList.GridCellSize = new Size(200, 64);
-            UpdateStatus();
-        }
-
-        private void OnGoBack(object sender, RoutedEventArgs e)
-        {
-            SampleNavigator.GoBack(this, TransitionKind.Turnstile);
-        }
-
-        private void UpdateStatus()
-        {
-            if (StatusText == null || SampleList == null)
-            {
-                return;
+                movies.Add(Movie.CreateRandom());
             }
 
-            int groupCount = SampleList.ItemsSource == null ? 0 : SampleList.ItemsSource.Count;
-            StatusText.Text = string.Format(
-                "{0} · {1} groups · selected: {2}",
-                SampleList.LayoutMode == LongListSelectorLayoutMode.Grid ? "grid" : "list",
-                groupCount,
-                SampleList.SelectedItem ?? "none");
+            var moviesByCategory = from movie in movies
+                                   group movie by movie.Category into c
+                                   orderby c.Key
+                                   select new AlphaKeyGroup<Movie>(c);
+
+            Movies = moviesByCategory.ToList();
         }
 
-        private sealed class SampleGroup : List<string>
+        private void PersonSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            public SampleGroup(string key, params string[] items)
-                : base(items)
+            Person person = buddies.SelectedItem as Person;
+            if (person != null)
             {
-                Key = key;
+                NavigationService.Navigate(new Uri("/Samples/PersonDetail.xaml?ID=" + person.ID, UriKind.Relative));
             }
-
-            public string Key { get; }
         }
     }
 }

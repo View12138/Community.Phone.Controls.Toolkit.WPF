@@ -18,6 +18,7 @@
 	<ItemGroup>
 		<Resource Include="Images\*.png" />
 		<Resource Include="Images\*.jpg" />
+		<Content Include="Data\LoremIpsum.txt" />
 		<Page Update="Themes\Generic.xaml">
 			<Generator>MSBuild:Compile</Generator>
 			<SubType>Designer</SubType>

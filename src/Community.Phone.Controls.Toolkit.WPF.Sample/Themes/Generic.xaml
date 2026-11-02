@@ -3,12 +3,12 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:controlsToolkit="clr-namespace:PhoneToolkitSample.LocalControls">
 
-	<Style TargetType="controlsToolkit:HeaderedContentControl">
+    <Style TargetType="{x:Type controlsToolkit:HeaderedContentControl}">
 		<Setter Property="HorizontalContentAlignment" Value="Left"/>
 		<Setter Property="VerticalContentAlignment" Value="Top"/>
 		<Setter Property="Template">
 			<Setter.Value>
-				<ControlTemplate TargetType="controlsToolkit:HeaderedContentControl">
+                <ControlTemplate TargetType="{x:Type controlsToolkit:HeaderedContentControl}">
 					<Grid Background="Transparent">
 						<Grid.RowDefinitions>
 							<RowDefinition Height="Auto"/>

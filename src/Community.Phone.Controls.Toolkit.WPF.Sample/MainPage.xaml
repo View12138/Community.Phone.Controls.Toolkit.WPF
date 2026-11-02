@@ -6,6 +6,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
     xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
+    xmlns:local="clr-namespace:PhoneToolkitSample8"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
@@ -77,9 +78,20 @@
                     </DataTemplate>
                 </phone:LongListSelector.ListHeaderTemplate>
                 <phone:LongListSelector.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate DataType="{x:Type local:SampleItem}">
                         <Grid>
-                            <Button Content="{Binding Header}"></Button>
+                            <!--<Button >
+                                <Grid RowDefinitions="auto,auto">
+                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}"/>
+                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}"/>
+                                </Grid>
+                            </Button>-->
+                            <phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
+                                <Grid RowDefinitions="auto,auto" Margin="0,0,0,24">
+                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}"/>
+                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}"/>
+                                </Grid>
+                            </phone:HyperlinkButton>
                             <!--<phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
                                 <localControls:HeaderedContentControl
                                 Style="{StaticResource MultilineHyperlinkStyle}"
