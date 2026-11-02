@@ -12,7 +12,7 @@
 | 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
 | ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**证据快照（2026-10-27）：** Release 构建 0 错误（22 个既有警告，全部位于 `LongListSelector`、`ViewportControl`、`WindowHelper`）· Release 下 **124/124 测试通过**（约 44 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）· `build\verify-package.ps1` 通过（全新消费工程窗口内含一个 `Pivot`）· 示例冒烟运行：主页面列出 `Pivot` 示例，打开后渲染出 pivot 项、页眉条和 `SelectedIndex 0 of 3` 状态文本，示例错误日志没有新增内容。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
+**证据快照（2026-10-30）：** Release 构建 0 错误、4 个唯一警告（`WindowHelper` ×2 与未改动的 `ViewportControl` 事件警告；`LongListSelector` 的警告已消失）· Release 下 **139/141 测试通过**（约 38 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）。两个失败是既有的 ListPicker 样式断言 `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ListPicker_HighlightedVisualStateUsesBrushResources`，在基线 `b55dc12` 上同样失败 · 新增的 7 个 `LongListSelectorTests`、3 个 `HyperlinkButtonTests` 及 `NavigationContext_ParsesQueryFromARelativeUri` 全部通过 · 示例冒烟运行：应用可启动，基于 `LongListSelector` 的索引通过 `HyperlinkButton` 导航到 `LongListSelectorSample`（组页眉/项目正常渲染），`Toggle grid` 可切换到网格模式，示例错误日志没有新增内容。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
 
 ---
 
@@ -78,6 +78,7 @@
 | `HubTile` / `HubTileService` | ✅ 已验证 | `HubTile_PropertiesAndGroupFreeze`、`HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel`；模板即 WP8 原版（滑动表面 + `RotationX` 翻转）：Expanded/Semiexpanded 把表面滑到 `-H`/`-0.4566H`，翻转从 `0` 转到 `180` 并渲染背面（投影四边形为双面），`Source` 图片则用 96 DPI 渲染像素验证 |
 | `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`；弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel（探针：弹出 `RotationX −45°→0°`，关闭 `0°→42°` 后窗口才关闭）。`Show()` 在没有 `Application` 的宿主中同样可用（主题色回退到固定值、窗口尺寸取默认值），测试正是这样驱动它的 |
 | `ContextMenu` / `ContextMenuService` | ✅ 已验证 | `ContextMenuService_AttachesMenu`、`ContextMenu_OpensAndCloses` |
+| `HyperlinkButton` | ✅ 已验证（行为） | `HyperlinkButton_NavigatesApplicationUriInTheNearestFrame`、`…_OpensExternalUrisThroughTheShell`、`…_RetainsTargetNameAndExposesAHyperlinkPeer`、`NavigationContext_ParsesQueryFromARelativeUri`。相对/pack URI 导航最近帧；外部 URI 使用系统处理程序；`TargetName` 保留但命名目标不受支持。示例索引页通过该控件进入每个示例页（UI 自动化：调用 LLS 条目后页面加载出组页眉/项目，`Toggle grid` 可切换到网格模式） |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ 已验证（行为） | `DateTimePickers_HaveExpectedDefaultsAndFormatting`、`DateTimePickers_FormatValuesAndRaiseValueChanged`、`RecurringDaysPicker_SummarizesWeekdays`；picker **页面**与 `LoopingSelector` 未移植（改用 WPF 对话框） |
 | `PerformanceProgressBar` | 🟡 已实现、未验证 | 在 `Generic.xaml` 中有样式、示例中有展示；无专门测试，相对动画重写未移植 |
 | `RelativeAnimatingContentControl` | 🟡 已实现、未验证 | 有样式、示例中有展示；无专门测试 |
@@ -85,7 +86,7 @@
 | 转换器（`OffOnConverter`、tile-size、`RelativeTimeConverter`） | ✅ 已验证 | `OffOnConverterUsesLocalizedStrings`、`TileSizeConvertersReturnExpectedDimensions`、`RelativeTimeConverterFormatsMinutesAndHours` |
 | 辅助类（`CultureInfoExtensions`、`RoutedPropertyChangingEventArgs`、`WeakReferenceHelper`） | 🟡 已实现、未验证 | 被已移植控件使用；无专门测试 |
 | `AutoCompleteBox` | ⛔ 未实现 | 源码中不存在 |
-| `LongListSelector`（WP7） | ⛔ 未实现 | 源码中不存在 |
+| `LongListSelector`（WP8.1） | ✅ 已验证（行为） | `LongListSelector_RendersListPartsAndVirtualizedItems`、`…_GroupingBuildsGroupPartsAndHidesEmptyGroups`、`…_GridLayoutArrangesItemsInFixedCells`、`…_SelectionAndKeyboardNavigationUseItemData`、`…_ScrollToBringsAFarItemIntoView`、`…_CollectionChangesRebuildItemsAndRaiseUnrealized`、`…_JumpListOpensAndScrollsToTheChosenGroup`。列表模式使用 `VirtualizingStackPanel` 虚拟化；网格模式为固定单元格非虚拟化面板；跳转列表为 WPF `Popup`；像素/触摸保真度未验证 |
 | `LongListMultiSelector`（WP8） | ⛔ 未实现 | 源码中不存在 |
 | `MultiselectList` | ⛔ 未实现 | 源码中不存在 |
 | 地图（`MapChild`、`MapItemsControl`、`Pushpin` 等） | ⛔ 未实现 | 需要地图提供方 |
@@ -102,7 +103,7 @@
 | Metro 主题 + WPF 基础控件 WP 样式 | ✅ 存在性已验证 / 🟡（保真度） | `Theme_ContainsMetroResources`；`Generic.xaml` 覆盖 `Button`、`TextBox`、`ComboBox`、`CheckBox`、`RadioButton`、`ListBox`、`ScrollBar`、`ContextMenu`、`ProgressBar`、`ToolTip` 及工具包控件。从未与 WP 做并排像素对比 |
 | 本地化资源 | ✅ 已验证 | 50 种文化 + 中性资源，包内包含卫星程序集；`OffOnConverterUsesLocalizedStrings` |
 | NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`，全新消费工程可构建运行 |
-| 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`、`ListPickerSample`、`CustomMessageBoxSample`、`PivotSample`、`HubTileSample`）。2026-10-27 UI 自动化冒烟：Pivot 示例可打开（活动 `PivotItem`、页眉、状态文本），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 HubTile 与图片）能渲染文本和图片。两个配置都先做了重新构建：往示例工程里新增 `Resource` 图片后必须重建，否则 `.g.resources` 仍是旧文件列表，pack URI 会找不到资源 |
+| 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`、`ListPickerSample`、`CustomMessageBoxSample`、`PivotSample`、`HubTileSample`、`LongListSelectorSample`；索引页本身就是一个 `LongListSelector`）。2026-10-27 UI 自动化冒烟：Pivot 示例可打开（活动 `PivotItem`、页眉、状态文本），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 HubTile 与图片）能渲染文本和图片。两个配置都先做了重新构建：往示例工程里新增 `Resource` 图片后必须重建，否则 `.g.resources` 仍是旧文件列表，pack URI 会找不到资源 |
 
 ---
 

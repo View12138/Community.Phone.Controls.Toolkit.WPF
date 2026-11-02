@@ -8,7 +8,7 @@
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
+    mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -78,12 +78,15 @@
                 </phone:LongListSelector.ListHeaderTemplate>
                 <phone:LongListSelector.ItemTemplate>
                     <DataTemplate>
-                        <phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
-                            <localControls:HeaderedContentControl
+                        <Grid>
+                            <Button Content="{Binding Header}"></Button>
+                            <!--<phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
+                                <localControls:HeaderedContentControl
                                 Style="{StaticResource MultilineHyperlinkStyle}"
                                 Header="{Binding Header}"
                                 Content="{Binding Description}"/>
-                        </phone:HyperlinkButton>
+                            </phone:HyperlinkButton>-->
+                        </Grid>
                     </DataTemplate>
                 </phone:LongListSelector.ItemTemplate>
                 <phone:LongListSelector.ListFooterTemplate>

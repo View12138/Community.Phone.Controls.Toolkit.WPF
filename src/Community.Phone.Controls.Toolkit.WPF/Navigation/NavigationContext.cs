@@ -75,9 +75,10 @@ namespace Microsoft.Phone.Controls
         {
             Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            if (uri != null && !string.IsNullOrEmpty(uri.Query))
+            string queryString = GetQueryString(uri);
+            if (!string.IsNullOrEmpty(queryString))
             {
-                string query = uri.Query.TrimStart('?');
+                string query = queryString.TrimStart('?');
                 foreach (string part in query.Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     int separator = part.IndexOf('=');
@@ -100,6 +101,33 @@ namespace Microsoft.Phone.Controls
             }
 
             return new NavigationContext(uri, values, extraData);
+        }
+
+        private static string GetQueryString(Uri uri)
+        {
+            if (uri == null)
+            {
+                return null;
+            }
+
+            if (uri.IsAbsoluteUri)
+            {
+                return uri.Query;
+            }
+
+            // WPF hands a relative navigation URI through unchanged. Uri.Query
+            // throws for a relative Uri, so parse the original string instead.
+            string text = uri.OriginalString;
+            int separator = text.IndexOf('?');
+            if (separator < 0)
+            {
+                return null;
+            }
+
+            int fragment = text.IndexOf('#', separator);
+            return fragment < 0
+                ? text.Substring(separator)
+                : text.Substring(separator, fragment - separator);
         }
 
         private static string Decode(string value)

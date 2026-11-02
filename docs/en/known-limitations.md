@@ -7,7 +7,6 @@ This port targets a truthful subset of the archived Windows Phone Toolkit. The l
 | Original module | Status | Why / alternative |
 |---|---|---|
 | `AutoCompleteBox` | Not implemented | Silverlight popup, selection adapter, filtering and keyboard infrastructure; no WPF replacement in this package. Use an application-specific WPF autocomplete control. |
-| `LongListSelector` (WP7) | Not implemented | Large virtualizing list control with grouping, jump list and item animation. Use `ListBox`/`ListView` with `CollectionViewSource` grouping. |
 | `LongListMultiSelector` (WP8) | Not implemented | Depends on WP8 list infrastructure and selection visuals. Use `ListView` with `SelectionMode="Multiple"`. |
 | `MultiselectList` | Not implemented | Not ported. |
 | `Maps` / `MapExtensions` | Not implemented | No WPF map provider; depends on `Microsoft.Phone.Maps`. |
@@ -77,6 +76,8 @@ This port targets a truthful subset of the archived Windows Phone Toolkit. The l
 13. **`WrapPanel`** — original layout algorithm ported and tested. WPF’s own `WrapPanel` is a separate type.
 14. **`RecurringDaysPicker`** — built on the ported `ListPicker`; localized day names are supplied, but WP’s visual chrome is not.
 15. **`Pivot`** — the phone control is driven by DirectManipulation and the compositor; the port produces the same motion with WPF animations (0.25 s content slide with a `QuarticEase`, 0.5 s header scroll, a drag that follows the pointer at the original 600 px/s). Differences: (a) input is a mouse drag plus Left/Right/PageUp/PageDown/Home/End, not touch manipulation — enabling `IsManipulationEnabled` on the pivot would stop touch input from reaching child controls such as buttons; (b) there is no flick velocity detection, a drag changes the item once it passes half the viewport; (c) the header run is circular like the original — the first header follows the last one — but it is rendered once, so a list whose headers are narrower than the viewport shows empty space past the last item; (d) `IsLocked` is a dependency property (the platform exposed a plain property) and fades the headers with a 200 ms animation; (e) there is no custom automation peer, so assistive technology sees WPF’s default `ItemsControl` peer; (f) only the selected item is visible, the outgoing item is collapsed when its slide completes; (g) setting `SelectedIndex`/`SelectedItem` outside the range still throws, as on the phone.
+16. **`LongListSelector`** — the public surface of the phone 8.1 control is preserved, but the internals are WPF: a recycling `VirtualizingStackPanel` for list mode, a fixed-cell panel for grid mode, and a `Popup` for the jump list. Differences: (a) grid mode realizes every item (list mode virtualizes); (b) the jump list opens without the phone’s `RotationX` flip animation and uses a plain `Popup`; (c) groups must implement `IList` (the phone code casts groups to `IList` too); (d) the template part named `ViewportControl` hosts the items and is a `ContentControl`, not the phone’s `ViewportControl` scroller, and `VerticalScrollBar` is a real WPF `ScrollBar`; (e) `SelectedItem` is a dependency property; (f) selection has no visual chrome, as on the phone. Group headers, list headers/footers, grid cell sizes, `ScrollTo`, keyboard navigation, `ItemRealized`/`ItemUnrealized` and collection-change refreshes are covered by `LongListSelectorTests`; pixel fidelity and touch manipulation are unverified.
+17. **`HyperlinkButton`** — relative and `pack:` URIs navigate through the nearest `NavigationService`/`Frame`; any other absolute URI opens the default shell handler (browser for http/https, mail client for mailto, …). WPF has no named navigation scopes, so `TargetName` is retained but not applied, and absolute external links open regardless of it. The default theme renders string `Content` as underlined text (the phone template); non-string content needs a template such as the sample’s `HyperlinkEmptyStyle`. Click, Enter/Space activation, `CommonStates` and the `IInvokeProvider`/hyperlink automation peer are covered by `HyperlinkButtonTests`; launching a real browser/mail client is replaced by an overridable `OpenExternalUri` hook in tests.
 
 ## 7. Localization
 
@@ -118,7 +119,7 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 1. Confirm the window opens and shows the Home page.
 2. Click **Open detail (turnstile)** and confirm the turnstile transition runs on entry; click **Go back** and confirm the matching exit/entry transition runs.
 3. Click **Animate projection**; the status line should show `RotationX` changing while the panel tilts in real 3D. The panel also rotates continuously on `RotationY`. The second panel has no `ProjectionHost` (its projection is assigned directly and wrapped on demand) and rotates on its own.
-4. Toggle the switch and verify the thumb slides; click and drag across the Rating stars; type in the hint text box; open the ListPicker and hover/select items; expand the ExpanderView; open the ContextMenu; show the CustomMessageBox; inspect DatePicker, TimePicker, RecurringDaysPicker, PerformanceProgressBar, WrapPanel, HubTile, and the WPF base controls; in the Pivot sample, drag the content, click a header and tick the lock box.
+4. Toggle the switch and verify the thumb slides; click and drag across the Rating stars; type in the hint text box; open the ListPicker and hover/select items; expand the ExpanderView; open the ContextMenu; show the CustomMessageBox; inspect DatePicker, TimePicker, RecurringDaysPicker, PerformanceProgressBar, WrapPanel, HubTile, and the WPF base controls; in the Pivot sample, drag the content, click a header and tick the lock box. Open the `longlistselector` sample: the grouped list shows list header, group headers and items; clicking a group header opens the jump-list grid and choosing a group scrolls to it; **Toggle grid** switches the items to fixed cells; **Go back** returns to the index.
 5. Check `%TEMP%\community-phone-toolkit-sample-error.txt` after closing; it should not exist or should be empty.
 
 ### TiltEffect
@@ -148,7 +149,7 @@ Then add a `ProjectionHost` and a ported control to `MainWindow.xaml` and run th
 
 In rough priority order, if further work is funded:
 
-1. `LongListSelector`/`LongListMultiSelector` on top of WPF virtualization.
+1. `LongListMultiSelector` on top of WPF virtualization.
 2. `AutoCompleteBox` using WPF popup/filtering.
 3. Application bar and system tray visual presenters in the frame template.
 4. More exact WP projection calibration and visual regression tests.

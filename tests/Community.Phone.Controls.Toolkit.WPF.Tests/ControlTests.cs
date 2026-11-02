@@ -38,6 +38,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.NotNull(WpfTestHelper.Theme[typeof(TextBox)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(ListBox)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(ListBoxItem)]);
+                Assert.NotNull(WpfTestHelper.Theme[typeof(LongListSelector)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(ComboBox)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(ComboBoxItem)]);
                 Assert.NotNull(WpfTestHelper.Theme[typeof(ScrollBar)]);

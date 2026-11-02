@@ -1,0 +1,148 @@
+﻿<!--
+// (c) Copyright Microsoft Corporation.
+// This source is subject to the Microsoft Public License (Ms-PL).
+// Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
+// All other rights reserved.
+-->
+
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Samples.LongListSelectorSample"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait"
+    Orientation="Portrait"
+    shell:SystemTray.IsVisible="True">
+
+    <toolkit:TransitionService.NavigationInTransition>
+        <toolkit:NavigationInTransition>
+            <toolkit:NavigationInTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardIn" />
+            </toolkit:NavigationInTransition.Backward>
+            <toolkit:NavigationInTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardIn" />
+            </toolkit:NavigationInTransition.Forward>
+        </toolkit:NavigationInTransition>
+    </toolkit:TransitionService.NavigationInTransition>
+
+    <toolkit:TransitionService.NavigationOutTransition>
+        <toolkit:NavigationOutTransition>
+            <toolkit:NavigationOutTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardOut" />
+            </toolkit:NavigationOutTransition.Backward>
+            <toolkit:NavigationOutTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardOut" />
+            </toolkit:NavigationOutTransition.Forward>
+        </toolkit:NavigationOutTransition>
+    </toolkit:TransitionService.NavigationOutTransition>
+
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <phone:LongListSelector
+            x:Name="SampleList"
+            IsGroupingEnabled="True"
+            HideEmptyGroups="True"
+            SelectionChanged="OnSelectionChanged"
+            JumpListOpening="OnJumpListOpening"
+            JumpListClosed="OnJumpListClosed">
+            <phone:LongListSelector.ListHeaderTemplate>
+                <DataTemplate>
+                    <TextBlock
+                        Margin="9,4,0,12"
+                        Style="{StaticResource PhoneTextTitle1Style}"
+                        Text="longlistselector"
+                        toolkit:TiltEffect.SuppressTilt="True" />
+                </DataTemplate>
+            </phone:LongListSelector.ListHeaderTemplate>
+
+            <phone:LongListSelector.GroupHeaderTemplate>
+                <DataTemplate>
+                    <Border
+                        Margin="12,16,0,8"
+                        HorizontalAlignment="Left"
+                        Background="{StaticResource PhoneAccentBrush}"
+                        Height="48"
+                        Width="48">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                            FontSize="26.667"
+                            Foreground="White"
+                            Text="{Binding Key}" />
+                    </Border>
+                </DataTemplate>
+            </phone:LongListSelector.GroupHeaderTemplate>
+
+            <phone:LongListSelector.ItemTemplate>
+                <DataTemplate>
+                    <Border
+                        MinHeight="44"
+                        Margin="12,0,0,0"
+                        Background="Transparent">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{Binding}"
+                            TextWrapping="Wrap" />
+                    </Border>
+                </DataTemplate>
+            </phone:LongListSelector.ItemTemplate>
+
+            <phone:LongListSelector.JumpListStyle>
+                <Style TargetType="phone:LongListSelector">
+                    <Setter Property="ItemTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <Border
+                                    Margin="6"
+                                    Background="{StaticResource PhoneAccentBrush}"
+                                    Height="84"
+                                    Width="84">
+                                    <TextBlock
+                                        Margin="8,0,0,4"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Bottom"
+                                        FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                        FontSize="36"
+                                        Foreground="White"
+                                        Text="{Binding Key}" />
+                                </Border>
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="LayoutMode" Value="Grid" />
+                    <Setter Property="GridCellSize" Value="96,96" />
+                    <Setter Property="Background" Value="Transparent" />
+                </Style>
+            </phone:LongListSelector.JumpListStyle>
+        </phone:LongListSelector>
+
+        <TextBlock
+            x:Name="StatusText"
+            Grid.Row="1"
+            Margin="12,4,12,4"
+            Style="{StaticResource PhoneTextSmallStyle}"
+            Text="Tap a group header to open the jump list." />
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="12,0,12,8"
+            Orientation="Horizontal">
+            <Button
+                Margin="0,0,8,0"
+                Click="OnToggleLayout"
+                Content="Toggle grid" />
+            <Button Click="OnGoBack" Content="Go back" />
+        </StackPanel>
+    </Grid>
+</phone:PhoneApplicationPage>

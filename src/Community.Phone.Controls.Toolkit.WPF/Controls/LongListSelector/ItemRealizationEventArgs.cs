@@ -13,6 +13,12 @@ namespace Microsoft.Phone.Controls
     //     事件提供数据。
     public sealed class ItemRealizationEventArgs : EventArgs
     {
+        internal ItemRealizationEventArgs(ContentPresenter container, LongListSelectorItemKind itemKind)
+        {
+            Container = container;
+            ItemKind = itemKind;
+        }
+
         //
         // 摘要:
         //     获取正在显示项目的 System.Windows.Controls.ContentPresenter。

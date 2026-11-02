@@ -81,9 +81,10 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | `TimePicker` | Implemented | B | Same | Uses hour/minute ComboBoxes in a modal Window. |
 | `RecurringDaysPicker` | Implemented | A/B | Weekday list, multiple selection, summary | Built on the WPF `ListPicker`; localized day names. |
 | `ExpanderView` | Implemented | B | `Expander`, `ExpanderTemplate`, `NonExpandableHeader`, `HasItems`, `IsExpanded`, `Expanded`/`Collapsed` | WPF `HeaderedItemsControl`; simplified height animation; parts `Presenter`/`ExpanderPanel`/`ItemsCanvas`. |
+| `HyperlinkButton` | Implemented (behaviour) | A/B | `NavigateUri`, `TargetName`, content, Click, the `CommonStates` visual states, `ButtonBase` keyboard activation and a hyperlink automation peer with `IInvokeProvider` | Relative/pack URIs navigate the nearest `NavigationService`/`Frame`; absolute non-pack URIs open the default shell handler (browser, mail client, …). WPF has no named navigation targets, so `TargetName` is retained but not applied. The default template renders string content as underlined text; non-string content needs a template. |
 | `HubTile` | Implemented | B | `Source`, `Title`, `Notification`, `Message`, `DisplayNotification`, `IsFrozen`, `GroupTag`, `Size`; `HubTileService` | Timer-driven cycle. Template-only adaptation: the sliding offset is applied from code, the flip renders through the 3D path (double-sided), and `CenterOfRotationY` is `0.5` (the original’s `0.25` measured against the two-tile-high surface). |
 | `ListPicker` | Implemented | A/B | `SelectedIndex`, `SelectedItem`, `SelectedItems`, `SelectionMode`, `Header`, `FullModeHeader`, `FullModeItemTemplate`, `ItemCountThreshold`, `ExpansionMode`, `PickerPageUri`, `Open()`, `SelectionChanged`, `ListPickerMode` | Full mode navigates to the original `ListPickerPage` (`PickerPageUri`) and commits on `Done`/back; the page uses the original `ApplicationBar` (check/cancel icon buttons) for its actions. Normal mode animates the template canvas like the original. |
-| `LongListSelector` (WP7) | Not implemented | E | — | Virtualized Silverlight control; large remaining item. |
+| `LongListSelector` (WP8.1) | Implemented (behaviour) | A/B | `ItemsSource` (flat or grouped), `IsGroupingEnabled`, `HideEmptyGroups`, `ItemTemplate`, `GroupHeaderTemplate`, `GroupFooterTemplate`, `ListHeader`/`ListFooter` (+ templates), `LayoutMode`, `GridCellSize`, `SelectedItem`, `ScrollTo`, `ItemRealized`/`ItemUnrealized`, `JumpListStyle`, `JumpListOpening`/`Closed`, `SelectionChanged`, `ManipulationState(Changed)`, template parts `ViewportControl`/`VerticalScrollBar` | WPF items host with recycling virtualization in list mode; grid mode uses a fixed-cell, non-virtualizing panel (jump lists and galleries are small). Group objects must implement `IList`, as on the phone. A group header click opens a `Popup` jump list; the original `PlaneProjection` flip animation is replaced by a simple popup. `ViewportControl` is a content host (`ContentControl`, not the phone scroller) and `VerticalScrollBar` drives the internal `ScrollViewer`. Groups/items bind to the real data object, and containers are `ContentPresenter`s like the phone control. `SelectedItem` is also a dependency property (additive). |
 | `LongListMultiSelector` (WP8) | Not implemented | E | — | Depends on WP8 list infrastructure. |
 | `Maps` extensions | Not implemented | E | — | No WPF map provider. |
 | `MultiselectList` | Not implemented | E | — | Not ported. |
@@ -139,6 +140,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 |---|---|
 | `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | Required for all ported types. |
 | `<phone:ToggleSwitch ... />`, `<phone:Rating ... />`, `<phone:WrapPanel ... />` | Works with migration of the namespace only (and WPF resource keys if the app uses Metro text styles). |
+| `<phone:HyperlinkButton NavigateUri="..." />` | Works: relative URIs navigate the nearest frame; external URIs open the shell. `TargetName` is retained but named targets are not supported. |
 | `<toolkit:TransitionService.NavigationInTransition>...` with `phone:` prefix | Works. |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | Does not compile in WPF; use `ProjectionService.Projection` (wrapped on demand) or a `ProjectionHost`. |
 | `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel that is not an items panel) and unwrapped when the projection is cleared. |
@@ -146,7 +148,8 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | Original `PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the port’s `shell` namespace; visual chrome is limited. |
 | Original `shell:ApplicationBar` XAML | Works: the bar is rendered by the frame chrome (`ApplicationBarPresenter`), including its menu, minimized mode and the page space it reserves. |
 | Original `phone:PhoneApplicationPage` `SupportedOrientations`/`Orientation` | Parses and is retained; desktop window rotation is not forced. |
-| `phone:LongListSelector`, `phone:AutoCompleteBox`, map, speech, transfer XAML | Not supported in this preview. |
+| `phone:LongListSelector` XAML | Works; groups must implement `IList`, and the jump list is a WPF `Popup`. |
+| `phone:AutoCompleteBox`, map, speech, transfer XAML | Not supported in this preview. |
 
 ## Compatibility caveats by feature
 
@@ -156,7 +159,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 4. **Effects** — TiltEffect and TurnstileFeatherEffect use the real projection pipeline. Targets that cannot be wrapped are skipped: item containers (WPF owns the items panel's children) and elements that are not direct children of a panel. A `ContentPresenter` that is a panel child is wrapped normally.
 5. **Controls** — DP surfaces and core behavior are preserved; visual details and modal hosts differ where WPF has no WP picker/popup infrastructure.
 6. **Localization** — all original resx resources are included; `CurrentUICulture` is used by `ControlResources`.
-7. **Unsupported modules** — AutoCompleteBox, LongListSelector, LongListMultiSelector, MultiselectList, maps, transfer, speech, `LockablePivot`, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed.
+7. **Unsupported modules** — AutoCompleteBox, LongListMultiSelector, MultiselectList, maps, transfer, speech, `LockablePivot`, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed. `LongListSelector` is implemented with the ported items-host model described above.
 
 ## Verification status
 

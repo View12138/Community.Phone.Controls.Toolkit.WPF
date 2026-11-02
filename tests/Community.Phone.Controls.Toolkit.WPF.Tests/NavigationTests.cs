@@ -98,6 +98,22 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
         }
 
         [Fact]
+        public void NavigationContext_ParsesQueryFromARelativeUri()
+        {
+            StaTest.Run(() =>
+            {
+                NavigationContext context = NavigationContext.FromNavigationEventArgs(
+                    new Uri("Page.xaml?id=42&mode=edit#section", UriKind.Relative),
+                    null);
+
+                Assert.NotNull(context);
+                Assert.Equal("42", context.QueryString["id"]);
+                Assert.Equal("edit", context.QueryString["mode"]);
+                Assert.Equal("Page.xaml?id=42&mode=edit#section", context.Uri.OriginalString);
+            });
+        }
+
+        [Fact]
         public void Frame_StateSurvivesBackNavigation()
         {
             StaTest.Run(() =>

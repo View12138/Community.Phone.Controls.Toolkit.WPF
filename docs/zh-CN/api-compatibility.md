@@ -81,9 +81,10 @@
 | `TimePicker` | 已实现 | B | 同上 | 在模态 Window 中使用小时/分钟 ComboBox。 |
 | `RecurringDaysPicker` | 已实现 | A/B | 星期列表、多选、摘要 | 基于移植的 `ListPicker`；使用本地化星期名。 |
 | `ExpanderView` | 已实现 | B | `Expander`、`ExpanderTemplate`、`NonExpandableHeader`、`HasItems`、`IsExpanded`、`Expanded`/`Collapsed` | WPF `HeaderedItemsControl`；简化高度动画；部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas`。 |
+| `HyperlinkButton` | 已实现（行为） | A/B | `NavigateUri`、`TargetName`、内容、Click、`CommonStates` 视觉状态、`ButtonBase` 键盘激活，以及带 `IInvokeProvider` 的超链接自动化对等体 | 相对/pack URI 导航最近的 `NavigationService`/`Frame`；绝对非 pack URI 交给系统默认处理程序（浏览器、邮件客户端等）。WPF 没有命名导航目标，`TargetName` 保留但不生效。默认模板把字符串内容渲染为下划线文本；非字符串内容需要自定义模板。 |
 | `HubTile` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`Size`；`HubTileService` | 定时器驱动循环。仅模板层面的适配：滑动偏移由代码施加，翻转走 3D 路径（双面），`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面）。 |
 | `ListPicker` | 已实现 | A/B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`FullModeHeader`、`FullModeItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`Open()`、`SelectionChanged`、`ListPickerMode` | 完整模式导航到原版 `ListPickerPage`（pack URI 来自 `PickerPageUri`），点 `Done`/返回时提交选择；页面操作用原版 `ApplicationBar`（勾/叉图标按钮）。普通模式与原版一致，对模板 Canvas 做高度动画。 |
-| `LongListSelector`（WP7） | 未实现 | E | — | 大型虚拟化 Silverlight 控件。 |
+| `LongListSelector`（WP8.1） | 已实现（行为） | A/B | `ItemsSource`（平铺或分组）、`IsGroupingEnabled`、`HideEmptyGroups`、`ItemTemplate`、`GroupHeaderTemplate`、`GroupFooterTemplate`、`ListHeader`/`ListFooter`（及模板）、`LayoutMode`、`GridCellSize`、`SelectedItem`、`ScrollTo`、`ItemRealized`/`ItemUnrealized`、`JumpListStyle`、`JumpListOpening`/`Closed`、`SelectionChanged`、`ManipulationState(Changed)`、模板部件 `ViewportControl`/`VerticalScrollBar` | 列表模式使用可回收虚拟化的 WPF items host；网格模式使用固定单元格、非虚拟化面板（跳转列表/图库规模较小）。分组对象必须实现 `IList`，与手机一致。点击组页眉会打开 `Popup` 跳转列表；原版 `PlaneProjection` 翻转动画由简单的 popup 取代。`ViewportControl` 是内容宿主（`ContentControl`，不是手机的滚动器），`VerticalScrollBar` 驱动内部 `ScrollViewer`。分组/项目绑定到真实数据对象，容器与手机一致为 `ContentPresenter`。`SelectedItem` 同时是依赖属性（附加）。 |
 | `LongListMultiSelector`（WP8） | 未实现 | E | — | 依赖 WP8 列表基础设施。 |
 | Maps 扩展 | 未实现 | E | — | 无 WPF 地图提供程序。 |
 | `MultiselectList` | 未实现 | E | — | 未移植。 |
@@ -139,6 +140,7 @@
 |---|---|
 | `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | 所有移植类型必需。 |
 | `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 仅修改命名空间即可（以及应用使用的 WPF 资源键）。 |
+| `<phone:HyperlinkButton NavigateUri="..." />` | 可用：相对 URI 导航最近帧；外部 URI 打开系统处理程序。`TargetName` 保留，但命名目标不受支持。 |
 | 使用 `phone:` 前缀的 `<toolkit:TransitionService.NavigationInTransition>...` | 可用。 |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection`（按需包装）或 `ProjectionHost`。 |
 | `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 Panel 的直接子元素，且该 Panel 不是 items panel），清除投影时自动解包。 |
@@ -146,7 +148,8 @@
 | 使用 `shell:SystemTray.IsVisible` 的原始 `PhoneApplicationPage` XAML | 使用移植 `shell` 命名空间可解析；视觉 chrome 有限。 |
 | 原始 `shell:ApplicationBar` XAML | 可用：应用栏（含菜单、最小化模式与为页面预留的空间）由 frame chrome（`ApplicationBarPresenter`）渲染。 |
 | 原始 `phone:PhoneApplicationPage` 的 `SupportedOrientations`/`Orientation` | 可解析并保留；不会强制旋转桌面窗口。 |
-| `phone:LongListSelector`、`phone:AutoCompleteBox`、地图、语音、传输 XAML | 当前 preview 不支持。 |
+| `phone:LongListSelector` XAML | 可用；分组对象必须实现 `IList`，跳转列表是 WPF `Popup`。 |
+| `phone:AutoCompleteBox`、地图、语音、传输 XAML | 当前 preview 不支持。 |
 
 ## 按功能的兼容注意事项
 
@@ -156,7 +159,7 @@
 4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线。无法包装的目标会被跳过：items panel 内的 item 容器（子元素由 WPF 管理）以及不是 Panel 直接子元素的元素；作为 Panel 子元素的 `ContentPresenter` 可以正常包装。
 5. **控件**：DP 面和核心行为保留；WPF 没有对应 picker/popup 基础设施时，视觉细节和模态宿主不同。
 6. **本地化**：包含原始 resx 资源；`ControlResources` 使用 `CurrentUICulture`。
-7. **不支持模块**：AutoCompleteBox、LongListSelector、LongListMultiSelector、MultiselectList、地图、传输、语音、`LockablePivot`、SlideInEffect 和手势 API 明确不支持，没有空壳。
+7. **不支持模块**：AutoCompleteBox、LongListMultiSelector、MultiselectList、地图、传输、语音、`LockablePivot`、SlideInEffect 和手势 API 明确不支持，没有空壳。`LongListSelector` 已按上述 items-host 模型实现。
 
 ## 验证状态
 

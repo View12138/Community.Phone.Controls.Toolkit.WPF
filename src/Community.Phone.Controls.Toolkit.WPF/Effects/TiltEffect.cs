@@ -499,30 +499,29 @@ namespace Microsoft.Phone.Controls
         }
         private static void StartTiltEffectOnLLS(LongListSelector lls, FrameworkElement OriginalSource, Point ManipulationOrigin, IInputElement ManipulationContainer)
         {
-            FrameworkElement parent = (FrameworkElement)OriginalSource;
-            ContentPresenter[] cps = new ContentPresenter[2];
-            ContentPresenter cp;
-            int cpCount = 0;
+            FrameworkElement parent = OriginalSource;
+            ContentPresenter itemContainer = null;
+            int containerCount = 0;
 
-            // Starts from OriginalSource and goes up to ViewportControl
-            // while keeping trace of the last 2 ContentPresenter            
-            do
+            // Walk from the source up to the selector, keeping the outermost
+            // ContentPresenter: that is the item container. The WPF port hosts
+            // the items in an ItemsControl instead of the phone's Canvas, so
+            // there is no ViewportControl type in the ancestor chain.
+            while (parent != null && parent != lls)
             {
-                cp = parent as ContentPresenter;
-                if (cp != null)
+                if (parent is ContentPresenter presenter)
                 {
-                    cps[cpCount++ % 2] = cp;
+                    itemContainer = presenter;
+                    containerCount++;
                 }
 
                 parent = parent.GetVisualParent();
             }
-            while (parent != lls && parent.GetType() != typeof(ViewportControl));
 
-            // Makes sure we found a ViewportControl and at least 2 content presenters in our way.
-            if (parent != lls && cpCount >= 2)
+            if (parent == lls && itemContainer != null && containerCount >= 1)
             {
-                // The tilted element is the child of the ContentPresenter that is the farthest from ViewportControl.
-                FrameworkElement element = cps[cpCount % 2].GetVisualChildren().FirstOrDefault() as FrameworkElement;
+                // The tilted element is the content of the item container.
+                FrameworkElement element = itemContainer.GetVisualChildren().FirstOrDefault() as FrameworkElement;
 
                 // Starts tilt only if we found an element on which tilt is not suppressed.
                 if (element != null)

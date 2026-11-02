@@ -260,4 +260,4 @@ Tests that require a window or WPF dispatcher run on a dedicated STA thread via 
 - `ProjectionHost` wrapping is required rather than transparent in-place projection. This is the only way to preserve true 3D and interaction without redefining WPF types.
 - Page lifecycle is frame-driven; WPF’s own `Page` navigation does not call the WP-style methods if the page is hosted outside the port’s frames.
 - The application bar renders through a WPF presenter (`ApplicationBarPresenter`) that approximates the native compositing; the system tray stays an API/state model with nothing painted, so this preview does not reproduce full Windows Phone system chrome.
-- Map, transfer, speech, Pivot, AutoCompleteBox, LongListSelector, and LongListMultiSelector remain architectural work items, not hidden shims.
+- Map, transfer, speech, AutoCompleteBox, and LongListMultiSelector remain architectural work items, not hidden shims. `LongListSelector` is implemented on a WPF items host (recycling virtualization in list mode, a fixed-cell panel in grid mode, and a `Popup` jump list); pixel/touch fidelity is not claimed.

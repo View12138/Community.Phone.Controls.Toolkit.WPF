@@ -7,7 +7,6 @@
 | 原始模块 | 状态 | 原因/替代方案 |
 |---|---|---|
 | `AutoCompleteBox` | 未实现 | Silverlight popup、选择适配器、过滤和键盘基础设施；包内没有 WPF 替代。请使用应用专用 WPF 自动完成控件。 |
-| `LongListSelector`（WP7） | 未实现 | 大型虚拟化列表，含分组、跳转列表和 item 动画。可使用 `ListBox`/`ListView` + `CollectionViewSource` 分组。 |
 | `LongListMultiSelector`（WP8） | 未实现 | 依赖 WP8 列表基础设施和选择视觉。可使用 `ListView` 的 `SelectionMode="Multiple"`。 |
 | `MultiselectList` | 未实现 | 未移植。 |
 | `Maps` / `MapExtensions` | 未实现 | 没有 WPF 地图提供程序；依赖 `Microsoft.Phone.Maps`。 |
@@ -77,6 +76,8 @@
 13. **`WrapPanel`**：移植原始布局算法并测试。WPF 自带 `WrapPanel` 是独立类型。
 14. **`RecurringDaysPicker`**：基于移植的 `ListPicker`；提供本地化星期名，但未复刻 WP 视觉 chrome。
 15. **`Pivot`**：手机版本由 DirectManipulation 与合成器驱动；移植版用 WPF 动画产生相同的运动（内容切换 0.25 秒 `QuarticEase`、页眉条 0.5 秒滚动、拖拽以原版 600 px/s 跟随指针）。差异：(a) 输入是鼠标拖拽加 Left/Right/PageUp/PageDown/Home/End，而不是触摸 manipulation——在 pivot 上启用 `IsManipulationEnabled` 会让触摸输入不再到达子控件（如按钮）；(b) 没有快速滑动速度判定，拖拽超过半个视口即切换；(c) 页眉条与原版一样循环排布（最后一个页眉之后接第一个），但只绘制一圈，因此当页眉总宽小于视口时，最后一个页眉之后会留白；(d) `IsLocked` 是依赖属性（平台上是普通属性），并用 200 毫秒动画淡出页眉；(e) 没有自定义自动化对等体，辅助技术看到的是 WPF 默认的 `ItemsControl` 对等体；(f) 只有当前项可见，离开项在其滑动结束后折叠；(g) 越界设置 `SelectedIndex`/`SelectedItem` 仍会抛异常，与手机行为一致。
+16. **`LongListSelector`**：保留了手机 8.1 控件的公开接口，但内部改为 WPF 实现：列表模式使用可回收的 `VirtualizingStackPanel`，网格模式使用固定单元格面板，跳转列表使用 `Popup`。差异：(a) 网格模式会实现所有项目（列表模式仍虚拟化）；(b) 跳转列表没有手机的 `RotationX` 翻转动画，使用普通 `Popup`；(c) 分组对象必须实现 `IList`（手机代码同样把分组转换为 `IList`）；(d) 名为 `ViewportControl` 的模板部件承载项目，是 `ContentControl`，不是手机的 `ViewportControl` 滚动器；`VerticalScrollBar` 是真实的 WPF `ScrollBar`；(e) `SelectedItem` 是依赖属性；(f) 选择没有视觉 chrome，与手机一致。组页眉、列表页眉/页脚、网格单元格、`ScrollTo`、键盘导航、`ItemRealized`/`ItemUnrealized` 和集合变化刷新由 `LongListSelectorTests` 覆盖；像素保真度和触摸 manipulation 未验证。
+17. **`HyperlinkButton`**：相对 URI 与 `pack:` URI 通过最近的 `NavigationService`/`Frame` 导航；其他绝对 URI 交给系统默认处理程序（http/https 用浏览器，mailto 用邮件客户端等）。WPF 没有命名导航作用域，`TargetName` 保留但不生效，绝对外部链接会无视它直接打开。默认主题把字符串 `Content` 渲染为下划线文本（沿用手机模板）；非字符串内容需要自定义模板（例如示例中的 `HyperlinkEmptyStyle`）。Click、Enter/Space 激活、`CommonStates` 以及 `IInvokeProvider`/超链接自动化对等体由 `HyperlinkButtonTests` 覆盖；测试通过可重写的 `OpenExternalUri` 钩子替代真实浏览器/邮件客户端。
 
 ## 7. 本地化
 
@@ -117,7 +118,7 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 1. 确认窗口打开并显示 Home 页。
 2. 点击 **Open detail (turnstile)** 确认进入转场执行；点击 **Go back** 确认返回转场执行。
 3. 点击 **Animate projection**；状态行应显示 `RotationX` 变化，投影面板在真实 3D 中倾斜；面板同时持续进行 `RotationY` 旋转。第二个面板没有 `ProjectionHost`（投影直接赋给元素、按需包装），也会自行旋转。
-4. 切换 ToggleSwitch 并确认滑块有动画；在 Rating 星星上点击/拖动；在 hint 文本框输入；打开 ListPicker 并检查悬停/选中样式；展开 ExpanderView；打开 ContextMenu；显示 CustomMessageBox；检查 DatePicker、TimePicker、RecurringDaysPicker、PerformanceProgressBar、WrapPanel、HubTile 和 WPF 基础控件；在 Pivot 示例中拖拽/点击页眉切换页面并勾选锁定。
+4. 切换 ToggleSwitch 并确认滑块有动画；在 Rating 星星上点击/拖动；在 hint 文本框输入；打开 ListPicker 并检查悬停/选中样式；展开 ExpanderView；打开 ContextMenu；显示 CustomMessageBox；检查 DatePicker、TimePicker、RecurringDaysPicker、PerformanceProgressBar、WrapPanel、HubTile 和 WPF 基础控件；在 Pivot 示例中拖拽/点击页眉切换页面并勾选锁定。打开 `longlistselector` 示例：分组列表应显示列表页眉、组页眉和项目；点击组页眉会打开跳转列表网格，选择分组后滚动到该分组；**Toggle grid** 将项目切换为固定单元格；**Go back** 返回索引页。
 5. 关闭后检查 `%TEMP%\community-phone-toolkit-sample-error.txt`；不应存在或应为空。
 
 ### TiltEffect
@@ -151,7 +152,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 
 按优先级大致排序：
 
-1. 基于 WPF 虚拟化的 `LongListSelector`/`LongListMultiSelector`。
+1. 基于 WPF 虚拟化的 `LongListMultiSelector`。
 2. 使用 WPF Popup/过滤的 `AutoCompleteBox`。
 3. Frame 模板中的应用栏和系统栏视觉呈现器。
 4. 更精确的 WP 投影校准和视觉回归测试。

@@ -4,7 +4,7 @@
 
 **用途。** 这是新会话的入口：记录工作区里**真实成立**的东西——已验证的构建/测试/运行结果、已确认的设计决策、不能丢失的未提交修改，以及具体的下一步。它不重述原始任务计划（`.github/Guide.md`），也不替代完整 API 矩阵。
 
-**最后更新：** 2026-10-30（本地时间），分支 `main`，工作区**有未提交修改** —— `TurnstileFeatherEffect` 移植（效果源码、`FeatheredTransition`、`ApplicationExtensions.RootVisual` 兼容层）与文档更新尚未提交，基于 `18e256b`。
+**最后更新：** 2026-11-02（本地时间），分支 `main`，工作区**有未提交修改** —— `LongListSelector` 移植（`Controls/LongListSelector/*`、`Themes/Controls/LongListSelector.xaml`、测试、示例页、文档）、`HyperlinkButton` 实现（导航、自动化对等体、导航上下文修复、测试）以及示例修复（路由探测、移植 `Settings.xaml`、可见的错误提示）尚未提交，基于 `b55dc12`。
 
 ---
 
@@ -21,17 +21,25 @@
 
 ---
 
-## 2. 当前已验证状态（2026-10-27）
+## 2. 当前已验证状态（2026-10-30）
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 22 个既有警告** —— `LongListSelector.cs`、`ViewportControl.cs`、`WindowHelper.cs` 里的 CS0067/CS0162（未使用事件、不可达代码）；它们已在 `HEAD` 中，与本轮改动无关。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
-| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **128 通过 / 2 失败 / 0 跳过**，约 45 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；把羽化相关改动 stash 掉后在 `18e256b` 上同样失败 |
-| Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **130 通过 / 0 失败** |
+| Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 4 个唯一警告** —— `WindowHelper.cs` 的 CS0162 ×2 与未改动的 `ViewportControl` 事件 CS0067 ×2。`LongListSelector` 的警告已消失（控件不再有未使用事件）。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
+| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **140 通过 / 2 失败 / 0 跳过**，约 40 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；在基线 `b55dc12` 上同样失败。8 个 `LongListSelectorTests`（含“每个已实体化项目都被绘制”的 96 DPI 渲染检查）、3 个 `HyperlinkButtonTests` 与相对 URI 查询解析测试均通过 |
+| Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **140 通过 / 2 失败** —— Debug 下同样是那两个 `ListPicker` 断言失败，且在基线 `b55dc12` 的 Debug 下也一样失败（基线 `--filter ListPicker`：12 通过 / 2 失败） |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原、零警告构建并运行（窗口内含 `Pivot`） |
 | 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
 
-测试清单（130 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 16、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`EffectsTests` 7、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+| 示例导航（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe`，调用索引条目与应用栏 **Settings** 按钮 | **通过** —— 索引正常渲染（应用标题、`samples`，25 条已实体化超链接中 8 条可用）；未移植条目置灰且无法调用（Invoke 模式不可用、页面不变）；`longlistselector` 条目打开 `LongListSelectorSample`（组页眉与城市条目）；导航栏返回按钮回到索引；**Settings** 打开已移植的设置页并显示两个文化选择器。进程保持存活且不写错误日志。本会话鼠标点击无法可靠送达，因此导航通过自动化 `Invoke` 模式驱动 |
+
+测试清单（142 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 17、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`LongListSelectorTests` 8、`EffectsTests` 7、`HyperlinkButtonTests` 3、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+
+**2026-11-02 —— 示例不再静默失败。** 移除了示例应用里两条会走到死链的导航路径。`MainPage` 索引现在用 `Application.GetResourceStream` 逐条探测路由，把尚未移植的条目置灰禁用，因此点击不会再导航到不存在的资源并让应用直接退出；与实际文件位置不一致的路由也已修正（`/Samples/WPFControlsSample.xaml`、`/Pages/MenusPage.xaml`、`/Pages/FeatherPage.xaml`、`/Pages/TransitionsPage.xaml`、`/Samples/PivotSample.xaml`）。应用栏 **Settings** 按钮原先导航到本移植版并不存在的 `/Settings.xaml`；现已从 `PhoneToolkitSample8` 移植 `Settings.xaml`/`Settings.xaml.cs`（UI 文化与区域格式两个 `ListPicker`，配合 `App.UICultureOverride`/`RegionalCultureOverride`）。未处理异常现在弹出对话框并给出 `%TEMP%\community-phone-toolkit-sample-error.txt` 路径，不再无声关闭窗口。已用 UI 自动化验证：索引渲染正常（`WINDOWS PHONE TOOLKIT for WPF`、`samples`，25 条已实体化的超链接中 8 条可用），禁用链接无法调用且页面不变，LongListSelector 链接打开 `LongListSelectorSample`（组页眉与城市条目），导航栏返回按钮回到索引，**Settings** 打开含两个文化选择器的设置页，且没有错误日志。环境说明：本会话中鼠标点击无法可靠送达（导航只能通过自动化 `Invoke` 模式触发），`CopyFromScreen` 截图可能包含遮挡窗口，因此运行时证据来自自动化树与置顶窗口截图。新增 `LongListSelectorTests.LongListSelector_PaintsEveryRealizedItem`，用 `RenderTargetBitmap` 在 96 DPI 下渲染列表，要求视口内每个已实体化容器都画出像素，从而挡住“元素存在但什么都没画”这类缺陷。
+
+**2026-10-30 —— `HyperlinkButton`。** 平台控件现在执行真实导航：相对 URI 与 `pack:` URI 导航最近的 `NavigationService`/祖先 `Frame`，其他绝对 URI 通过可重写的 `OpenExternalUri` 钩子（默认用 `Process.Start` + `UseShellExecute`，即浏览器/邮件客户端）。`TargetName` 保留，但 WPF 没有命名导航作用域。Click、Enter/Space 激活、`CommonStates` 视觉状态和 `IInvokeProvider` 超链接自动化对等体已实现。`NavigationContext.FromNavigationEventArgs` 现在能从相对 URI 解析查询串（WPF 会原样传递相对导航 URI，而 `Uri.Query` 对相对 URI 抛异常）；该缺陷曾让示例中的所有相对 URI 导航失败。UI 自动化已验证完整链路：调用索引页的 “a grouping items control with great performance” 超链接后进入 `LongListSelectorSample`，分组列表渲染出 A/B/D 组页眉与城市项目，`Toggle grid` 切换到网格模式，错误日志为空。
+
+**2026-10-30 —— `LongListSelector`。** `Controls/LongListSelector/` 按 Windows Phone 8.1 内置 `Microsoft.Phone.Controls.LongListSelector` 参考实现补齐：`ItemsSource`（平铺或实现 `IList` 的分组）、`IsGroupingEnabled`、`HideEmptyGroups`、列表/组页眉与页脚、`ItemTemplate`、`LayoutMode`/`GridCellSize`、`SelectedItem`（提升为依赖属性）、键盘选择、`ScrollTo`、`ItemRealized`/`ItemUnrealized`、`ManipulationState`，以及跳转列表（`JumpListStyle` 打开组磁贴 `Popup`，选择后滚动到该组）。内部是 WPF 实现：内部 `ItemsControl` + `ContentPresenter` 容器，列表模式使用 `VirtualizingStackPanel` 回收虚拟化，网格模式使用固定单元格 `LongListSelectorGridPanel`，真实的 `ScrollBar` 模板部件绑定内部 `ScrollViewer`。分组和项目以真实数据对象推入容器，模板绑定与手机一致。`Common/LongListSelectorExtensions.GetItemsInViewPort` 与 `TiltEffect.StartTiltEffectOnLLS` 已适配 WPF 视觉树（不再有 Canvas/`ViewportControl` 祖先）。示例 `MainPage`（之前是空白页，且在恢复缺失的 `HyperlinkEmptyStyle`/`MultilineHyperlinkStyle` 之前根本无法加载）现在是可用的 `LongListSelector`，`Samples/LongListSelectorSample.xaml` 演示分组、跳转列表与网格模式。证据见 `LongListSelectorTests` 与 known-limitations 中的 LLS 条目。
 
 **2026-10-27 —— `Pivot`。** `Controls/Pivot/` 现包含 `Pivot`、`PivotItem`、`PivotItemEventArgs`、`PivotHeadersControl`、`PivotHeaderItem` 和内部 `SelectedIndexChangedEventArgs`；`Themes/Controls/Pivot.xaml` 提供标题/页眉/项样式（数值取自手机主题）并合并进 `Generic.xaml`。手机控件由 DirectManipulation 与合成器驱动，因此移植版用代码动画并沿用原版数值：内容滑动 0.25 秒（`QuarticEase`）、页眉滚动 0.5 秒、指针跟踪 600 px/s。输入是指针拖拽加半视口阈值、点击页眉，以及 Left/Right/PageUp/PageDown/Home/End；`Pivot.IsLocked` 用 200 毫秒淡出页眉并拒绝修改项。有两个主题细节是必需的：`Themes/Controls/*.xaml` 必须各自合并 `Theme/Dark.xaml`（延迟 Setter 里的 `StaticResource` 只在所属字典内解析——否则 `PivotTitleStyle` 的前景色会变成 `DependencyProperty.UnsetValue` 并抛异常）；`PivotHeaderItem` 的容器样式需要 `BasedOn="{StaticResource {x:Type primitives:PivotHeaderItem}}"`，因为 WPF 在显式赋样式时会替换隐式样式。前进/后退的进入方向现在每次选中变化都按索引位移推断；原版保留上次的方向提示，使绑定 `SelectedIndex` 的滑动方向出错。`ControlTests.HubTile_PropertiesAndGroupFreeze` 在本轮之前就是失败的：它在从未布局过 tile 的情况下调用 `FreezeGroup`，而 tile 要在第一次 `SizeChanged` 时才加入 `HubTileService`，因此该测试改为把 tile 放进窗口。
 
@@ -284,8 +292,8 @@ items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式�
 2. **各族缓动/像素一致性** —— storyboard 就是原版 XAML，数值天然精确；但 WPF 与 Silverlight 是否在每一帧都以完全相同的方式求值同一个 `ExponentialEase`/`SineEase`，没有测量。
 3. **羽化透视原点** —— 原版 `TurnstileFeatherEffect` 会把每个元素的透视原点移到页面垂直中心（`GlobalOffsetY` + 补偿 RenderTransform）。本移植版因 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，让元素绕自身中心旋转；角度/延迟/时序与原版一致。已写入已知限制。
 4. **Shell chrome** —— `ApplicationBar` 现在由 frame（`ApplicationBarPresenter`）绘制，但 `SystemTray` 仍是纯 API 模型，没有绘制 WP 状态栏。应用栏的圆形图标 chrome（48 DIP 圆环、2 DIP 描边、32 DIP 图标、12 px 标签）已实现并有测试覆盖，ListPicker 页面的应用栏也已与 WP 8.1 截图对比；应用栏不随页面转场动画进入，菜单是 WPF `Popup` 而不是原生表面，其余 WP8 度量（菜单滑入、省略号位置）仍是近似而非逐像素比对。
-5. **未实现模块** —— `AutoCompleteBox`、`LongListSelector`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService`、`LoopingSelector`/picker 页面。已通过源码检索确认不存在（无对应 `class`）。
-6. **示例覆盖缺口** —— 重构后的示例展示投影、全部转场族、羽化、所有已实现控件、ContextMenu、CustomMessageBox 以及 shell 状态（ApplicationBar/SystemTray API）；**未**展示 `Matrix3DProjection`，也没有真实 shell chrome（本来就没有绘制）。
+5. **未实现模块** —— `AutoCompleteBox`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`SlideInEffect`、`GestureListener`/`GestureService`、`LoopingSelector`/picker 页面。已通过源码检索确认不存在（无对应 `class`）。
+6. **示例覆盖缺口** —— 重构后的示例展示投影、全部转场族、羽化、所有已实现控件（包括 `LongListSelector` 的分组、跳转列表与网格模式）、ContextMenu、CustomMessageBox 以及 shell 状态（ApplicationBar/SystemTray API）；**未**展示 `Matrix3DProjection`，也没有真实 shell chrome（本来就没有绘制）。
 7. **未做像素级验证的视觉细节** —— ListPicker 展开模式样式、ExpanderView 高度动画、PhoneTextBox 水印动画、HubTile 像素保真度：行为有测试（含 HubTile 翻转旋转量与 PhoneTextBox 占位符原点），像素保真度没有。ListPicker 完整模式页面（item chrome、间距、复选框颜色、依次翻转）及其应用栏已在 §4.13 与 WP 8.1 截图对比。
 
 ---
