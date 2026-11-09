@@ -487,7 +487,7 @@ namespace Microsoft.Phone.Controls.Primitives
             finally
             {
                 _activeSelectionChange = false;
-                SafeRaise.Raise(SelectedIndexChanged, this, new SelectedIndexChangedEventArgs(index));
+                SelectedIndexChanged?.Invoke(this, new SelectedIndexChangedEventArgs(index));
                 BeginAnimate(previousIndex, index);
             }
         }

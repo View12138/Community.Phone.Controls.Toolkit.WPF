@@ -52,29 +52,29 @@
             Drag the content horizontally, flick, click a header, or press
             Left/Right to change the item. The header run scrolls with the content.
         -->
-        <phone:Pivot
+        <platform:Pivot
             x:Name="SamplePivot"
             Title="PIVOT SAMPLE"
             SelectionChanged="OnPivotSelectionChanged">
-            <phone:PivotItem Header="item 1">
+            <platform:PivotItem Header="item 1">
                 <StackPanel Margin="0,12,0,0">
                     <TextBlock Text="Drag this content horizontally, flick, or click a header." Style="{StaticResource PhoneTextNormalStyle}" TextWrapping="Wrap" />
                     <TextBlock Text="The next item slides in from the right; going back slides in from the left." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
                 </StackPanel>
-            </phone:PivotItem>
-            <phone:PivotItem Header="item 2">
+            </platform:PivotItem>
+            <platform:PivotItem Header="item 2">
                 <StackPanel Margin="0,12,0,0">
                     <TextBlock Text="Second item" Style="{StaticResource PhoneTextNormalStyle}" />
                     <TextBlock Text="The selected header always sits at the left edge of the header strip." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
                 </StackPanel>
-            </phone:PivotItem>
-            <phone:PivotItem Header="item 3">
+            </platform:PivotItem>
+            <platform:PivotItem Header="item 3">
                 <StackPanel Margin="0,12,0,0">
                     <TextBlock Text="Third item" Style="{StaticResource PhoneTextNormalStyle}" />
                     <TextBlock Text="Navigating past the last item wraps around to the first." Style="{StaticResource PhoneTextSubtleStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
                 </StackPanel>
-            </phone:PivotItem>
-        </phone:Pivot>
+            </platform:PivotItem>
+        </platform:Pivot>
 
         <StackPanel Grid.Row="1" Margin="12,0,12,12">
             <TextBlock x:Name="SelectionStatus" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,8" />

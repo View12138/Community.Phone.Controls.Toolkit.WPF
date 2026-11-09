@@ -382,7 +382,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="item">The incoming pivot item.</param>
         protected virtual void OnLoadingPivotItem(PivotItem item)
         {
-            SafeRaise.Raise(LoadingPivotItem, this, () => new PivotItemEventArgs(item));
+            LoadingPivotItem?.Invoke(this, new PivotItemEventArgs(item));
         }
 
         /// <summary>
@@ -391,7 +391,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="item">The incoming pivot item.</param>
         protected virtual void OnLoadedPivotItem(PivotItem item)
         {
-            SafeRaise.Raise(LoadedPivotItem, this, () => new PivotItemEventArgs(item));
+            LoadedPivotItem?.Invoke(this, new PivotItemEventArgs(item));
         }
 
         /// <summary>

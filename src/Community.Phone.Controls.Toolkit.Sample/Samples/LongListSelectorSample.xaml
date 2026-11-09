@@ -102,10 +102,10 @@
         <data:MoviesByCategory x:Key="movies"/>
         <data:MoreCommand x:Key="moreCommand" />
 
-        <phone:JumpListItemBackgroundConverter x:Key="BackgroundConverter"/>
-        <phone:JumpListItemForegroundConverter x:Key="ForegroundConverter"/>
+        <platform:JumpListItemBackgroundConverter x:Key="BackgroundConverter"/>
+        <platform:JumpListItemForegroundConverter x:Key="ForegroundConverter"/>
 
-        <Style x:Key="MoviesJumpListStyle" TargetType="phone:LongListSelector">
+        <Style x:Key="MoviesJumpListStyle" TargetType="platform:LongListSelector">
             <Setter Property="Margin" Value="12,6,0,0"/>
             <Setter Property="ItemTemplate">
                 <Setter.Value>
@@ -127,14 +127,14 @@
     </platform:PhoneApplicationPage.Resources>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
-        <controls:Pivot Title="LONGLISTSELECTOR SAMPLES">
-            <controls:PivotItem Header="buddies">
-                <phone:LongListSelector x:Name="buddies"
+        <platform:Pivot Title="LONGLISTSELECTOR SAMPLES">
+            <platform:PivotItem Header="buddies">
+                <platform:LongListSelector x:Name="buddies"
                                           Margin="0,-8,0,0"
                                           IsGroupingEnabled="true" HideEmptyGroups="true"
                                           ItemsSource="{Binding Buddies}"
                                           toolkit:TiltEffect.IsTiltEnabled="True">
-                    <phone:LongListSelector.GroupHeaderTemplate>
+                    <platform:LongListSelector.GroupHeaderTemplate>
                         <DataTemplate>
                             <Border Background="Transparent" Margin="12,8,0,8">
                                 <Border Background="{StaticResource PhoneAccentBrush}" 	
@@ -149,8 +149,8 @@
                                 </Border>
                             </Border>
                         </DataTemplate>
-                    </phone:LongListSelector.GroupHeaderTemplate>
-                    <phone:LongListSelector.ItemTemplate>
+                    </platform:LongListSelector.GroupHeaderTemplate>
+                    <platform:LongListSelector.ItemTemplate>
                         <DataTemplate>
                             <Grid Margin="12,8,0,8" Background="Transparent">
                                 <Grid.ColumnDefinitions>
@@ -172,9 +172,9 @@
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>
-                    </phone:LongListSelector.ItemTemplate>
-                    <phone:LongListSelector.JumpListStyle>
-                        <Style TargetType="phone:LongListSelector">
+                    </platform:LongListSelector.ItemTemplate>
+                    <platform:LongListSelector.JumpListStyle>
+                        <Style TargetType="platform:LongListSelector">
                             <Setter Property="ItemTemplate">
                                 <Setter.Value>
                                     <DataTemplate>
@@ -194,21 +194,21 @@
                             <Setter Property="GridCellSize" Value="111,111"/>
                             <Setter Property="Margin" Value="12,6,0,0"/>
                         </Style>
-                    </phone:LongListSelector.JumpListStyle>
-                </phone:LongListSelector>
-            </controls:PivotItem>
+                    </platform:LongListSelector.JumpListStyle>
+                </platform:LongListSelector>
+            </platform:PivotItem>
 
-            <controls:PivotItem Header="linq">
-                <phone:LongListSelector x:Name="linqMovies" ItemsSource="{Binding Movies}" IsGroupingEnabled="true"
+            <platform:PivotItem Header="linq">
+                <platform:LongListSelector x:Name="linqMovies" ItemsSource="{Binding Movies}" IsGroupingEnabled="true"
                                           ListHeaderTemplate="{StaticResource movieListHeader}"
                                           GroupHeaderTemplate="{StaticResource movieGroupHeader}"
                                           ItemTemplate="{StaticResource movieItemTemplate}"
                                           JumpListStyle="{StaticResource MoviesJumpListStyle}"
                                           toolkit:TiltEffect.IsTiltEnabled="True" />
-            </controls:PivotItem>
+            </platform:PivotItem>
 
-            <controls:PivotItem Header="code">
-                <phone:LongListSelector x:Name="codeMovies" IsGroupingEnabled="true"
+            <platform:PivotItem Header="code">
+                <platform:LongListSelector x:Name="codeMovies" IsGroupingEnabled="true"
                                           ItemsSource="{StaticResource movies}"
                                           ListHeaderTemplate="{StaticResource movieListHeader}"
                                           GroupHeaderTemplate="{StaticResource movieGroupHeader}"
@@ -217,16 +217,16 @@
                                           toolkit:TiltEffect.IsTiltEnabled="True">
 
                     <!-- The group footer template, for groups in the main list -->
-                    <phone:LongListSelector.GroupFooterTemplate>
+                    <platform:LongListSelector.GroupFooterTemplate>
                         <DataTemplate>
                             <Button DataContext="{Binding}" Content="{Binding GetMore}"
                                     Command="{StaticResource moreCommand}" CommandParameter="{Binding}"/>
                         </DataTemplate>
-                    </phone:LongListSelector.GroupFooterTemplate>
-                </phone:LongListSelector>
-            </controls:PivotItem>
+                    </platform:LongListSelector.GroupFooterTemplate>
+                </platform:LongListSelector>
+            </platform:PivotItem>
 
-        </controls:Pivot>
+        </platform:Pivot>
     </Grid>
 
 </platform:PhoneApplicationPage>

@@ -4,7 +4,6 @@
     xmlns:primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
@@ -100,7 +99,7 @@
         </Setter>
     </Style>
 
-    <Style TargetType="{x:Type phone:Pivot}">
+    <Style TargetType="{x:Type controls:Pivot}">
         <Setter Property="Margin" Value="0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
@@ -114,7 +113,7 @@
         </Setter>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="{x:Type phone:Pivot}">
+                <ControlTemplate TargetType="{x:Type controls:Pivot}">
                     <Grid HorizontalAlignment="{TemplateBinding HorizontalAlignment}" VerticalAlignment="{TemplateBinding VerticalAlignment}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -143,7 +142,7 @@
     </Style>
 
     <!--  Default style for Microsoft.Phone.Controls.PivotItem  -->
-    <Style TargetType="{x:Type phone:PivotItem}">
+    <Style TargetType="{x:Type controls:PivotItem}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Margin" Value="{DynamicResource PivotItemMargin}" />
         <Setter Property="Padding" Value="0" />
@@ -151,7 +150,7 @@
         <Setter Property="VerticalContentAlignment" Value="Stretch" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="{x:Type phone:PivotItem}">
+                <ControlTemplate TargetType="{x:Type controls:PivotItem}">
                     <Grid
                         HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
                         VerticalAlignment="{TemplateBinding VerticalAlignment}"
