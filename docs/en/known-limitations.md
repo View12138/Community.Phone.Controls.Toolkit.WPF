@@ -27,7 +27,7 @@ This port targets a truthful subset of the archived Windows Phone Toolkit. The l
 4. **Back key** — `BackKeyPress` and `NavigationService.GoBack()` are available, but there is no hardware back key. Applications must bind a keyboard shortcut or command if they need one.
 5. **`PhoneApplicationService`** — `Launching`, `Activated`, `Deactivated`, `Closing`, `State`, `Current`, and idle detection are mapped to WPF application/window events where possible. WP’s application lifecycle and tombstoning semantics are not reproduced; WPF process lifetime and window lifetime are different.
 6. **State persistence** — `PhoneApplicationPage.State` is an in-memory dictionary. There is no automatic tombstone serialization.
-7. **Journal** — WPF `Frame` journal behavior is retained. Silverlight page-instance caching and navigation modes are not identical.
+7. **Journal** — WPF `Frame` journal behavior is retained. `PhoneApplicationPage` sets `KeepAlive = true`, so a back navigation returns the page instance that was left instead of recreating it from its URI; this deliberately differs from WP's `NavigationCacheMode.Disabled` default. Set `KeepAlive = false` in the page constructor when a fresh instance is required. `NavigationCacheMode` itself is not ported.
 8. **Navigation failures** — `NavigationFailed` is raised as an event on the port’s frame; a navigation failure does not automatically terminate the app as on WP.
 
 ## 3. Shell chrome

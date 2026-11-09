@@ -4,7 +4,7 @@
 
 **用途。** 这是新会话的入口：记录工作区里**真实成立**的东西——已验证的构建/测试/运行结果、已确认的设计决策、不能丢失的未提交修改，以及具体的下一步。它不重述原始任务计划（`.github/Guide.md`），也不替代完整 API 矩阵。
 
-**最后更新：** 2026-11-02（本地时间），分支 `main`，工作区**有未提交修改** —— `LongListSelector` 移植（`Controls/LongListSelector/*`、`Themes/Controls/LongListSelector.xaml`、测试、示例页、文档）、`HyperlinkButton` 实现（导航、自动化对等体、导航上下文修复、测试）以及示例修复（路由探测、移植 `Settings.xaml`、可见的错误提示）尚未提交，基于 `b55dc12`。
+**最后更新：** 2026-11-02（本地时间），分支 `main`，工作区**有未提交修改** —— `LongListSelector` 移植（`Controls/LongListSelector/*`、`Themes/Controls/LongListSelector.xaml`、测试、示例页、文档）、`HyperlinkButton` 实现（导航、自动化对等体、导航上下文修复、测试）以及示例修复（路由探测、移植 `Settings.xaml`、可见的错误提示）已提交至 `7eddd7a`；返回导航的页面生命周期修复（`PhoneApplicationPage.KeepAlive`、`NavigationCachePage` 回归测试、文档）尚未提交。
 
 ---
 
@@ -26,14 +26,16 @@
 | 检查项 | 命令 | 结果 |
 |---|---|---|
 | Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 4 个唯一警告** —— `WindowHelper.cs` 的 CS0162 ×2 与未改动的 `ViewportControl` 事件 CS0067 ×2。`LongListSelector` 的警告已消失（控件不再有未使用事件）。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
-| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **140 通过 / 2 失败 / 0 跳过**，约 40 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；在基线 `b55dc12` 上同样失败。8 个 `LongListSelectorTests`（含“每个已实体化项目都被绘制”的 96 DPI 渲染检查）、3 个 `HyperlinkButtonTests` 与相对 URI 查询解析测试均通过 |
+| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **141 通过 / 2 失败 / 0 跳过**，约 43 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；在基线 `b55dc12` 上同样失败。8 个 `LongListSelectorTests`（含“每个已实体化项目都被绘制”的 96 DPI 渲染检查）、3 个 `HyperlinkButtonTests`、相对 URI 查询解析测试以及新增的 `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance` 均通过 |
 | Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **140 通过 / 2 失败** —— Debug 下同样是那两个 `ListPicker` 断言失败，且在基线 `b55dc12` 的 Debug 下也一样失败（基线 `--filter ListPicker`：12 通过 / 2 失败） |
 | 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原、零警告构建并运行（窗口内含 `Pivot`） |
 | 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
 
 | 示例导航（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe`，调用索引条目与应用栏 **Settings** 按钮 | **通过** —— 索引正常渲染（应用标题、`samples`，25 条已实体化超链接中 8 条可用）；未移植条目置灰且无法调用（Invoke 模式不可用、页面不变）；`longlistselector` 条目打开 `LongListSelectorSample`（组页眉与城市条目）；导航栏返回按钮回到索引；**Settings** 打开已移植的设置页并显示两个文化选择器。进程保持存活且不写错误日志。本会话鼠标点击无法可靠送达，因此导航通过自动化 `Invoke` 模式驱动 |
 
-测试清单（142 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 17、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`LongListSelectorTests` 8、`EffectsTests` 7、`HyperlinkButtonTests` 3、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+测试清单（143 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 18、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`LongListSelectorTests` 8、`EffectsTests` 7、`HyperlinkButtonTests` 3、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+
+**2026-11-02 —— 返回导航回到现有页面实例。** `PhoneApplicationPage` 现在在构造函数中设置 `KeepAlive = true`。WPF 原本会在离开以 URI 导航的 `Page` 时丢弃实例，并在 `GoBack()` 时按 URI 重新构造它；这导致示例从 `PersonDetail` 返回时会重建 `LongListSelectorSample`（连同构造函数里的工作一起重做）。对象导航本来就会保留实例，现在 URI 导航与之保持一致；确实需要新实例的应用可以在页面构造函数中设置 `KeepAlive = false`。由 `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance` 验证：改动前失败（返回时构造了第二个 `NavigationCachePage` 实例），改动后通过。其他导航行为不变：向前 URI 导航仍然创建新实例，`CanGoBack` 仍由 WPF journal 维护。
 
 **2026-11-02 —— 示例不再静默失败。** 移除了示例应用里两条会走到死链的导航路径。`MainPage` 索引现在用 `Application.GetResourceStream` 逐条探测路由，把尚未移植的条目置灰禁用，因此点击不会再导航到不存在的资源并让应用直接退出；与实际文件位置不一致的路由也已修正（`/Samples/WPFControlsSample.xaml`、`/Pages/MenusPage.xaml`、`/Pages/FeatherPage.xaml`、`/Pages/TransitionsPage.xaml`、`/Samples/PivotSample.xaml`）。应用栏 **Settings** 按钮原先导航到本移植版并不存在的 `/Settings.xaml`；现已从 `PhoneToolkitSample8` 移植 `Settings.xaml`/`Settings.xaml.cs`（UI 文化与区域格式两个 `ListPicker`，配合 `App.UICultureOverride`/`RegionalCultureOverride`）。未处理异常现在弹出对话框并给出 `%TEMP%\community-phone-toolkit-sample-error.txt` 路径，不再无声关闭窗口。已用 UI 自动化验证：索引渲染正常（`WINDOWS PHONE TOOLKIT for WPF`、`samples`，25 条已实体化的超链接中 8 条可用），禁用链接无法调用且页面不变，LongListSelector 链接打开 `LongListSelectorSample`（组页眉与城市条目），导航栏返回按钮回到索引，**Settings** 打开含两个文化选择器的设置页，且没有错误日志。环境说明：本会话中鼠标点击无法可靠送达（导航只能通过自动化 `Invoke` 模式触发），`CopyFromScreen` 截图可能包含遮挡窗口，因此运行时证据来自自动化树与置顶窗口截图。新增 `LongListSelectorTests.LongListSelector_PaintsEveryRealizedItem`，用 `RenderTargetBitmap` 在 96 DPI 下渲染列表，要求视口内每个已实体化容器都画出像素，从而挡住“元素存在但什么都没画”这类缺陷。
 

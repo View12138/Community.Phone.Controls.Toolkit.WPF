@@ -21,7 +21,7 @@
 | `Microsoft.Phone.Controls.Matrix3DProjection`（平台） | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | 矩阵使用 0..1 归一化坐标。 |
 | `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | WPF 元素没有原地投影属性；赋值时会按需把元素包进 `ProjectionHost`，且 `(ProjectionService.Projection).(PlaneProjection.RotationY)` 可作为 storyboard 路径。 |
 | `Microsoft.Phone.Controls.PhoneApplicationFrame` | 同名 | B/C | 继承 WPF `Frame`，增加页面参数导航。 |
-| `Microsoft.Phone.Controls.PhoneApplicationPage` | 同名 | B/C | 继承 WPF `Page`；生命周期由 Frame 触发。 |
+| `Microsoft.Phone.Controls.PhoneApplicationPage` | 同名 | B/C | 继承 WPF `Page`；生命周期由 Frame 触发；返回导航保留页面实例（`KeepAlive = true`，需要新实例时设为 `false`）。 |
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`、`ExtraData`。 |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | 同名 | B | 映射到 WPF 应用/窗口生命周期。 |
 | `Microsoft.Phone.Shell.SystemTray` | 同名 | B | API/状态已实现；视觉 chrome 尚未完成。 |
@@ -54,7 +54,7 @@
 | 原始 | 移植 | 级别 | 说明 |
 |---|---|---|---|
 | `PhoneApplicationFrame` | 同名 | B/C | WPF journal/`NavigationService`；方向由尺寸推断。 |
-| `PhoneApplicationPage` | 同名 | B/C | `State`、方向、事件；生命周期由 Frame 触发。 |
+| `PhoneApplicationPage` | 同名 | B/C | `State`、方向、事件；生命周期由 Frame 触发；返回导航保留现有实例（`KeepAlive = true`）。 |
 | `TransitionFrame` | 同名 | B | 自定义模板，包含两个 `ProjectionHost`。 |
 | `TransitionService.NavigationInTransition` | 同名 | A | 保留附加属性名。 |
 | `TransitionService.NavigationOutTransition` | 同名 | A | 保留附加属性名。 |

@@ -21,7 +21,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `Microsoft.Phone.Controls.Matrix3DProjection` (platform) | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | Matrix is normalized 0..1. |
 | `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | No in-place property on WPF elements; assigning it wraps the element in a `ProjectionHost` on demand, and `(ProjectionService.Projection).(PlaneProjection.RotationY)` works as a storyboard path. |
 | `Microsoft.Phone.Controls.PhoneApplicationFrame` | `Microsoft.Phone.Controls.PhoneApplicationFrame` | B/C | Derives from WPF `Frame`; adds page-parameter navigation. |
-| `Microsoft.Phone.Controls.PhoneApplicationPage` | `Microsoft.Phone.Controls.PhoneApplicationPage` | B/C | Derives from WPF `Page`; lifecycle raised by the frame. |
+| `Microsoft.Phone.Controls.PhoneApplicationPage` | `Microsoft.Phone.Controls.PhoneApplicationPage` | B/C | Derives from WPF `Page`; lifecycle raised by the frame; pages stay alive across back navigation (`KeepAlive = true`, set it to `false` for a fresh instance). |
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF has no equivalent; exposes `Uri`, `QueryString`, `ExtraData`. |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | `Microsoft.Phone.Shell.PhoneApplicationService` | B | WPF app/window lifetime mapping. |
 | `Microsoft.Phone.Shell.SystemTray` | `Microsoft.Phone.Shell.SystemTray` | B | API/state implemented; chrome rendering pending. |
@@ -53,7 +53,7 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | Original | Port | Level | Notes |
 |---|---|---|---|
 | `PhoneApplicationFrame` | same | B/C | WPF journal/`NavigationService`; orientation inferred from size. |
-| `PhoneApplicationPage` | same | B/C | `State`, orientation, events; lifecycle methods are frame-driven. |
+| `PhoneApplicationPage` | same | B/C | `State`, orientation, events; lifecycle methods are frame-driven; back navigation returns the existing instance (`KeepAlive = true`). |
 | `TransitionFrame` | same | B | Custom template with two `ProjectionHost` parts; automatic entry/exit transitions for direct page navigation. |
 | All transition factories | same | A/B | Storyboards are the original XAML resources, parsed at runtime; angles, key times and easing come from the original files. A throwing factory propagates, exactly like the original (no fallback event). |
 | `TransitionService.NavigationInTransition` | same | A | Attached property names preserved. |

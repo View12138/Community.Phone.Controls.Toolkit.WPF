@@ -146,6 +146,7 @@ WPF 无法让 `<Grid.Projection>` 编译，因为 `Grid` 没有该属性。支�
 - `GoBack()` 先触发 `PhoneApplicationPage.BackKeyPress`。
 - `Navigate(PhoneApplicationPage, IDictionary<string,string>)` 传递导航参数，与 URI 查询字符串合并为 `NavigationContext`，在 `OnNavigatedTo` 前赋给页面。
 - 页面状态按页面实例保存在 Frame 中，返回到同一实例后仍然存在。
+- 页面保存在 journal 中（`KeepAlive = true`），因此返回导航会回到离开时的页面实例，而不是按 URI 重新创建；需要新实例时可在页面构造函数中设置 `KeepAlive = false`。
 - 应用栏 chrome：模板承载 `ApplicationBarHost`（按应用栏高度预留的行）与 `ApplicationBar`（`ApplicationBarPresenter`）。`Navigated` 把新页面的应用栏推给呈现器；页面处于活动状态时修改 `ApplicationBar` 也会转发到呈现器。
 
 WPF `Page` 没有 WP 的 `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` 受保护虚方法，因此移植版在 `PhoneApplicationPage` 中声明这些虚方法，并由 Frame 触发。这样保留了 API 和确定顺序，但如果页面放在移植 Frame 之外，WPF 自身不会调用它们。

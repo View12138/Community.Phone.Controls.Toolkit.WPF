@@ -147,6 +147,7 @@ Derives from WPF `Frame`. WPF’s navigation journal, `NavigationService`, `CanG
 - `GoBack()` that first raises `PhoneApplicationPage.BackKeyPress`.
 - `Navigate(PhoneApplicationPage, IDictionary<string,string>)` for navigation parameters, merged with any URI query string into a `NavigationContext` that is assigned to the page before `OnNavigatedTo`.
 - Page state is stored by the frame per page instance, so it survives a back navigation to the same page.
+- Pages are kept in the journal (`KeepAlive = true`), so a back navigation returns the page instance that was left instead of recreating it from its URI. Set `KeepAlive = false` in the page constructor when a fresh instance is required.
 - Application bar chrome: the template hosts `ApplicationBarHost` (a row that reserves the bar height) and `ApplicationBar` (an `ApplicationBarPresenter`). `Navigated` pushes the new page’s bar into the presenter, and a page `ApplicationBar` change is forwarded while the page is active.
 
 WPF `Page` does not expose the WP `OnNavigatedTo/OnNavigatedFrom/OnNavigatingFrom` protected virtual methods, so the port declares them as virtual methods on `PhoneApplicationPage` and raises them from the frame. This preserves the API and gives deterministic ordering, but the methods are not called by WPF’s own `NavigationService` if a page is hosted outside a phone frame.

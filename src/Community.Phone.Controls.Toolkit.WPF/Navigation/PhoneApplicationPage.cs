@@ -56,6 +56,13 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         public PhoneApplicationPage()
         {
+            // WPF recreates a page from its URI on back navigation unless the
+            // page is kept alive. The port keeps the instance so that a back
+            // navigation returns to the page that was left instead of
+            // constructing a new one. Applications that need a fresh page on
+            // back navigation can set KeepAlive to false before navigating.
+            KeepAlive = true;
+
             NavigationContext = NavigationContext.Empty;
         }
 

@@ -13,6 +13,9 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 {
     public class NavigationTests
     {
+        private const string NavigationCachePageUri =
+            "pack://application:,,,/Community.Phone.Controls.Toolkit.WPF.Tests;component/NavigationCachePage.xaml";
+
         [Fact]
         public void Frame_NavigatesAndRaisesPageLifecycle()
         {
@@ -142,6 +145,48 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
 
                     Assert.Same(first, frame.Content);
                     Assert.Equal(7, first.State["value"]);
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        [Fact]
+        public void Frame_BackNavigationReturnsTheExistingPageInstance()
+        {
+            StaTest.Run(() =>
+            {
+                PhoneApplicationFrame frame = new PhoneApplicationFrame();
+                Window window = new Window { Width = 480, Height = 800, Content = frame };
+                TestPage next = new TestPage();
+
+                NavigationCachePage.InstanceCount = 0;
+
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+
+                    frame.Navigate(new Uri(NavigationCachePageUri, UriKind.Absolute));
+                    PumpFor(250);
+
+                    NavigationCachePage cached = Assert.IsType<NavigationCachePage>(frame.Content);
+                    Assert.Equal(1, NavigationCachePage.InstanceCount);
+
+                    frame.Navigate(next);
+                    PumpFor(250);
+                    Assert.Same(next, frame.Content);
+
+                    Assert.True(frame.CanGoBack);
+                    frame.GoBack();
+                    PumpFor(250);
+
+                    // A URI-navigated page is recreated from its URI on back
+                    // navigation unless it is kept alive in the journal.
+                    Assert.Same(cached, frame.Content);
+                    Assert.Equal(1, NavigationCachePage.InstanceCount);
                 }
                 finally
                 {

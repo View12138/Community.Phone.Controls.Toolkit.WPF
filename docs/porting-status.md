@@ -36,7 +36,7 @@ English · [中文](zh-CN/porting-status.md)
 | Item | Status | Evidence / notes |
 |---|---|---|
 | `PhoneApplicationFrame` (WPF `Frame` based), journal, `Navigate(page, parameters)` | ✅ Verified | `Frame_NavigatesAndRaisesPageLifecycle`, `Frame_NavigationContextCarriesParameters`, `Frame_RapidNavigationKeepsTheLatestPage`; sample navigation |
-| `PhoneApplicationPage`, lifecycle (`OnNavigatedTo/From`, `OnBackKeyPress`), `State` | ✅ Verified | `Frame_NavigatesAndRaisesPageLifecycle`, `Frame_StateSurvivesBackNavigation`, `Frame_BackKeyPressCanCancelBackNavigation` |
+| `PhoneApplicationPage`, lifecycle (`OnNavigatedTo/From`, `OnBackKeyPress`), `State` | ✅ Verified | `Frame_NavigatesAndRaisesPageLifecycle`, `Frame_StateSurvivesBackNavigation`, `Frame_BackKeyPressCanCancelBackNavigation`, `Frame_BackNavigationReturnsTheExistingPageInstance` |
 | Orientation detection | ✅ Verified | `Frame_DetectsOrientationFromSize` |
 | Tombstoning / real WP lifecycle | ⛔ Not implemented | `State` is an in-memory dictionary; see `known-limitations.md` §2 |
 | `PhoneApplicationService` state API | ✅ Verified | `SystemTrayAndApplicationServiceExposeState`; idle/deactivation policy is not implemented |

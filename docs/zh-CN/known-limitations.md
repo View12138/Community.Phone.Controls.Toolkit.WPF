@@ -27,7 +27,7 @@
 4. **返回键**：`BackKeyPress` 和 `NavigationService.GoBack()` 可用，但没有硬件返回键。需要时请绑定键盘快捷键或命令。
 5. **`PhoneApplicationService`**：`Launching`、`Activated`、`Deactivated`、`Closing`、`State`、`Current` 和 idle 检测在可能时映射到 WPF 应用/窗口事件。WP 的 tombstoning 和生命周期语义不会被复刻；WPF 进程/窗口生命周期不同。
 6. **状态持久化**：`PhoneApplicationPage.State` 是内存字典，没有自动 tombstone 序列化。
-7. **Journal**：保留 WPF `Frame` journal 行为，但 Silverlight 页面实例缓存和导航模式不完全相同。
+7. **Journal**：保留 WPF `Frame` journal 行为。`PhoneApplicationPage` 设置 `KeepAlive = true`，因此返回导航会回到离开时的页面实例，而不是按 URI 重新创建；这是相对 WP 默认 `NavigationCacheMode.Disabled` 的有意差异。需要新实例时可在页面构造函数中设置 `KeepAlive = false`。`NavigationCacheMode` 本身未移植。
 8. **导航失败**：移植 Frame 会触发 `NavigationFailed`；导航失败不会像 WP 那样自动终止应用。
 
 ## 3. Shell chrome

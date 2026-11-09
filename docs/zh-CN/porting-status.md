@@ -36,7 +36,7 @@
 | 项目 | 状态 | 证据 / 说明 |
 |---|---|---|
 | `PhoneApplicationFrame`（基于 WPF `Frame`）、journal、`Navigate(page, parameters)` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_NavigationContextCarriesParameters`、`Frame_RapidNavigationKeepsTheLatestPage`；示例导航 |
-| `PhoneApplicationPage`、生命周期（`OnNavigatedTo/From`、`OnBackKeyPress`）、`State` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_StateSurvivesBackNavigation`、`Frame_BackKeyPressCanCancelBackNavigation` |
+| `PhoneApplicationPage`、生命周期（`OnNavigatedTo/From`、`OnBackKeyPress`）、`State` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_StateSurvivesBackNavigation`、`Frame_BackKeyPressCanCancelBackNavigation`、`Frame_BackNavigationReturnsTheExistingPageInstance` |
 | 方向检测 | ✅ 已验证 | `Frame_DetectsOrientationFromSize` |
 | Tombstone / 真实 WP 生命周期 | ⛔ 未实现 | `State` 是内存字典；见 `known-limitations.md` §2 |
 | `PhoneApplicationService` 状态 API | ✅ 已验证 | `SystemTrayAndApplicationServiceExposeState`；idle/deactivation 策略未实现 |
