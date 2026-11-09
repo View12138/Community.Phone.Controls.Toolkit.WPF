@@ -1,16 +1,16 @@
-# Handoff — Community.Phone.Controls.Toolkit.WPF
+# Handoff — Community.Phone.Controls.Toolkit
 
 English · [中文](zh-CN/handoff.md)
 
 **Purpose.** This is the entry point for a fresh session. It records what is actually true in the working tree: verified build/test/run results, confirmed design decisions, uncommitted work that must not be lost, and the concrete next steps. It does **not** restate the original task plan (`.github/Guide.md`) or the full API matrix.
 
-**Last updated:** 2026-11-02 (local), branch `main`, working tree **dirty** — the `LongListSelector` port (`Controls/LongListSelector/*`, `Themes/Controls/LongListSelector.xaml`, tests, sample page, docs), the `HyperlinkButton` implementation (navigation, automation peer, navigation-context fix, tests) and the sample fixes (route probing, ported `Settings.xaml`, visible error reporting) are committed through `7eddd7a`; the back-navigation page-lifetime fix (`PhoneApplicationPage.KeepAlive`, `NavigationCachePage` regression test, docs) is uncommitted.
+**Last updated:** 2026-11-09 (local), branch `main`, working tree **dirty** — the `LongListSelector` port (`Controls/LongListSelector/*`, `Themes/Controls/LongListSelector.xaml`, tests, sample page, docs), the `HyperlinkButton` implementation (navigation, automation peer, navigation-context fix, tests) and the sample fixes (route probing, ported `Settings.xaml`, visible error reporting) are committed through `7eddd7a`; the back-navigation page-lifetime fix (`PhoneApplicationPage.KeepAlive`, `NavigationCachePage` regression test, docs) and the 2026-11-09 refactor (`.WPF` removed from every project/folder, `Microsoft.Phone.dll` compatibility types moved into the new `Community.Phone` project) are uncommitted.
 
 ---
 
 ## 1. Project goal and acceptance criteria
 
-A WPF compatibility port of the archived Windows Phone Toolkit, shipped as one NuGet package (`Community.Phone.Controls.Toolkit.WPF`, root namespace `Microsoft.Phone.Controls`, `net10.0-windows`).
+A WPF compatibility port of the archived Windows Phone Toolkit, shipped as one NuGet package (`Community.Phone.Controls.Toolkit`, root namespace `Microsoft.Phone.Controls`, `net10.0-windows`).
 
 Acceptance criteria in use:
 
@@ -21,19 +21,21 @@ Acceptance criteria in use:
 
 ---
 
-## 2. Current verified state (2026-10-30)
+## 2. Current verified state (2026-11-09)
 
 | Check | Command | Result |
 |---|---|---|
-| Release build | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 errors / 4 unique warnings** — CS0162 ×2 in `WindowHelper.cs` and CS0067 ×2 for the unchanged `ViewportControl` events. The `LongListSelector` warnings are gone (the control no longer has unused events). A build that has nothing to recompile reports 0/0. `WINDOWS_PHONE;WP8` is defined in every configuration; without it the Release compilation of `LengthConverter`, `TypeConverters`, `RoutedPropertyChangingEventArgs` and `InteractionHelper` failed |
-| Release tests | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **141 passed / 2 failed / 0 skipped** in about 43 s. The two failures are pre-existing and unrelated: `ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources` (both assert a resource key that resolves to `null`); they fail identically at baseline `b55dc12`. The 8 `LongListSelectorTests` (including a 96 DPI render check that every realized item is painted), 3 `HyperlinkButtonTests`, the relative-URI query test and the new `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance` pass |
-| Debug tests | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **140 passed / 2 failed** — the same two `ListPicker` assertions fail in Debug as well, and they fail identically at baseline `b55dc12` in Debug too (baseline `--filter ListPicker`: 12 passed / 2 failed) |
-| Package + consumer | `powershell -File build\verify-package.ps1` | **passed** — `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` (+ `.snupkg`), fresh consumer restored from the local feed, built with 0 warnings and ran with a `Pivot` on its window |
-| Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, open the Pivot and HubTile samples | **passed** — the main page lists the new `Pivot` entry, selecting it opens `PivotSample` (automation tree: the active `PivotItem`, its content, `SelectedIndex 0 of 3`, the lock check box and the back button), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original hub tiles) renders its text and images, in both Release and Debug. Processes stay alive and no new error file is written (`%TEMP%\community-phone-toolkit-sample-error.txt` is still the 2026-10-23 ListPicker leftover). `HubTileSample` first threw `Cannot locate resource 'images/dessert.jpg'` because an incremental build kept the old `.g.resources` file list after the photos were added as `Resource` items — a rebuild fixes it, and the README now says so |
+| Release build | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | **0 errors / 2 unique warnings** — only the intentional public `ViewportControl` event warnings remain; the `WindowHelper` unreachable-code warnings were removed with the compatibility-layer move. `WINDOWS_PHONE;WP8` is defined in every configuration |
+| Release tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **142 passed / 2 failed / 0 skipped, 144 total** in about 40 s. The two failures are pre-existing and unrelated: `ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`; they fail identically at the baseline commit. The new `EffectsTests.TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` passes and fails before the dispatcher-access guard |
+| Debug tests | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **140 passed / 2 failed** — the same two `ListPicker` assertions fail in Debug as well, and they fail identically at baseline `b55dc12` in Debug too (baseline `--filter ListPicker`: 12 passed / 2 failed) |
+| Package + consumer | `powershell -File build\verify-package.ps1` | **passed** — `artifacts/packages/Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` (+ `.snupkg`) contains `Community.Phone.Controls.Toolkit.dll` **and** `Community.Phone.dll`; the fresh consumer restores from the local feed, builds with 0 warnings, runs, and verifies the compatibility layer's frame template (`ApplicationBar` template part) on its window |
+| Sample smoke (UI Automation) | launch `Community.Phone.Controls.Toolkit.Sample.exe`, open the Pivot and HubTile samples | **passed** — the main page lists the new `Pivot` entry, selecting it opens `PivotSample` (automation tree: the active `PivotItem`, its content, `SelectedIndex 0 of 3`, the lock check box and the back button), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original hub tiles) renders its text and images, in both Release and Debug. Processes stay alive and no new error file is written (`%TEMP%\community-phone-toolkit-sample-error.txt` is still the 2026-10-23 ListPicker leftover). `HubTileSample` first threw `Cannot locate resource 'images/dessert.jpg'` because an incremental build kept the old `.g.resources` file list after the photos were added as `Resource` items — a rebuild fixes it, and the README now says so |
 
-| Sample navigation (UI Automation) | launch `Community.Phone.Controls.Toolkit.WPF.Sample.exe`, invoke the index entries and the **Settings** application bar button | **passed** — the index renders (application title, `samples`, 25 realized hyperlinks of which 8 are enabled); entries whose page is not ported are dimmed and cannot be invoked (the invoke pattern is unavailable and the page stays put); the `longlistselector` entry opens `LongListSelectorSample` (group headers and city items); the navigation bar back button returns to the index; **Settings** opens the ported settings page with both culture pickers. The process stays alive and no error file is written. Mouse clicks are not delivered reliably in this session, so navigation was driven through the automation `Invoke` pattern |
+| Sample navigation (UI Automation) | launch `Community.Phone.Controls.Toolkit.Sample.exe`, invoke the index entries and the **Settings** application bar button | **passed** — the index renders (application title, `samples`, 25 realized hyperlinks of which 8 are enabled); entries whose page is not ported are dimmed and cannot be invoked (the invoke pattern is unavailable and the page stays put); the `longlistselector` entry opens `LongListSelectorSample` (group headers and city items); the navigation bar back button returns to the index; **Settings** opens the ported settings page with both culture pickers. The process stays alive and no error file is written. Mouse clicks are not delivered reliably in this session, so navigation was driven through the automation `Invoke` pattern |
 
-Test inventory (143 cases): `ControlTests` 36, `ProjectionTests` 32, `NavigationTests` 18, `TransitionStoryboardTests` 13 cases, `PivotTests` 12, `ShellTests` 11, `LongListSelectorTests` 8, `EffectsTests` 7, `HyperlinkButtonTests` 3, `ConverterTests` 3, plus the `StaTest`/`WpfTestHelper` infrastructure.
+Test inventory (144 cases): `ControlTests` 36, `ProjectionTests` 32, `NavigationTests` 18, `TransitionStoryboardTests` 13 cases, `PivotTests` 12, `ShellTests` 11, `LongListSelectorTests` 8, `EffectsTests` 8, `HyperlinkButtonTests` 3, `ConverterTests` 3, plus the `StaTest`/`WpfTestHelper` infrastructure.
+
+**2026-11-09 — project names and the `Community.Phone` compatibility layer.** `.WPF` was removed from every project name and folder: the solution is now `Community.Phone.Controls.Toolkit.slnx`; the projects are `Community.Phone`, `Community.Phone.Controls.Toolkit`, `Community.Phone.Controls.Toolkit.Sample`, and `Community.Phone.Controls.Toolkit.Tests`. The `Microsoft.Phone.dll` surface (`Microsoft.Phone.Controls.PhoneApplicationFrame` / `PhoneApplicationPage` / `NavigationContext` / orientation types and all `Microsoft.Phone.Shell` types) moved from the toolkit project into `src/Community.Phone`, which the toolkit now references. The `PhoneApplicationFrame` template moved to `src/Community.Phone/Themes/Generic.xaml`; the toolkit theme keeps the `TransitionFrame` template only. The single NuGet package still ships both assemblies (there is no second package). XAML that uses both assemblies needs `phone:` (toolkit), `platform:` (`Community.Phone` controls namespace for pages/frames), and `shell:` (`Community.Phone`) prefixes; the sample, tests, package consumer, README, and both language docs were updated. `Transitions.StoryboardAssemblyName` and all pack URIs were updated to the new assembly names. Regression test: `EffectsTests.TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` (the xUnit order change exposed a cross-thread cleanup in `TiltEffect`; `StopTiltReturnStoryboardAndCleanup` now checks `Dispatcher.CheckAccess()` before touching static UI state).
 
 **2026-11-02 — back navigation returns the existing page instance.** `PhoneApplicationPage` now sets `KeepAlive = true` in its constructor. WPF otherwise drops a URI-navigated `Page` when it is left and reconstructs it from its URI on `GoBack()`, which made the sample rebuild `LongListSelectorSample` (constructor work and all) when returning from `PersonDetail`. Object navigation already kept the instance, so URI navigation now matches it; applications that need a fresh page on back can set `KeepAlive = false` in the page constructor. Verified by `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance`, which fails before the change (a second `NavigationCachePage` instance is constructed on back) and passes after it. No other navigation behavior changed: forward URI navigation still creates a new instance, and the WPF journal still owns `CanGoBack`.
 
@@ -219,7 +221,7 @@ Docs updated for this turn (both languages): `api-compatibility.md` (shell mappi
 
 ### 4.11 Latest turn: `ListPickerPage` back on the original `ApplicationBar`, and a usable test loop
 
-- **`ListPickerPage` uses the ported `ApplicationBar` again.** The temporary `CommandArea` `StackPanel` (a hand-built done/cancel strip) is gone. `ListPickerPage.xaml` now declares `<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar IsVisible="False">` with two `ApplicationBarIconButton`s pointing at `Content/ApplicationBar.Check.png` and `Content/ApplicationBar.Cancel.png` (library resources, pack URI `/Community.Phone.Controls.Toolkit.WPF;component/Content/...`), and the code-behind is the WP8 original: `OnLoaded` walks `ApplicationBar.Buttons`, matches the case-insensitive `DONE`/`CANCEL` texts, applies the localized `appbar_done`/`appbar_cancel` strings and hooks `Click` to `Done_Click`/`Cancel_Click`; `OnNavigatedTo` sets `ApplicationBar.IsVisible = SelectionMode != SelectionMode.Single`. In single-selection mode the frame therefore reserves no bar height at all.
+- **`ListPickerPage` uses the ported `ApplicationBar` again.** The temporary `CommandArea` `StackPanel` (a hand-built done/cancel strip) is gone. `ListPickerPage.xaml` now declares `<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar IsVisible="False">` with two `ApplicationBarIconButton`s pointing at `Content/ApplicationBar.Check.png` and `Content/ApplicationBar.Cancel.png` (library resources, pack URI `/Community.Phone.Controls.Toolkit;component/Content/...`), and the code-behind is the WP8 original: `OnLoaded` walks `ApplicationBar.Buttons`, matches the case-insensitive `DONE`/`CANCEL` texts, applies the localized `appbar_done`/`appbar_cancel` strings and hooks `Click` to `Done_Click`/`Cancel_Click`; `OnNavigatedTo` sets `ApplicationBar.IsVisible = SelectionMode != SelectionMode.Single`. In single-selection mode the frame therefore reserves no bar height at all.
 - **`CustomMessageBox.Show()` no longer needs an `Application`.** It resolves the theme background through a resource lookup with a `Colors.Black` fallback, tolerates a null `MainWindow` and guards `OnWindowContentRendered` against a null owner, so showing it in a plain window (or a test host) works. The test also had to dismiss the dialog from *inside* the nested dispatcher loop `ShowDialog()` runs, which is why it schedules the dismiss with a `DispatcherTimer`.
 - **Test-loop speed and determinism.** `WpfTestHelper.PumpUntil(predicate, timeout)` / `PumpFor` were added, and the fixed waits that dominated the runtime were converted: the five `TransitionFrame_NavigatesWithEveryFamily` cases (5 × 3000 ms), the 2000 ms tilt test and eight `NavigationTests` waits now poll observable state. The suite went from ~45 s to ~30 s. The `Rating` test stopped moving the physical cursor (`Rating.UpdateValueFromMouse` is `internal`; `Rating_PointerPositionUpdatesValue` calls it), so no test depends on the desktop letting the pointer land somewhere.
 - **Parallelism stays off, deliberately.** Removing `[assembly: CollectionBehavior(DisableTestParallelization = true)]` hung the run (>600 s) because several tests drive shared WPF singletons (the theme dictionary, `Popup`s and the storyboard XAML cache); the attribute is kept with a comment. The two caches that were genuinely racy (`Transitions._storyboardXamlCache`, `ApplicationBarIconLoader.Cache`) got locks anyway.
@@ -232,7 +234,7 @@ Docs updated for this turn (both languages): `known-limitations.md` (ListPicker 
 
 The committed tree did not build from scratch, and the three `ListPickerPage` tests failed once it did. Both are fixed; no test was changed in the end.
 
-- **Cold build failed with `MC3074`** ("`PhoneApplicationPage` does not exist in `clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF`"). `MarkupCompilePass1` only sees the project's own types through `@(Compile)`; when a page of the library refers to the library's own assembly *by name*, the pass can't resolve it on a clean `obj` (an incremental build with leftover generated files hid this, which is why the failure appeared only after the tree was rebuilt from scratch). Fix: `ListPickerPage.xaml` declares `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **without** `assembly=`, exactly like the library theme XAML. Verified with the library's `obj`/`bin` deleted.
+- **Cold build failed with `MC3074`** ("`PhoneApplicationPage` does not exist in `clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit`"). `MarkupCompilePass1` only sees the project's own types through `@(Compile)`; when a page of the library refers to the library's own assembly *by name*, the pass can't resolve it on a clean `obj` (an incremental build with leftover generated files hid this, which is why the failure appeared only after the tree was rebuilt from scratch). Fix: `ListPickerPage.xaml` declares `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **without** `assembly=`, exactly like the library theme XAML. Verified with the library's `obj`/`bin` deleted.
 - **The picker page has to bring its own theme.** `ListPicker` creates `ListPickerPage` itself, so the page is parsed while it is attached to nothing, and it is afterwards hosted inside the frame's `ProjectionHost`, where inherited resources are not reachable (the same WPF limitation that stops `DataContext` inheritance through `Viewport2DVisual3D`). Consequences handled in the page: its `Resources` now wraps the styles in an explicit `ResourceDictionary` that merges `Themes/Generic.xaml` (so every `StaticResource` inside the page's styles/templates resolves without an application-level theme), the properties set on the root element and header (`FontFamily`, `FontSize`, `Foreground`, `MainGrid.Background`) use `DynamicResource` because they are evaluated while the page is still detached, and the `TransparentBrush` used as an `ObjectAnimationUsingKeyFrames` value is now an inline `SolidColorBrush` (a keyframe value cannot use `DynamicResource`, and a `StaticResource` there is resolved in the template's own dictionary). The same inline brush was applied to `Themes/Controls/ListPicker.xaml`, whose template had the identical problem when the theme is used as the WPF *theme* dictionary rather than as an application dictionary.
 - **Wrong storyboard target in `AnimationForElement`** — the open/close animation targeted the `PlaneProjection` while its property path starts at the element's attached `ProjectionService.Projection`, so `Storyboard.Begin()` threw `InvalidOperationException` ("the Projection property does not point to a DependencyObject"). Now the target is the element, which is what the original WP code did (`(UIElement.Projection).(PlaneProjection.RotationX)`).
 - **`Extensions.IsExternalNavigation` dereferenced a null `Uri`.** The port navigates with page instances, so `NavigationEventArgs.Uri` is `null`; `ListPickerPage.OnNavigatedFrom` then threw `NullReferenceException` on the way back. The extension is null-safe now.
@@ -315,7 +317,7 @@ Explicitly **not** claimed:
 
 | Path | Role |
 |---|---|
-| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D host, camera (`PerspectiveDepth`), `Prefer3D`, slot-sized projected surface, scene updates |
+| `src/Community.Phone.Controls.Toolkit/Projection/ProjectionHost.cs` | 2D↔3D host, camera (`PerspectiveDepth`), `Prefer3D`, slot-sized projected surface, scene updates |
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D` (sign conventions, row-vector order) |
 | `…/Projection/ProjectionService.cs` | attached projection (wraps on demand, releases on clear), `EnsureProjectionHost` / `FindDirectHost`, host wrap/unwrap |
 | `…/Projection/ProjectionMath.cs` | rotation/translation helpers |
@@ -330,15 +332,15 @@ Explicitly **not** claimed:
 | `…/Controls/HubTile.cs` | state machine; drives the title translation, the flip (`Prefer3D`) and the 3 s pulse |
 | `…/Controls/Rating.cs` | hit testing in item units (`AllowHalfItemIncrement` divides by two), clipping mask |
 | `…/Controls/PhoneTextBox.cs` | hint visibility (focus + IME composition), inner editor, length indicator |
-| `…/Shell/ApplicationBar.cs` (+ `IApplicationBar*`, `ApplicationBarIconButton`, `ApplicationBarMenuItem`, `ApplicationBarMode`, `ApplicationBarStateChangedEventArgs`) | original `Microsoft.Phone.Shell` API surface and state |
-| `…/Shell/ApplicationBarItemList.cs`, `ApplicationBarItemContainer*.cs`, `BoolEventArgs.cs` | item list limits/exceptions, per-item validation and click dispatch |
-| `…/Shell/ApplicationBarPresenter.cs`, `ApplicationBarItemView.cs`, `ApplicationBarIconButtonView.cs`, `ApplicationBarMenuItemView.cs` | WPF chrome: bar, icon slots, menu button, menu popup, icon loading || `…/Controls/ListPicker/ListPicker.cs` | original WP8 control: normal/expanded canvas height animation, full-mode page navigation, frame discovery, WPF mouse/back-key/selection adaptations |
+| `…/System/Shell/ApplicationBar.cs` (+ `IApplicationBar*`, `ApplicationBarIconButton`, `ApplicationBarMenuItem`, `ApplicationBarMode`, `ApplicationBarStateChangedEventArgs`) | original `Microsoft.Phone.Shell` API surface and state |
+| `…/System/Shell/ApplicationBarItemList.cs`, `ApplicationBarItemContainer*.cs`, `BoolEventArgs.cs` | item list limits/exceptions, per-item validation and click dispatch |
+| `…/System/Shell/ApplicationBarPresenter.cs`, `ApplicationBarItemView.cs`, `ApplicationBarIconButtonView.cs`, `ApplicationBarMenuItemView.cs` | WPF chrome: bar, icon slots, menu button, menu popup, icon loading || `…/Controls/ListPicker/ListPicker.cs` | original WP8 control: normal/expanded canvas height animation, full-mode page navigation, frame discovery, WPF mouse/back-key/selection adaptations |
 | `…/Controls/ListPicker/ListPickerPage.xaml(.cs)` | original full-mode page: item/header entry animations through `ProjectionService`, original `ApplicationBar` with check/cancel icon buttons (`Content/ApplicationBar.*.png`) |
 | `…/Themes/Controls/ListPicker.xaml` | original `ListPicker`/`ListPickerItem` styles (merged from `Generic.xaml`, `Dark.xaml` merged in, `PickerPageUri` set) |
 | `src/…Sample/SampleNavigator.cs` | builds in/out transitions per sample so both sides use the same family (fixes the "exit is not feathered" class of bugs) |
 | `src/…Sample/Pages/MainPage.xaml` | sample index that mirrors the original `PhoneToolkitSample8` main page |
 | `src/…Sample/Pages/{Controls,Projection,Transitions,TransitionTarget,Feather,Menus}Page.xaml` | one page per sample |
-| `tests/Community.Phone.Controls.Toolkit.WPF.Tests/` | xUnit suite (`StaTest` for WPF); internals are visible to it; `WpfTestHelper.PumpUntil`/`PumpFor` are the way to wait on observable state (no fixed sleeps) |
+| `tests/Community.Phone.Controls.Toolkit.Tests/` | xUnit suite (`StaTest` for WPF); internals are visible to it; `WpfTestHelper.PumpUntil`/`PumpFor` are the way to wait on observable state (no fixed sleeps) |
 | `build/verify-package.ps1` | packs Release + fresh consumer smoke test |
 | `docs/en/` and `docs/zh-CN/` — architecture, api-compatibility, known-limitations, migration-guide, porting-inventory | canonical bilingual docs |
 | `docs/porting-status.md` | current implementation/verification status (authoritative) |
@@ -379,51 +381,52 @@ Explicitly **not** claimed:
 docs/en/api-compatibility.md, docs/en/architecture.md, docs/en/known-limitations.md,
 docs/en/migration-guide.md, docs/handoff.md, docs/porting-status.md,
 docs/zh-CN/{api-compatibility,architecture,handoff,known-limitations,migration-guide,porting-status}.md
-src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationFrame.cs   (app bar chrome wiring)
-src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationPage.cs    (ApplicationBar is IApplicationBar)
-src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBar.cs               (rewritten: original API)
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml                   (frame templates host the bar; ListPicker styles moved out)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MenusPage.xaml(.cs)      (uses the ported bar)
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Community.Phone.Controls.Toolkit.WPF.Sample.csproj  (Images are resources)
-src/Community.Phone.Controls.Toolkit.WPF/Community.Phone.Controls.Toolkit.WPF.csproj  (Content/*.png are resources)
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/ListPickerPage.xaml(.cs)  (original ApplicationBar instead of the command area)
-src/Community.Phone.Controls.Toolkit.WPF/Controls/CustomMessageBox/CustomMessageBox.cs (no Application required)
-src/Community.Phone.Controls.Toolkit.WPF/Controls/Rating.cs                     (UpdateValueFromMouse is internal)
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs            (storyboard cache lock)
-src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBarPresenter.cs      (icon cache lock)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ControlTests.cs               (ListPicker tests replaced/added; Rating, CustomMessageBox, ListPickerPage)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ShellTests.cs                 (ApplicationBar tests rewritten)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs            (condition-based waits)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/EffectsTests.cs               (condition-based waits)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs  (condition-based waits)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/WpfTestHelper.cs              (PumpUntil / PumpFor)
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/StaTest.cs                    (parallelization stays disabled, with a comment)
+src/Community.Phone/Navigation/PhoneApplicationFrame.cs   (app bar chrome wiring)
+src/Community.Phone/Navigation/PhoneApplicationPage.cs    (ApplicationBar is IApplicationBar)
+src/Community.Phone/System/Shell/ApplicationBar.cs               (rewritten: original API)
+src/Community.Phone/Themes/Generic.xaml                   (PhoneApplicationFrame template and bar host)
+src/Community.Phone.Controls.Toolkit/Themes/Generic.xaml  (Metro palette and control templates)
+src/Community.Phone.Controls.Toolkit.Sample/Pages/MenusPage.xaml(.cs)      (uses the ported bar)
+src/Community.Phone.Controls.Toolkit.Sample/Community.Phone.Controls.Toolkit.Sample.csproj  (Images are resources)
+src/Community.Phone.Controls.Toolkit/Community.Phone.Controls.Toolkit.csproj  (Content/*.png are resources)
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker/ListPickerPage.xaml(.cs)  (original ApplicationBar instead of the command area)
+src/Community.Phone.Controls.Toolkit/Controls/CustomMessageBox/CustomMessageBox.cs (no Application required)
+src/Community.Phone.Controls.Toolkit/Controls/Rating.cs                     (UpdateValueFromMouse is internal)
+src/Community.Phone.Controls.Toolkit/Transitions/Transitions.cs            (storyboard cache lock)
+src/Community.Phone/System/Shell/ApplicationBarPresenter.cs      (icon cache lock)
+tests/Community.Phone.Controls.Toolkit.Tests/ControlTests.cs               (ListPicker tests replaced/added; Rating, CustomMessageBox, ListPickerPage)
+tests/Community.Phone.Controls.Toolkit.Tests/ShellTests.cs                 (ApplicationBar tests rewritten)
+tests/Community.Phone.Controls.Toolkit.Tests/NavigationTests.cs            (condition-based waits)
+tests/Community.Phone.Controls.Toolkit.Tests/EffectsTests.cs               (condition-based waits)
+tests/Community.Phone.Controls.Toolkit.Tests/TransitionStoryboardTests.cs  (condition-based waits)
+tests/Community.Phone.Controls.Toolkit.Tests/WpfTestHelper.cs              (PumpUntil / PumpFor)
+tests/Community.Phone.Controls.Toolkit.Tests/StaTest.cs                    (parallelization stays disabled, with a comment)
 ```
 
 **Deleted:**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker.cs        (replaced by Controls/ListPicker/)
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerItem.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerMode.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ExpansionMode.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker.cs        (replaced by Controls/ListPicker/)
+src/Community.Phone.Controls.Toolkit/Controls/ListPickerItem.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPickerMode.cs
+src/Community.Phone.Controls.Toolkit/Controls/ExpansionMode.cs
 ```
 
 **New (untracked, this work):**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF/Common/ItemsControlExtensions.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/          (ListPicker.cs, ListPickerItem.cs, ListPickerMode.cs, ExpansionMode.cs, ListPickerPage.xaml(.cs))
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Controls/ListPicker.xaml
-src/Community.Phone.Controls.Toolkit.WPF/Shell/IApplicationBar*.cs, ApplicationBarIconButton.cs,
+src/Community.Phone.Controls.Toolkit/Common/ItemsControlExtensions.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker/          (ListPicker.cs, ListPickerItem.cs, ListPickerMode.cs, ExpansionMode.cs, ListPickerPage.xaml(.cs))
+src/Community.Phone.Controls.Toolkit/Themes/Controls/ListPicker.xaml
+src/Community.Phone/System/Shell/IApplicationBar*.cs, ApplicationBarIconButton.cs,
     ApplicationBarMenuItem.cs, ApplicationBarMode.cs, ApplicationBarStateChangedEventArgs.cs,
     ApplicationBarItemList.cs, ApplicationBarItemContainer*.cs, ApplicationBarItemContainerFactory.cs,
     BoolEventArgs.cs, ApplicationBarPresenter.cs, ApplicationBarItemView.cs,
     ApplicationBarIconButtonView.cs, ApplicationBarMenuItemView.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Images/appbar.*.rest.png
-src/Community.Phone.Controls.Toolkit.WPF/Content/ApplicationBar.Check.png, ApplicationBar.Cancel.png
+src/Community.Phone.Controls.Toolkit.Sample/Images/appbar.*.rest.png
+src/Community.Phone.Controls.Toolkit/Content/ApplicationBar.Check.png, ApplicationBar.Cancel.png
 ```
 
-**Also in the working tree but not part of this work** (someone else’s in-progress sample page): `Sample/Data/`, `Sample/Samples/ListPickerSample.xaml(.cs)`, the `ListPicker` entry added to `MainPage.xaml(.cs)`, a duplicated `<RootNamespace>` line in the library csproj, and `Community.Phone.Controls.Toolkit.WPF.Sample.csproj.user`. Leave them alone when committing.
+**Also in the working tree but not part of this work** (someone else’s in-progress sample page): `Sample/Data/`, `Sample/Samples/ListPickerSample.xaml(.cs)`, the `ListPicker` entry added to `MainPage.xaml(.cs)`, a duplicated `<RootNamespace>` line in the library csproj, and `Community.Phone.Controls.Toolkit.Sample.csproj.user`. Leave them alone when committing.
 
 - Do **not** run `git reset --hard`, `git checkout -- .`, `git clean -fd`, or force-push: the untracked `Controls/ListPicker/`, `Shell/ApplicationBar*` and sample asset files would be lost.

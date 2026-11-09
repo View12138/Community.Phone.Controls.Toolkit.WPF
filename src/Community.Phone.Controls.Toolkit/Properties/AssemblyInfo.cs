@@ -4,4 +4,4 @@ using System.Windows;
     ResourceDictionaryLocation.None,
     ResourceDictionaryLocation.SourceAssembly)]
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Community.Phone.Controls.Toolkit.WPF.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Community.Phone.Controls.Toolkit.Tests")]

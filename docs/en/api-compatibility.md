@@ -138,14 +138,16 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 
 | XAML form | Result |
 |---|---|
-| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | Required for all ported types. |
+| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"` | Required for toolkit control and transition types. |
+| `xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"` | Required for `PhoneApplicationPage`, `PhoneApplicationFrame`, `NavigationContext` and the orientation types (compatibility layer). |
+| `xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"` | Required for `ApplicationBar`, `SystemTray` and `PhoneApplicationService`. |
 | `<phone:ToggleSwitch ... />`, `<phone:Rating ... />`, `<phone:WrapPanel ... />` | Works with migration of the namespace only (and WPF resource keys if the app uses Metro text styles). |
 | `<phone:HyperlinkButton NavigateUri="..." />` | Works: relative URIs navigate the nearest frame; external URIs open the shell. `TargetName` is retained but named targets are not supported. |
 | `<toolkit:TransitionService.NavigationInTransition>...` with `phone:` prefix | Works. |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | Does not compile in WPF; use `ProjectionService.Projection` (wrapped on demand) or a `ProjectionHost`. |
 | `<Grid phone:ProjectionService.Projection="...">` | Works: the element is wrapped in a `ProjectionHost` on demand (direct child of a panel that is not an items panel) and unwrapped when the projection is cleared. |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | Works. |
-| Original `PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the port’s `shell` namespace; visual chrome is limited. |
+| Original `platform:PhoneApplicationPage` XAML using `shell:SystemTray.IsVisible` | Parses with the compatibility layer's `platform`/`shell` namespaces; visual chrome is limited. |
 | Original `shell:ApplicationBar` XAML | Works: the bar is rendered by the frame chrome (`ApplicationBarPresenter`), including its menu, minimized mode and the page space it reserves. |
 | Original `phone:PhoneApplicationPage` `SupportedOrientations`/`Orientation` | Parses and is retained; desktop window rotation is not forced. |
 | `phone:LongListSelector` XAML | Works; groups must implement `IList`, and the jump list is a WPF `Popup`. |
@@ -170,7 +172,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | Control/API tests | `tests/.../ControlTests.cs` |
 | Pivot tests | `tests/.../PivotTests.cs` |
 | Navigation/transition tests | `tests/.../NavigationTests.cs` |
-| Sample runtime smoke test | `src/Community.Phone.Controls.Toolkit.WPF.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
+| Sample runtime smoke test | `src/Community.Phone.Controls.Toolkit.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
 | Package install test | `build/verify-package.ps1` + `tests/PackageConsumer` (fresh isolated cache, build and run) |
 
 This matrix is updated when implementation status changes; it must not be used to claim a feature is complete unless the corresponding build/test or manual evidence exists.

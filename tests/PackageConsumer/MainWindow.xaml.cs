@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Phone.Controls;
+using Microsoft.Phone.Shell;
 
 namespace PackageConsumer
 {
@@ -13,6 +15,12 @@ namespace PackageConsumer
 
             Loaded += (_, _) =>
             {
+                PhoneFrame.ApplyTemplate();
+                if (!(PhoneFrame.Template.FindName("ApplicationBar", PhoneFrame) is ApplicationBarPresenter))
+                {
+                    throw new InvalidOperationException("Community.Phone did not apply the phone frame template.");
+                }
+
                 string resultPath = Environment.GetEnvironmentVariable("PACKAGE_CONSUMER_RESULT");
                 if (!string.IsNullOrEmpty(resultPath))
                 {

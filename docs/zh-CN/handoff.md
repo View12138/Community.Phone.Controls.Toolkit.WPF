@@ -1,16 +1,16 @@
-# 交接文档 — Community.Phone.Controls.Toolkit.WPF
+# 交接文档 — Community.Phone.Controls.Toolkit
 
 [English](../handoff.md) · 中文
 
 **用途。** 这是新会话的入口：记录工作区里**真实成立**的东西——已验证的构建/测试/运行结果、已确认的设计决策、不能丢失的未提交修改，以及具体的下一步。它不重述原始任务计划（`.github/Guide.md`），也不替代完整 API 矩阵。
 
-**最后更新：** 2026-11-02（本地时间），分支 `main`，工作区**有未提交修改** —— `LongListSelector` 移植（`Controls/LongListSelector/*`、`Themes/Controls/LongListSelector.xaml`、测试、示例页、文档）、`HyperlinkButton` 实现（导航、自动化对等体、导航上下文修复、测试）以及示例修复（路由探测、移植 `Settings.xaml`、可见的错误提示）已提交至 `7eddd7a`；返回导航的页面生命周期修复（`PhoneApplicationPage.KeepAlive`、`NavigationCachePage` 回归测试、文档）尚未提交。
+**最后更新：** 2026-11-09（本地时间），分支 `main`，工作区**有未提交修改** —— `LongListSelector` 移植（`Controls/LongListSelector/*`、`Themes/Controls/LongListSelector.xaml`、测试、示例页、文档）、`HyperlinkButton` 实现（导航、自动化对等体、导航上下文修复、测试）以及示例修复（路由探测、移植 `Settings.xaml`、可见的错误提示）已提交至 `7eddd7a`；返回导航的页面生命周期修复（`PhoneApplicationPage.KeepAlive`、`NavigationCachePage` 回归测试、文档）以及 2026-11-09 的重构（去掉所有工程/文件夹名中的 `.WPF`，把 `Microsoft.Phone.dll` 兼容类型移入新的 `Community.Phone` 工程）尚未提交。
 
 ---
 
 ## 1. 项目目标与验收标准
 
-归档版 Windows Phone Toolkit 的 WPF 兼容移植，交付为单个 NuGet 包（`Community.Phone.Controls.Toolkit.WPF`，根命名空间 `Microsoft.Phone.Controls`，`net10.0-windows`）。
+归档版 Windows Phone Toolkit 的 WPF 兼容移植，交付为单个 NuGet 包（`Community.Phone.Controls.Toolkit`，根命名空间 `Microsoft.Phone.Controls`，`net10.0-windows`）。
 
 当前采用的验收标准：
 
@@ -21,19 +21,21 @@
 
 ---
 
-## 2. 当前已验证状态（2026-10-30）
+## 2. 当前已验证状态（2026-11-09）
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| Release 构建 | `dotnet build PhoneToolkit.WPF.slnx -c Release` | **0 错误 / 4 个唯一警告** —— `WindowHelper.cs` 的 CS0162 ×2 与未改动的 `ViewportControl` 事件 CS0067 ×2。`LongListSelector` 的警告已消失（控件不再有未使用事件）。没有需要重编译内容的构建会报告 0/0。`WINDOWS_PHONE;WP8` 在所有配置下都定义；缺少它时 Release 编译 `LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会失败 |
-| Release 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Release` | **141 通过 / 2 失败 / 0 跳过**，约 43 秒。两个失败与本次改动无关、且在改动前就存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`（都断言某个资源键，实际取到 `null`）；在基线 `b55dc12` 上同样失败。8 个 `LongListSelectorTests`（含“每个已实体化项目都被绘制”的 96 DPI 渲染检查）、3 个 `HyperlinkButtonTests`、相对 URI 查询解析测试以及新增的 `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance` 均通过 |
-| Debug 测试 | `dotnet test PhoneToolkit.WPF.slnx -c Debug` | **140 通过 / 2 失败** —— Debug 下同样是那两个 `ListPicker` 断言失败，且在基线 `b55dc12` 的 Debug 下也一样失败（基线 `--filter ListPicker`：12 通过 / 2 失败） |
-| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg`（含 `.snupkg`），全新消费工程从本地源还原、零警告构建并运行（窗口内含 `Pivot`） |
-| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
+| Release 构建 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | **0 错误 / 2 个唯一警告** —— 只剩 `ViewportControl` 中刻意保留的公共事件警告；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告。`WINDOWS_PHONE;WP8` 在所有配置下都定义 |
+| Release 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` | **142 通过 / 2 失败 / 0 跳过，共 144**，约 40 秒。两个失败与本次改动无关、且在基线上同样存在：`ControlTests.ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ControlTests.ListPicker_HighlightedVisualStateUsesBrushResources`。新增的 `EffectsTests.TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` 通过，且在 dispatcher 访问保护之前会失败 |
+| Debug 测试 | `dotnet test Community.Phone.Controls.Toolkit.slnx -c Debug` | **140 通过 / 2 失败** —— Debug 下同样是那两个 `ListPicker` 断言失败，且在基线 `b55dc12` 的 Debug 下也一样失败（基线 `--filter ListPicker`：12 通过 / 2 失败） |
+| 打包 + 消费 | `powershell -File build\verify-package.ps1` | **通过** —— `artifacts/packages/Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg`（含 `.snupkg`）中同时包含 `Community.Phone.Controls.Toolkit.dll` 与 `Community.Phone.dll`；全新消费工程从本地源还原、零警告构建并运行，并验证兼容层的 frame 模板（`ApplicationBar` 模板部件） |
+| 示例冒烟（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.Sample.exe` 并打开 Pivot 与 HubTile 示例 | **通过** —— 主页面列出新的 `Pivot` 条目，选中后打开 `PivotSample`（自动化树：活动的 `PivotItem` 及其内容、`SelectedIndex 0 of 3`、锁定复选框、返回按钮），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 hub tile）在 Release 与 Debug 下都能渲染文本和图片。进程存活且无新错误文件（`%TEMP%\community-phone-toolkit-sample-error.txt` 仍是 2026-10-23 的 ListPicker 遗留）。`HubTileSample` 最初抛 `Cannot locate resource 'images/dessert.jpg'`：把照片作为 `Resource` 加入后增量构建仍使用旧的 `.g.resources` 文件列表，重建即可，README 已注明 |
 
-| 示例导航（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.WPF.Sample.exe`，调用索引条目与应用栏 **Settings** 按钮 | **通过** —— 索引正常渲染（应用标题、`samples`，25 条已实体化超链接中 8 条可用）；未移植条目置灰且无法调用（Invoke 模式不可用、页面不变）；`longlistselector` 条目打开 `LongListSelectorSample`（组页眉与城市条目）；导航栏返回按钮回到索引；**Settings** 打开已移植的设置页并显示两个文化选择器。进程保持存活且不写错误日志。本会话鼠标点击无法可靠送达，因此导航通过自动化 `Invoke` 模式驱动 |
+| 示例导航（UI 自动化） | 启动 `Community.Phone.Controls.Toolkit.Sample.exe`，调用索引条目与应用栏 **Settings** 按钮 | **通过** —— 索引正常渲染（应用标题、`samples`，25 条已实体化超链接中 8 条可用）；未移植条目置灰且无法调用（Invoke 模式不可用、页面不变）；`longlistselector` 条目打开 `LongListSelectorSample`（组页眉与城市条目）；导航栏返回按钮回到索引；**Settings** 打开已移植的设置页并显示两个文化选择器。进程保持存活且不写错误日志。本会话鼠标点击无法可靠送达，因此导航通过自动化 `Invoke` 模式驱动 |
 
-测试清单（143 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 18、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`LongListSelectorTests` 8、`EffectsTests` 7、`HyperlinkButtonTests` 3、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+测试清单（144 个用例）：`ControlTests` 36、`ProjectionTests` 32、`NavigationTests` 18、`TransitionStoryboardTests` 13 用例、`PivotTests` 12、`ShellTests` 11、`LongListSelectorTests` 8、`EffectsTests` 8、`HyperlinkButtonTests` 3、`ConverterTests` 3，以及 `StaTest`/`WpfTestHelper` 基础设施。
+
+**2026-11-09 —— 工程命名与 `Community.Phone` 兼容层。** 所有工程名和文件夹名都去掉了 `.WPF`：解决方案为 `Community.Phone.Controls.Toolkit.slnx`，工程为 `Community.Phone`、`Community.Phone.Controls.Toolkit`、`Community.Phone.Controls.Toolkit.Sample`、`Community.Phone.Controls.Toolkit.Tests`。`Microsoft.Phone.dll` 表面（`Microsoft.Phone.Controls.PhoneApplicationFrame` / `PhoneApplicationPage` / `NavigationContext` / 方向类型，以及全部 `Microsoft.Phone.Shell` 类型）从 toolkit 工程移入 `src/Community.Phone`，由 toolkit 引用。`PhoneApplicationFrame` 模板移到 `src/Community.Phone/Themes/Generic.xaml`；toolkit 主题只保留 `TransitionFrame` 模板。单一 NuGet 包仍然同时包含两个程序集（没有第二个包）。同时使用两个程序集的 XAML 需要 `phone:`（toolkit）、`platform:`（`Community.Phone` 的页面/框架类型）和 `shell:`（`Community.Phone`）前缀；示例、测试、包消费工程、README 和中英文文档均已更新。`Transitions.StoryboardAssemblyName` 与所有 pack URI 都改为新程序集名。回归测试：`EffectsTests.TiltEffect_StaleStateFromAnotherThreadDoesNotThrow`（xUnit 执行顺序变化暴露了 `TiltEffect` 的跨线程清理问题；`StopTiltReturnStoryboardAndCleanup` 现在先检查 `Dispatcher.CheckAccess()` 再触碰静态 UI 状态）。
 
 **2026-11-02 —— 返回导航回到现有页面实例。** `PhoneApplicationPage` 现在在构造函数中设置 `KeepAlive = true`。WPF 原本会在离开以 URI 导航的 `Page` 时丢弃实例，并在 `GoBack()` 时按 URI 重新构造它；这导致示例从 `PersonDetail` 返回时会重建 `LongListSelectorSample`（连同构造函数里的工作一起重做）。对象导航本来就会保留实例，现在 URI 导航与之保持一致；确实需要新实例的应用可以在页面构造函数中设置 `KeepAlive = false`。由 `NavigationTests.Frame_BackNavigationReturnsTheExistingPageInstance` 验证：改动前失败（返回时构造了第二个 `NavigationCachePage` 实例），改动后通过。其他导航行为不变：向前 URI 导航仍然创建新实例，`CanGoBack` 仍由 WPF journal 维护。
 
@@ -218,7 +220,7 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 
 ### 4.11 本轮：`ListPickerPage` 回到原版 `ApplicationBar`，并修好测试回路
 
-- **`ListPickerPage` 重新使用移植版 `ApplicationBar`。** 临时的 `CommandArea` `StackPanel`（手写的完成/取消条）已删除。`ListPickerPage.xaml` 现在声明 `<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar IsVisible="False">`，其中两个 `ApplicationBarIconButton` 指向 `Content/ApplicationBar.Check.png` 与 `Content/ApplicationBar.Cancel.png`（库资源，pack URI 为 `/Community.Phone.Controls.Toolkit.WPF;component/Content/...`）；代码后台就是 WP8 原版逻辑：`OnLoaded` 遍历 `ApplicationBar.Buttons`，用不区分大小写的 `DONE`/`CANCEL` 匹配，套上本地化的 `appbar_done`/`appbar_cancel` 文本并挂 `Click` 到 `Done_Click`/`Cancel_Click`；`OnNavigatedTo` 设置 `ApplicationBar.IsVisible = SelectionMode != SelectionMode.Single`。因此单选模式下 frame 完全不预留应用栏高度。
+- **`ListPickerPage` 重新使用移植版 `ApplicationBar`。** 临时的 `CommandArea` `StackPanel`（手写的完成/取消条）已删除。`ListPickerPage.xaml` 现在声明 `<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar IsVisible="False">`，其中两个 `ApplicationBarIconButton` 指向 `Content/ApplicationBar.Check.png` 与 `Content/ApplicationBar.Cancel.png`（库资源，pack URI 为 `/Community.Phone.Controls.Toolkit;component/Content/...`）；代码后台就是 WP8 原版逻辑：`OnLoaded` 遍历 `ApplicationBar.Buttons`，用不区分大小写的 `DONE`/`CANCEL` 匹配，套上本地化的 `appbar_done`/`appbar_cancel` 文本并挂 `Click` 到 `Done_Click`/`Cancel_Click`；`OnNavigatedTo` 设置 `ApplicationBar.IsVisible = SelectionMode != SelectionMode.Single`。因此单选模式下 frame 完全不预留应用栏高度。
 - **`CustomMessageBox.Show()` 不再需要 `Application`。** 主题背景色改为资源查找并回退到 `Colors.Black`，容忍 `MainWindow` 为 `null`，`OnWindowContentRendered` 对空 owner 做了保护，所以在普通窗口（或测试宿主）里也能显示。测试还必须在 `ShowDialog()` 的嵌套 dispatcher 循环**内部**关闭对话框，因此改用 `DispatcherTimer` 安排关闭。
 - **测试回路的提速与确定性。** 新增 `WpfTestHelper.PumpUntil(predicate, timeout)` / `PumpFor`，并把占用时间最多的固定等待改为条件轮询：五个 `TransitionFrame_NavigatesWithEveryFamily`（5 × 3000 ms）、2000 ms 的倾斜测试以及八个 `NavigationTests` 等待。测试耗时从约 45 秒降到约 30 秒。`Rating` 测试不再移动物理光标（`Rating.UpdateValueFromMouse` 改为 `internal`；`Rating_PointerPositionUpdatesValue` 直接调用），因此没有任何测试依赖桌面是否允许指针落点。
 - **并行化是有意保持关闭的。** 删掉 `[assembly: CollectionBehavior(DisableTestParallelization = true)]` 后整轮会挂起（>600 s），因为多组测试驱动共享的 WPF 单例（主题字典、`Popup`、storyboard XAML 缓存）；属性保留并附注释。真正有竞态的两个缓存（`Transitions._storyboardXamlCache`、`ApplicationBarIconLoader.Cache`）也顺手加了锁。
@@ -231,7 +233,7 @@ WPF 适配（每条都是 WPF 的要求，不改变行为）：
 
 已提交的代码在"从零构建"时无法编译，编译通过后又有三个 `ListPickerPage` 测试失败。两者都已修复，最终**没有改动任何测试**。
 
-- **干净构建报 `MC3074`**（"`clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF` 中不存在标记 `PhoneApplicationPage`"）。`MarkupCompilePass1` 只能通过 `@(Compile)` 认识本项目的类型；当库的页面用**程序集名**引用库自身时，在干净的 `obj` 上无法解析（增量构建残留的生成文件会掩盖这一点，所以只有在重新构建时才暴露）。修复：`ListPickerPage.xaml` 的 `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **不带** `assembly=`，与库内主题 XAML 的写法一致。已删除库的 `obj`/`bin` 后验证。
+- **干净构建报 `MC3074`**（"`clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit` 中不存在标记 `PhoneApplicationPage`"）。`MarkupCompilePass1` 只能通过 `@(Compile)` 认识本项目的类型；当库的页面用**程序集名**引用库自身时，在干净的 `obj` 上无法解析（增量构建残留的生成文件会掩盖这一点，所以只有在重新构建时才暴露）。修复：`ListPickerPage.xaml` 的 `xmlns:phone`/`xmlns:shell`/`xmlns:toolkit` **不带** `assembly=`，与库内主题 XAML 的写法一致。已删除库的 `obj`/`bin` 后验证。
 - **picker 页面必须自带主题。** `ListPickerPage` 由 `ListPicker` 自己创建，因此页面在解析时尚未挂到任何可视化树上，之后又被放进 frame 的 `ProjectionHost`，那里继承资源不可达（与 `Viewport2DVisual3D` 阻断 `DataContext` 继承是同一个 WPF 限制）。页面侧的处理：`Resources` 用显式 `ResourceDictionary` 包住样式并合并 `Themes/Generic.xaml`（页面内所有样式/模板的 `StaticResource` 不再依赖应用级主题）；根元素与标题上在"尚未挂树"时求值的属性（`FontFamily`、`FontSize`、`Foreground`、`MainGrid.Background`）改用 `DynamicResource`；作为 `ObjectAnimationUsingKeyFrames` 值的 `TransparentBrush` 改为内联 `SolidColorBrush`（关键帧值不能用 `DynamicResource`，而 `StaticResource` 在模板所属字典里解析不到）。`Themes/Controls/ListPicker.xaml` 中同样的写法也一并改为内联画刷——当这份字典作为 WPF 的 *theme* 字典（而不是应用字典）加载时会出现完全相同的问题。
 - **`AnimationForElement` 的目标设错**：打开/关闭动画把 `Storyboard` 的目标设成 `PlaneProjection`，而属性路径是从元素的 `ProjectionService.Projection` 附加属性开始的，于是 `Storyboard.Begin()` 抛 `InvalidOperationException`（"Projection 属性未指向 DependencyObject"）。现在目标改为元素本身，与原版 WP 代码一致（`(UIElement.Projection).(PlaneProjection.RotationX)`）。
 - **`Extensions.IsExternalNavigation` 会解引用空的 `Uri`。** 移植版用页面实例导航，`NavigationEventArgs.Uri` 为 `null`，`ListPickerPage.OnNavigatedFrom` 在返回时抛 `NullReferenceException`。该扩展现在对 `null` 安全。
@@ -314,7 +316,7 @@ items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式�
 
 | 路径 | 作用 |
 |---|---|
-| `src/Community.Phone.Controls.Toolkit.WPF/Projection/ProjectionHost.cs` | 2D↔3D 宿主、相机（`PerspectiveDepth`）、`Prefer3D`、槽位尺寸的投影 surface、场景更新 |
+| `src/Community.Phone.Controls.Toolkit/Projection/ProjectionHost.cs` | 2D↔3D 宿主、相机（`PerspectiveDepth`）、`Prefer3D`、槽位尺寸的投影 surface、场景更新 |
 | `…/Projection/PlaneProjection.cs` | `ToMatrix3D`（符号约定、行向量顺序） |
 | `…/Projection/ProjectionService.cs` | 附加投影（按需包裹、清除时释放）、`EnsureProjectionHost` / `FindDirectHost`、宿主包裹/解包 |
 | `…/Projection/ProjectionMath.cs` | 旋转/平移辅助 |
@@ -329,15 +331,15 @@ items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式�
 | `…/Controls/HubTile.cs` | 状态机；驱动标题位移、翻转（`Prefer3D`）与 3 秒脉冲 |
 | `…/Controls/Rating.cs` | 以“星”为单位的命中测试（`AllowHalfItemIncrement` 除以 2）、裁剪遮罩 |
 | `…/Controls/PhoneTextBox.cs` | 占位符可见性（焦点 + 输入法合成）、内部编辑器、长度提示 |
-| `…/Shell/ApplicationBar.cs`（含 `IApplicationBar*`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 原版 `Microsoft.Phone.Shell` API 与状态 |
-| `…/Shell/ApplicationBarItemList.cs`、`ApplicationBarItemContainer*.cs`、`BoolEventArgs.cs` | item 列表上限/异常、逐项校验与点击派发 |
-| `…/Shell/ApplicationBarPresenter.cs`、`ApplicationBarItemView.cs`、`ApplicationBarIconButtonView.cs`、`ApplicationBarMenuItemView.cs` | WPF chrome：应用栏、图标槽、菜单按钮、菜单浮层、图标加载 || `…/Controls/ListPicker/ListPicker.cs` | 原版 WP8 控件：普通/展开模式 canvas 高度动画、完整模式页面导航、frame 查找、WPF 鼠标/返回键/选择适配 |
+| `…/System/Shell/ApplicationBar.cs`（含 `IApplicationBar*`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 原版 `Microsoft.Phone.Shell` API 与状态 |
+| `…/System/Shell/ApplicationBarItemList.cs`、`ApplicationBarItemContainer*.cs`、`BoolEventArgs.cs` | item 列表上限/异常、逐项校验与点击派发 |
+| `…/System/Shell/ApplicationBarPresenter.cs`、`ApplicationBarItemView.cs`、`ApplicationBarIconButtonView.cs`、`ApplicationBarMenuItemView.cs` | WPF chrome：应用栏、图标槽、菜单按钮、菜单浮层、图标加载 || `…/Controls/ListPicker/ListPicker.cs` | 原版 WP8 控件：普通/展开模式 canvas 高度动画、完整模式页面导航、frame 查找、WPF 鼠标/返回键/选择适配 |
 | `…/Controls/ListPicker/ListPickerPage.xaml(.cs)` | 原版完整模式页面：项目/标题入场动画经 `ProjectionService`，使用原版 `ApplicationBar`（check/cancel 图标按钮，图标来自 `Content/ApplicationBar.*.png`） |
 | `…/Themes/Controls/ListPicker.xaml` | 原版 `ListPicker`/`ListPickerItem` 样式（由 `Generic.xaml` 合并，内含 `Dark.xaml`，并设置 `PickerPageUri`） |
 | `src/…Sample/SampleNavigator.cs` | 为每个示例同时设置出站/入站转场，保证两侧使用同一转场族（修复“退场不是羽化”一类问题） |
 | `src/…Sample/Pages/MainPage.xaml` | 示例索引，对应原版 `PhoneToolkitSample8` 的主页 |
 | `src/…Sample/Pages/{Controls,Projection,Transitions,TransitionTarget,Feather,Menus}Page.xaml` | 每个示例一个页面 |
-| `tests/Community.Phone.Controls.Toolkit.WPF.Tests/` | xUnit 套件（WPF 用 `StaTest`）；internal 对测试可见；等待可观察状态用 `WpfTestHelper.PumpUntil`/`PumpFor`（不用固定 sleep） |
+| `tests/Community.Phone.Controls.Toolkit.Tests/` | xUnit 套件（WPF 用 `StaTest`）；internal 对测试可见；等待可观察状态用 `WpfTestHelper.PumpUntil`/`PumpFor`（不用固定 sleep） |
 | `build/verify-package.ps1` | 打包 Release + 全新消费冒烟 |
 | `docs/en/` 与 `docs/zh-CN/` —— architecture、api-compatibility、known-limitations、migration-guide、porting-inventory | 双语正式文档 |
 | `docs/porting-status.md` | 当前实现/验证状态（权威） |
@@ -377,51 +379,52 @@ items 很多的 `ListPicker`（示例里 105 个系统区域）在完整模式�
 ```
 docs/en/{api-compatibility,architecture,known-limitations,migration-guide,handoff,porting-status}.md
 docs/zh-CN/{api-compatibility,architecture,handoff,known-limitations,migration-guide,porting-status}.md
-src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationFrame.cs   （应用栏 chrome 接线）
-src/Community.Phone.Controls.Toolkit.WPF/Navigation/PhoneApplicationPage.cs    （ApplicationBar 改为 IApplicationBar）
-src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBar.cs               （重写为原版 API）
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml                   （frame 模板承载应用栏；ListPicker 样式移出）
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Pages/MenusPage.xaml(.cs)      （使用移植版应用栏）
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Community.Phone.Controls.Toolkit.WPF.Sample.csproj  （Images 作为资源）
-src/Community.Phone.Controls.Toolkit.WPF/Community.Phone.Controls.Toolkit.WPF.csproj  （Content/*.png 作为资源）
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/ListPickerPage.xaml(.cs)  （用原版 ApplicationBar 取代命令区）
-src/Community.Phone.Controls.Toolkit.WPF/Controls/CustomMessageBox/CustomMessageBox.cs （不再依赖 Application）
-src/Community.Phone.Controls.Toolkit.WPF/Controls/Rating.cs                     （UpdateValueFromMouse 改为 internal）
-src/Community.Phone.Controls.Toolkit.WPF/Transitions/Transitions.cs            （storyboard 缓存加锁）
-src/Community.Phone.Controls.Toolkit.WPF/Shell/ApplicationBarPresenter.cs      （图标缓存加锁）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ControlTests.cs               （替换/新增 ListPicker 测试；Rating、CustomMessageBox、ListPickerPage）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/ShellTests.cs                 （重写 ApplicationBar 测试）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/NavigationTests.cs            （改为条件等待）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/EffectsTests.cs               （改为条件等待）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/TransitionStoryboardTests.cs  （改为条件等待）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/WpfTestHelper.cs              （PumpUntil / PumpFor）
-tests/Community.Phone.Controls.Toolkit.WPF.Tests/StaTest.cs                    （并行化保持关闭并附注释）
+src/Community.Phone/Navigation/PhoneApplicationFrame.cs   （应用栏 chrome 接线）
+src/Community.Phone/Navigation/PhoneApplicationPage.cs    （ApplicationBar 改为 IApplicationBar）
+src/Community.Phone/System/Shell/ApplicationBar.cs               （重写为原版 API）
+src/Community.Phone/Themes/Generic.xaml                   （PhoneApplicationFrame 模板与应用栏宿主）
+src/Community.Phone.Controls.Toolkit/Themes/Generic.xaml  （Metro 调色板和控件模板）
+src/Community.Phone.Controls.Toolkit.Sample/Pages/MenusPage.xaml(.cs)      （使用移植版应用栏）
+src/Community.Phone.Controls.Toolkit.Sample/Community.Phone.Controls.Toolkit.Sample.csproj  （Images 作为资源）
+src/Community.Phone.Controls.Toolkit/Community.Phone.Controls.Toolkit.csproj  （Content/*.png 作为资源）
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker/ListPickerPage.xaml(.cs)  （用原版 ApplicationBar 取代命令区）
+src/Community.Phone.Controls.Toolkit/Controls/CustomMessageBox/CustomMessageBox.cs （不再依赖 Application）
+src/Community.Phone.Controls.Toolkit/Controls/Rating.cs                     （UpdateValueFromMouse 改为 internal）
+src/Community.Phone.Controls.Toolkit/Transitions/Transitions.cs            （storyboard 缓存加锁）
+src/Community.Phone/System/Shell/ApplicationBarPresenter.cs      （图标缓存加锁）
+tests/Community.Phone.Controls.Toolkit.Tests/ControlTests.cs               （替换/新增 ListPicker 测试；Rating、CustomMessageBox、ListPickerPage）
+tests/Community.Phone.Controls.Toolkit.Tests/ShellTests.cs                 （重写 ApplicationBar 测试）
+tests/Community.Phone.Controls.Toolkit.Tests/NavigationTests.cs            （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.Tests/EffectsTests.cs               （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.Tests/TransitionStoryboardTests.cs  （改为条件等待）
+tests/Community.Phone.Controls.Toolkit.Tests/WpfTestHelper.cs              （PumpUntil / PumpFor）
+tests/Community.Phone.Controls.Toolkit.Tests/StaTest.cs                    （并行化保持关闭并附注释）
 ```
 
 **已删除：**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker.cs        （由 Controls/ListPicker/ 取代）
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerItem.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPickerMode.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ExpansionMode.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker.cs        （由 Controls/ListPicker/ 取代）
+src/Community.Phone.Controls.Toolkit/Controls/ListPickerItem.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPickerMode.cs
+src/Community.Phone.Controls.Toolkit/Controls/ExpansionMode.cs
 ```
 
 **新增（未跟踪，本次工作）：**
 
 ```
-src/Community.Phone.Controls.Toolkit.WPF/Common/ItemsControlExtensions.cs
-src/Community.Phone.Controls.Toolkit.WPF/Controls/ListPicker/          （ListPicker.cs、ListPickerItem.cs、ListPickerMode.cs、ExpansionMode.cs、ListPickerPage.xaml(.cs)）
-src/Community.Phone.Controls.Toolkit.WPF/Themes/Controls/ListPicker.xaml
-src/Community.Phone.Controls.Toolkit.WPF/Shell/IApplicationBar*.cs、ApplicationBarIconButton.cs、
+src/Community.Phone.Controls.Toolkit/Common/ItemsControlExtensions.cs
+src/Community.Phone.Controls.Toolkit/Controls/ListPicker/          （ListPicker.cs、ListPickerItem.cs、ListPickerMode.cs、ExpansionMode.cs、ListPickerPage.xaml(.cs)）
+src/Community.Phone.Controls.Toolkit/Themes/Controls/ListPicker.xaml
+src/Community.Phone/System/Shell/IApplicationBar*.cs、ApplicationBarIconButton.cs、
     ApplicationBarMenuItem.cs、ApplicationBarMode.cs、ApplicationBarStateChangedEventArgs.cs、
     ApplicationBarItemList.cs、ApplicationBarItemContainer*.cs、ApplicationBarItemContainerFactory.cs、
     BoolEventArgs.cs、ApplicationBarPresenter.cs、ApplicationBarItemView.cs、
     ApplicationBarIconButtonView.cs、ApplicationBarMenuItemView.cs
-src/Community.Phone.Controls.Toolkit.WPF.Sample/Images/appbar.*.rest.png
-src/Community.Phone.Controls.Toolkit.WPF/Content/ApplicationBar.Check.png、ApplicationBar.Cancel.png
+src/Community.Phone.Controls.Toolkit.Sample/Images/appbar.*.rest.png
+src/Community.Phone.Controls.Toolkit/Content/ApplicationBar.Check.png、ApplicationBar.Cancel.png
 ```
 
-**工作区里还有不属于本次工作的内容**（他人在做的示例页）：`Sample/Data/`、`Sample/Samples/ListPickerSample.xaml(.cs)`、`MainPage.xaml(.cs)` 中新增的 `ListPicker` 入口、库 csproj 中重复的 `<RootNamespace>` 行，以及 `Community.Phone.Controls.Toolkit.WPF.Sample.csproj.user`。提交时不要动它们。
+**工作区里还有不属于本次工作的内容**（他人在做的示例页）：`Sample/Data/`、`Sample/Samples/ListPickerSample.xaml(.cs)`、`MainPage.xaml(.cs)` 中新增的 `ListPicker` 入口、库 csproj 中重复的 `<RootNamespace>` 行，以及 `Community.Phone.Controls.Toolkit.Sample.csproj.user`。提交时不要动它们。
 
 - **不要**执行 `git reset --hard`、`git checkout -- .`、`git clean -fd` 或强推：未跟踪的 `Controls/ListPicker/`、`Shell/ApplicationBar*` 与示例资源文件会丢失。

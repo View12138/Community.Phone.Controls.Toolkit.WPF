@@ -9,7 +9,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class ShellTests
     {
@@ -71,7 +71,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
             {
                 ApplicationBar bar = new ApplicationBar();
                 bar.Buttons.Add(new ApplicationBarIconButton(
-                    new Uri("/Community.Phone.Controls.Toolkit.WPF;component/Content/ApplicationBar.Check.png", UriKind.Relative))
+                    new Uri("/Community.Phone.Controls.Toolkit;component/Content/ApplicationBar.Check.png", UriKind.Relative))
                 {
                     Text = "done",
                 });

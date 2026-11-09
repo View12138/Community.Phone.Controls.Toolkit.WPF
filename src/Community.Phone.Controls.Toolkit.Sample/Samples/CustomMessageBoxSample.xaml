@@ -1,12 +1,13 @@
-﻿<phone:PhoneApplicationPage
+﻿<platform:PhoneApplicationPage
     x:Class="PhoneToolkitSample.Samples.CustomMessageBoxSample"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     d:DesignHeight="768"
     d:DesignWidth="480"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
@@ -37,7 +38,7 @@
     </toolkit:TransitionService.NavigationOutTransition>
 
     <!--Resources-->
-    <phone:PhoneApplicationPage.Resources>
+    <platform:PhoneApplicationPage.Resources>
         <DataTemplate x:Key="PivotContentTemplate">
             <controls:Pivot Margin="-12,0,0,0" Title="WHAT CAN I SAY?" Height="672">
                 <controls:PivotItem Header="call" FontFamily="{StaticResource PhoneFontFamilySemiLight}" FontSize="32">
@@ -125,7 +126,7 @@
                 </controls:PivotItem>
             </controls:Pivot>
         </DataTemplate>
-    </phone:PhoneApplicationPage.Resources>
+    </platform:PhoneApplicationPage.Resources>
 
     <!--  LayoutRoot  -->
     <Grid x:Name="LayoutRoot" Background="Transparent">
@@ -155,4 +156,4 @@
             </ScrollViewer>
         </Grid>
     </Grid>
-</phone:PhoneApplicationPage>
+</platform:PhoneApplicationPage>

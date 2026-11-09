@@ -4,7 +4,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Controls.LocalizedResources;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class ConverterTests
     {

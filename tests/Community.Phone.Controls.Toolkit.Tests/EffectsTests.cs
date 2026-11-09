@@ -7,7 +7,7 @@ using System.Windows.Media.Animation;
 using Microsoft.Phone.Controls;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class EffectsTests
     {
@@ -334,6 +334,66 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                 Assert.Throws<InvalidOperationException>(() =>
                     TurnstileFeatherEffect.SetFeatheringIndex(page, 0));
             });
+        }
+
+        [Fact]
+        public void TiltEffect_StaleStateFromAnotherThreadDoesNotThrow()
+        {
+            // A tilt that is still active when its window closes leaves static
+            // state behind. Starting a tilt on another UI thread must discard
+            // that state instead of touching dispatcher-owned objects.
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Button button = new Button { Content = "First", Width = 200, Height = 60 };
+                panel.Children.Add(button);
+                TiltEffect.SetIsTiltEnabled(panel, true);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    StartTilt(panel, button, new Point(10, 10), panel);
+                    Assert.NotNull(ProjectionService.GetProjection(button));
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+
+            StaTest.Run(() =>
+            {
+                StackPanel panel = new StackPanel { Width = 320, Height = 220 };
+                Button button = new Button { Content = "Second", Width = 200, Height = 60 };
+                panel.Children.Add(button);
+                TiltEffect.SetIsTiltEnabled(panel, true);
+
+                Window window = new Window { Width = 400, Height = 300, Content = panel };
+                try
+                {
+                    window.Show();
+                    WpfTestHelper.PumpDispatcher();
+                    StartTilt(panel, button, new Point(10, 10), panel);
+                    Assert.NotNull(ProjectionService.GetProjection(button));
+                }
+                finally
+                {
+                    TiltEffect.SetIsTiltEnabled(panel, false);
+                    window.Close();
+                }
+            });
+        }
+
+        private static void StartTilt(FrameworkElement source, FrameworkElement originalSource, Point origin, IInputElement container)
+        {
+            typeof(TiltEffect).GetMethod(
+                "TryStartTiltEffect",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+                null,
+                new[] { typeof(FrameworkElement), typeof(FrameworkElement), typeof(Point), typeof(IInputElement) },
+                null).Invoke(null, new object[] { source, originalSource, origin, container });
         }
 
         private static void PumpFor(int milliseconds)

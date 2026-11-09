@@ -10,7 +10,7 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Controls.Primitives;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     /// <summary>
     /// Covers the WPF adaptation of the phone <see cref="Pivot"/>: the container

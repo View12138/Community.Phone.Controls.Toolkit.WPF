@@ -1,6 +1,6 @@
 using Microsoft.Phone.Controls;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public partial class NavigationCachePage : PhoneApplicationPage
     {

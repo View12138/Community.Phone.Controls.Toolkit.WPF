@@ -12,7 +12,7 @@
 
 ## 运行时依赖
 
-`Community.Phone.Controls.Toolkit.WPF` NuGet 包**没有 NuGet 包依赖**。它只使用随 .NET 提供的 WPF/.NET 框架程序集（`PresentationCore`、`PresentationFramework`、`WindowsBase` 及基础类库）。它不依赖：
+`Community.Phone.Controls.Toolkit` NuGet 包**没有 NuGet 包依赖**。它只使用随 .NET 提供的 WPF/.NET 框架程序集（`PresentationCore`、`PresentationFramework`、`WindowsBase` 及基础类库）。它不依赖：
 
 - Windows Phone SDK
 - Silverlight

@@ -19,7 +19,7 @@ using PhoneDatePicker = Microsoft.Phone.Controls.DatePicker;
 using PhoneTimePicker = Microsoft.Phone.Controls.TimePicker;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class ControlTests
     {

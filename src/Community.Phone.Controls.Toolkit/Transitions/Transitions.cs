@@ -26,7 +26,7 @@ namespace Microsoft.Phone.Controls
         /// <summary>
         /// The assembly that contains the XAML storyboard resources.
         /// </summary>
-        private const string StoryboardAssemblyName = "Community.Phone.Controls.Toolkit.WPF";
+        private const string StoryboardAssemblyName = "Community.Phone.Controls.Toolkit";
 
         /// <summary>
         /// Horizontal center of rotation of the page-level turnstile.

@@ -88,9 +88,9 @@ This port targets a truthful subset of the archived Windows Phone Toolkit. The l
 ## 8. Packaging and platform
 
 1. The package targets `net10.0-windows` with `UseWPF`. It cannot be consumed by a WP/Silverlight project.
-2. The package includes the compiled assembly, theme resources, localization resources, license, README, third-party notices, XML documentation, and the documentation set. It does not include the sample app or tests.
+2. The package includes both compiled assemblies, theme resources, localization resources, license, README, third-party notices, XML documentation, and the documentation set. It does not include the sample app or tests.
 3. There is no WP SDK, `Microsoft.Phone`, Silverlight, or `System.Windows.Interactivity` dependency.
-4. The package ID is `Community.Phone.Controls.Toolkit.WPF`; the assembly and root namespace are `Community.Phone.Controls.Toolkit.WPF` and `Microsoft.Phone.Controls`, respectively.
+4. The package ID is `Community.Phone.Controls.Toolkit`; it contains the toolkit assembly of the same name and the `Community.Phone` compatibility layer. The root namespaces stay `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell`.
 5. The package is preview-quality. It is not a drop-in binary replacement for the original `Microsoft.Phone.Controls.Toolkit.dll`.
 
 ## 9. Test and verification gaps
@@ -113,7 +113,7 @@ Use these steps to check the areas that are not fully automated.
 ### Sample application
 
 ```powershell
-dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
+dotnet run --project src\Community.Phone.Controls.Toolkit.Sample
 ```
 
 1. Confirm the window opens and shows the Home page.
@@ -137,9 +137,9 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ### Package consumption
 
 ```powershell
-dotnet pack src\Community.Phone.Controls.Toolkit.WPF -c Release -o artifacts\packages
+dotnet pack src\Community.Phone.Controls.Toolkit -c Release -o artifacts\packages
 dotnet new wpf -n Consumer -o artifacts\consumer
-dotnet add artifacts\consumer package Community.Phone.Controls.Toolkit.WPF --source artifacts\packages
+dotnet add artifacts\consumer package Community.Phone.Controls.Toolkit --source artifacts\packages
 dotnet build artifacts\consumer
 ```
 

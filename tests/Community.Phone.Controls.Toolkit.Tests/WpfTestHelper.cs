@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     internal static class WpfTestHelper
     {
@@ -21,7 +21,7 @@ namespace Community.Phone.Controls.Toolkit.WPF.Tests
                     _theme = new ResourceDictionary
                     {
                         Source = new Uri(
-                            "pack://application:,,,/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml",
+                            "pack://application:,,,/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml",
                             UriKind.Absolute)
                     };
                 }

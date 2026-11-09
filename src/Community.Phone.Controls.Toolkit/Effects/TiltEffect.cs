@@ -869,12 +869,15 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         private static void StopTiltReturnStoryboardAndCleanup()
         {
-            if (tiltReturnStoryboard != null)
+            // Static tilt state can outlive the UI thread that created it (for
+            // example when a window closes mid-tilt). Never touch a
+            // dispatcher-owned object from another thread.
+            if (tiltReturnStoryboard != null && tiltReturnStoryboard.Dispatcher.CheckAccess())
             {
                 tiltReturnStoryboard.Stop();
             }
 
-            if (currentTiltElement != null)
+            if (currentTiltElement != null && currentTiltElement.Dispatcher.CheckAccess())
             {
                 // Clearing the projection also removes the host that was
                 // created on demand for this tilt.

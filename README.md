@@ -1,4 +1,4 @@
-# Community.Phone.Controls.Toolkit.WPF
+# Community.Phone.Controls.Toolkit
 
 A WPF compatibility port of the archived **Windows Phone Toolkit**, delivered as one NuGet package. The port preserves the original `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` namespaces and API shapes where WPF allows it, and implements real 3D projection, navigation transitions, and Metro-styled controls with WPF primitives.
 
@@ -26,10 +26,10 @@ A WPF compatibility port of the archived **Windows Phone Toolkit**, delivered as
 ## Install
 
 ```powershell
-dotnet add package Community.Phone.Controls.Toolkit.WPF
+dotnet add package Community.Phone.Controls.Toolkit
 ```
 
-The package ID is `Community.Phone.Controls.Toolkit.WPF`. The assembly name is the same; the root namespace is `Microsoft.Phone.Controls`.
+The package ID is `Community.Phone.Controls.Toolkit`. It contains two assemblies: the toolkit assembly `Community.Phone.Controls.Toolkit` and the Windows Phone compatibility layer `Community.Phone`, which re-implements the `Microsoft.Phone.dll` types that WPF does not provide (`PhoneApplicationFrame`, `PhoneApplicationPage`, `NavigationContext`, and `Microsoft.Phone.Shell`). Both use the original `Microsoft.Phone.*` namespaces, and there is no separate compatibility package to install.
 
 ## Quick start
 
@@ -44,7 +44,7 @@ Merge the toolkit theme so named Metro resources are available to your applicati
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary
-                    Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                    Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
@@ -57,7 +57,9 @@ Host pages in a `TransitionFrame` and derive pages from `PhoneApplicationPage`:
 <Window x:Class="MyApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF">
+        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+        xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+        xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone">
     <phone:TransitionFrame x:Name="Frame" />
 </Window>
 ```
@@ -69,6 +71,8 @@ public MainWindow()
     Frame.Navigate(new HomePage());
 }
 ```
+
+`TransitionFrame` is a toolkit type (`phone:`). The page and frame base types (`PhoneApplicationPage`, `PhoneApplicationFrame`) live in the `Community.Phone` compatibility layer, so derive pages from `platform:PhoneApplicationPage` and use `shell:` for the application bar and system tray. Toolkit controls such as `Pivot`, `Rating`, and `ToggleSwitch` stay under `phone:`.
 
 ## Projection
 
@@ -138,7 +142,7 @@ Use `TransitionFrame`, not the plain `PhoneApplicationFrame`, for automatic entr
 dotnet restore
 dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
 dotnet test Community.Phone.Controls.Toolkit.slnx -c Release
-dotnet pack src\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj -c Release
+dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release
 ```
 
 The package is written to `artifacts/packages`.
@@ -153,16 +157,16 @@ This packs the library, restores a fresh WPF consumer from an isolated local fee
 
 ## Verification status
 
-- Release build: 0 errors (re-verified 2026-10-30). 4 unique warnings remain (`WindowHelper` ×2 and the unchanged `ViewportControl` event warnings); the `LongListSelector` warnings are gone. The `WINDOWS_PHONE;WP8` constants are defined in every configuration, because the ported sources use them to select the compatible namespaces and the localized resources.
-- Automated tests: 139/141 pass in Release (about 38 s; projection, controls, converters, effects, navigation/transitions, pivot, long list, hyperlinks, and shell APIs). The two failing assertions (`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`, `ListPicker_HighlightedVisualStateUsesBrushResources`) fail identically at baseline commit `b55dc12`. Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating pointer input, PhoneTextBox focus/editing, the `ApplicationBar` chrome (reserved height, slots, menu, `StateChanged`), the `ListPicker` full-mode page's app bar, `LongListSelector` grouping/headers/grid/scroll/jump-list behaviour, `HyperlinkButton` navigation/automation, and the `Pivot` slide/header/lock behaviour including a 96 DPI render check.
-- Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls and theme resources.
+- Release build: 0 errors. 2 unique warnings remain (the intentional public `ViewportControl` events); the `WindowHelper` unreachable-code warnings were removed when the compatibility layer was split out. The `WINDOWS_PHONE;WP8` constants are defined in every configuration, because the ported sources use them to select the compatible namespaces and the localized resources.
+- Automated tests: 142/144 pass in Release (about 40 s; projection, controls, converters, effects, navigation/transitions, pivot, long list, hyperlinks, and shell APIs). The two failing assertions (`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`, `ListPicker_HighlightedVisualStateUsesBrushResources`) fail identically at the baseline commit. Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating pointer input, PhoneTextBox focus/editing, the `ApplicationBar` chrome (reserved height, slots, menu, `StateChanged`), the `ListPicker` full-mode page's app bar, `LongListSelector` grouping/headers/grid/scroll/jump-list behaviour, `HyperlinkButton` navigation/automation, and the `Pivot` slide/header/lock behaviour including a 96 DPI render check.
+- Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls, the `Community.Phone` compatibility layer, and theme resources.
 - Sample: launched successfully; UI automation opened the samples (Controls, Projection, Transitions → target page → back, Feathering, Menus, Pivot) and returned to the sample index each time, with no startup error.
 - Per-module status and evidence: [docs/porting-status.md](docs/porting-status.md). Latest handoff: [docs/handoff.md](docs/handoff.md).
 
 ## Run the sample
 
 ```powershell
-dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
+dotnet run --project src\Community.Phone.Controls.Toolkit.Sample
 ```
 
 The sample mirrors the original `PhoneToolkitSample8` structure: a `MainPage` lists the samples and each one is its own page — `ControlsPage` (WPF base controls with WP styles plus all implemented toolkit controls), `ProjectionPage`, `TransitionsPage` (pick any transition family, including feathering, and navigate with it), `FeatherPage`, `MenusPage` (ContextMenu, CustomMessageBox, ApplicationBar/SystemTray state), `PivotSample` (drag, flick, click a header, arrow keys, `IsLocked`), `HubTileSample` (a three-item `Pivot` with the original hub tiles and photos), `LongListSelectorSample` (grouped list, jump list and grid mode) and the ListPicker/message-box samples. Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`. When you add images to the sample project, rebuild it (`dotnet build -t:Rebuild`): an incremental build can keep the previous `.g.resources` file list and the pack URIs then fail with "Cannot locate resource".

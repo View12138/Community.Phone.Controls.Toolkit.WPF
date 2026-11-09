@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 using Microsoft.Phone.Controls;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class LongListSelectorTests
     {

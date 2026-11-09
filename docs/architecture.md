@@ -13,6 +13,6 @@ This page is a short entry point for sessions that open `docs/architecture.md` d
 5. **Element effects** — `ProjectionService.EnsureProjectionHost` only reuses a host that directly contains the element; an ancestor host would project the whole page.
 6. **Navigation** — `PhoneApplicationFrame`/`PhoneApplicationPage` wrap WPF navigation; `TransitionFrame` flips two `ProjectionHost` presenters and runs exit before entry.
 7. **Transitions** — the 19 original storyboards are rebuilt in code (`Transitions.cs`) with their original values.
-8. **Packaging** — one dependency-free package, `net10.0-windows`, root namespace `Microsoft.Phone.Controls`.
+8. **Packaging** — one dependency-free package, `net10.0-windows`, root namespaces `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell`. It contains two assemblies: the toolkit and the `Community.Phone` compatibility layer that re-implements the `Microsoft.Phone.dll` platform types.
 
 Status of each area: [porting-status.md](porting-status.md). Latest session state: [handoff.md](handoff.md).

@@ -89,9 +89,9 @@
 ## 8. 打包与平台
 
 1. 包目标为 `net10.0-windows` + `UseWPF`，不能被 WP/Silverlight 工程消费。
-2. 包包含编译程序集、主题资源、本地化资源、许可证、README、第三方声明、XML 文档和中英文文档；不包含示例应用或测试。
+2. 包包含两个编译程序集、主题资源、本地化资源、许可证、README、第三方声明、XML 文档和中英文文档；不包含示例应用或测试。
 3. 不依赖 WP SDK、`Microsoft.Phone`、Silverlight 或 `System.Windows.Interactivity`。
-4. 包 ID 为 `Community.Phone.Controls.Toolkit.WPF`；程序集名相同，根命名空间为 `Microsoft.Phone.Controls`。
+4. 包 ID 为 `Community.Phone.Controls.Toolkit`；包内包含同名 toolkit 程序集和 `Community.Phone` 兼容层。根命名空间仍为 `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell`。
 5. 当前为 preview 质量，不是原始 `Microsoft.Phone.Controls.Toolkit.dll` 的二进制直接替换。
 
 ## 9. 测试与验证缺口
@@ -112,7 +112,7 @@
 ### 示例应用
 
 ```powershell
-dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
+dotnet run --project src\Community.Phone.Controls.Toolkit.Sample
 ```
 
 1. 确认窗口打开并显示 Home 页。
@@ -136,9 +136,9 @@ dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
 ### 包消费
 
 ```powershell
-dotnet pack src\Community.Phone.Controls.Toolkit.WPF -c Release -o artifacts\packages
+dotnet pack src\Community.Phone.Controls.Toolkit -c Release -o artifacts\packages
 dotnet new wpf -n Consumer -o artifacts\consumer
-dotnet add artifacts\consumer package Community.Phone.Controls.Toolkit.WPF --source artifacts\packages
+dotnet add artifacts\consumer package Community.Phone.Controls.Toolkit --source artifacts\packages
 dotnet build artifacts\consumer
 ```
 

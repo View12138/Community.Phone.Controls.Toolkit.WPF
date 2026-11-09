@@ -5,13 +5,14 @@
 // All other rights reserved.
 -->
 
-<phone:PhoneApplicationPage
+<platform:PhoneApplicationPage
     x:Class="PhoneToolkitSample.Samples.PivotSample"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
@@ -85,4 +86,4 @@
             <Button Content="Go back" Click="OnGoBack" />
         </StackPanel>
     </Grid>
-</phone:PhoneApplicationPage>
+</platform:PhoneApplicationPage>

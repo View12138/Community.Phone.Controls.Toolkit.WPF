@@ -1,4 +1,4 @@
-# Porting status — Community.Phone.Controls.Toolkit.WPF
+# Porting status — Community.Phone.Controls.Toolkit
 
 English · [中文](zh-CN/porting-status.md)
 
@@ -12,7 +12,7 @@ English · [中文](zh-CN/porting-status.md)
 | 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
 | ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
 
-**Evidence snapshot (2026-10-30):** Release build 0 errors, 4 unique warnings (`WindowHelper` ×2 and the unchanged `ViewportControl` event warnings; the `LongListSelector` warnings are gone) · **139/141 tests pass** in Release (about 38 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer). The two failures are the pre-existing ListPicker style assertions `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ListPicker_HighlightedVisualStateUsesBrushResources`; they fail identically at baseline `b55dc12` · the 7 new `LongListSelectorTests` and 3 `HyperlinkButtonTests` pass, plus `NavigationContext_ParsesQueryFromARelativeUri` · sample smoke run: the app starts, the `LongListSelector`-based index navigates through `HyperlinkButton` to the `LongListSelectorSample` (group headers/items render), `Toggle grid` switches to grid mode, and no entry is written to the sample error log. `WINDOWS_PHONE;WP8` is defined in every configuration, which is what makes the Release compilation of the ported sources work at all.
+**Evidence snapshot (2026-11-09):** Release build 0 errors, 2 unique warnings (the intentional public `ViewportControl` events; the `WindowHelper` unreachable-code warnings were removed when the compatibility layer was split out) · **142/144 tests pass** in Release (about 40 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer). The two failures are the pre-existing ListPicker style assertions `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ListPicker_HighlightedVisualStateUsesBrushResources`; they fail identically at the baseline commit · the project is split into `Community.Phone` (the `Microsoft.Phone.dll` compatibility layer: navigation/page/shell types) and `Community.Phone.Controls.Toolkit` (toolkit controls/transitions), both shipped in the single `Community.Phone.Controls.Toolkit` package · `TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` is the new regression test for cross-thread cleanup · sample smoke run: the app starts, navigation and the `LongListSelector` sample render, and no startup error is raised. `WINDOWS_PHONE;WP8` is defined in every configuration, which is what makes the Release compilation of the ported sources work at all.
 
 ---
 
@@ -102,7 +102,8 @@ English · [中文](zh-CN/porting-status.md)
 |---|---|---|
 | Metro theme + WP base-control styles | ✅ Verified (presence) / 🟡 (fidelity) | `Theme_ContainsMetroResources`; `Generic.xaml` styles `Button`, `TextBox`, `ComboBox`, `CheckBox`, `RadioButton`, `ListBox`, `ScrollBar`, `ContextMenu`, `ProgressBar`, `ToolTip` and the toolkit controls. Pixel parity with WP was never compared side by side |
 | Localization resources | ✅ Verified | 50 cultures + neutral, satellites in the package; `OffOnConverterUsesLocalizedStrings` |
-| NuGet package | ✅ Verified | `build\verify-package.ps1`: `Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`, fresh consumer builds and runs |
+| `Community.Phone` compatibility layer | ✅ Verified | `NavigationTests`, `ShellTests`, `ControlTests` and the package-consumer smoke test exercise `PhoneApplicationFrame`/`PhoneApplicationPage`/`ApplicationBar` from the separate assembly and its own `Themes/Generic.xaml` |
+| NuGet package | ✅ Verified | `build\verify-package.ps1`: `Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` + `.snupkg`, containing both assemblies; fresh consumer builds and runs |
 | Sample application | ✅ Verified (runs) | Mirrors the original `PhoneToolkitSample8` layout: `MainPage` lists samples and each sample is its own page (`ControlsPage`, `ProjectionPage`, `TransitionsPage`, `TransitionTargetPage`, `FeatherPage`, `MenusPage`, `ListPickerSample`, `CustomMessageBoxSample`, `PivotSample`, `HubTileSample`, `LongListSelectorSample`; the index itself is a `LongListSelector`). UI-automation smoke 2026-10-27: the Pivot sample opens (active `PivotItem`, headers, status text), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original HubTiles and images) renders its text and images. Both configurations were rebuilt first: adding `Resource` images to the sample project needs a rebuild, otherwise the `.g.resources` keeps the previous file list and the pack URIs fail |
 
 ---
@@ -110,11 +111,11 @@ English · [中文](zh-CN/porting-status.md)
 ## 7. Re-verification commands
 
 ```powershell
-dotnet build PhoneToolkit.WPF.slnx -c Release
-dotnet test  PhoneToolkit.WPF.slnx -c Release
+dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
+dotnet test  Community.Phone.Controls.Toolkit.slnx -c Release
 powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 # sample (stop it before rebuilding)
-.\src\Community.Phone.Controls.Toolkit.WPF.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.WPF.Sample.exe
+.\src\Community.Phone.Controls.Toolkit.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.Sample.exe
 ```
 
 ## 8. Maintenance rule

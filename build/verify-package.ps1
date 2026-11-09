@@ -24,8 +24,8 @@ try {
     $consumerPackages = Join-Path $root 'artifacts\package-consumer\packages'
     $resultFile = Join-Path $root 'artifacts\package-consumer\result.txt'
 
-    Write-Host "Packing Community.Phone.Controls.Toolkit.WPF $version..."
-    dotnet pack (Join-Path $root 'src\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj') `
+    Write-Host "Packing Community.Phone.Controls.Toolkit $version..."
+    dotnet pack (Join-Path $root 'src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj') `
         -c $Configuration -o $packages -p:PackageVersion=$version --nologo
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet pack failed with exit code $LASTEXITCODE."
@@ -54,7 +54,7 @@ try {
             throw "Consumer build failed with exit code $LASTEXITCODE."
         }
 
-        $exe = Join-Path $consumerOutput "$Configuration\net10.0-windows\Community.Phone.Controls.Toolkit.WPF.PackageConsumer.exe"
+        $exe = Join-Path $consumerOutput "$Configuration\net10.0-windows\Community.Phone.Controls.Toolkit.PackageConsumer.exe"
         if (-not (Test-Path $exe)) {
             throw "Consumer executable was not found at $exe."
         }

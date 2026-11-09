@@ -4,13 +4,13 @@
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<OutputType>Library</OutputType>
-		<AssemblyName>Community.Phone.Controls.Toolkit.WPF</AssemblyName>
+		<AssemblyName>Community.Phone.Controls.Toolkit</AssemblyName>
 		<RootNamespace>Microsoft.Phone.Controls</RootNamespace>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
-		<PackageId>Community.Phone.Controls.Toolkit.WPF</PackageId>
+		<PackageId>Community.Phone.Controls.Toolkit</PackageId>
 		<Title>Community Windows Phone Toolkit for WPF</Title>
-		<Description>WPF compatibility port of the archived Windows Phone Toolkit. Provides Metro-styled controls, PlaneProjection-compatible 3D projection, navigation transitions, and phone application infrastructure for modern WPF.</Description>
+		<Description>WPF compatibility port of the archived Windows Phone Toolkit. Provides Metro-styled controls, PlaneProjection-compatible 3D projection, navigation transitions, and phone application infrastructure for modern WPF. The package contains both the toolkit assembly and the Community.Phone compatibility layer that re-implements the Microsoft.Phone platform types.</Description>
 		<PackageTags>WPF;WindowsPhone;Toolkit;Metro;Controls;Transitions;Projection</PackageTags>
 		<PackageLicenseExpression>MS-PL</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -28,6 +28,22 @@
 		<NoWarn>$(NoWarn);CS1591;CS0618;CS0612;CA1416;CA1507;CA1510;CA1512;CA2263</NoWarn>
 		<NoWarn>$(NoWarn);IDE0017;IDE0028;IDE0130;IDE0290;IDE0090;IDE0300</NoWarn>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Community.Phone\Community.Phone.csproj" PrivateAssets="all" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeCompatibilityLayerInPackage</TargetsForTfmSpecificBuildOutput>
+	</PropertyGroup>
+
+	<Target Name="IncludeCompatibilityLayerInPackage" DependsOnTargets="ResolveReferences">
+		<ItemGroup>
+			<BuildOutputInPackage Include="$(OutputPath)Community.Phone.dll" />
+			<BuildOutputInPackage Include="$(OutputPath)Community.Phone.pdb" Condition="Exists('$(OutputPath)Community.Phone.pdb')" />
+			<BuildOutputInPackage Include="$(OutputPath)Community.Phone.xml" Condition="Exists('$(OutputPath)Community.Phone.xml')" />
+		</ItemGroup>
+	</Target>
 
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />

@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Community.Phone.Controls.Toolkit.WPF.Sample/Community.Phone.Controls.Toolkit.WPF.Sample.csproj" />
-    <Project Path="src/Community.Phone.Controls.Toolkit.WPF/Community.Phone.Controls.Toolkit.WPF.csproj" />
-    <Project Path="src/Community.Phone.WPF/Community.Phone.WPF.csproj" Id="38241fed-24cc-4708-bd61-fb3bccd821f9" />
+    <Project Path="src/Community.Phone.Controls.Toolkit.Sample/Community.Phone.Controls.Toolkit.Sample.csproj" />
+    <Project Path="src/Community.Phone.Controls.Toolkit/Community.Phone.Controls.Toolkit.csproj" />
+    <Project Path="src/Community.Phone/Community.Phone.csproj" Id="38241fed-24cc-4708-bd61-fb3bccd821f9" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Community.Phone.Controls.Toolkit.WPF.Tests/Community.Phone.Controls.Toolkit.WPF.Tests.csproj" />
+    <Project Path="tests/Community.Phone.Controls.Toolkit.Tests/Community.Phone.Controls.Toolkit.Tests.csproj" />
   </Folder>
 </Solution>

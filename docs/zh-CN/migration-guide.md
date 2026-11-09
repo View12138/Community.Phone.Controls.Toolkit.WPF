@@ -3,17 +3,18 @@
 ## 1. 安装
 
 ```powershell
-dotnet add package Community.Phone.Controls.Toolkit.WPF
+dotnet add package Community.Phone.Controls.Toolkit
 ```
 
 添加命名空间：
 
 ```xml
-xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
+xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
 ```
 
-原始 WP XAML 使用 `assembly=Microsoft.Phone` 和 `assembly=Microsoft.Phone.Controls.Toolkit`。这些程序集名称已不存在；在可能的情况下保留了命名空间和类型名，但必须修改 `assembly=` 值。
+原始 WP XAML 使用 `assembly=Microsoft.Phone` 和 `assembly=Microsoft.Phone.Controls.Toolkit`。这些程序集名称已不存在；在可能的情况下保留了命名空间和类型名，但必须修改 `assembly=` 值。toolkit 类型（`Pivot`、`Rating`、`TransitionFrame`、各转场）位于 `Community.Phone.Controls.Toolkit`；平台类型（`PhoneApplicationPage`、`PhoneApplicationFrame`、`NavigationContext`）和所有 `Microsoft.Phone.Shell` 类型位于 `Community.Phone`。
 
 ## 2. 合并主题资源
 
@@ -24,7 +25,7 @@ xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Contro
     <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <ResourceDictionary
-                Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
         </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
 </Application.Resources>
@@ -48,14 +49,14 @@ public MainWindow()
 }
 ```
 
-页面继承 `phone:PhoneApplicationPage`：
+页面继承 `platform:PhoneApplicationPage`：
 
 ```xml
-<phone:PhoneApplicationPage
+<platform:PhoneApplicationPage
     x:Class="MyApp.HomePage"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF">
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone">
     ...
-</phone:PhoneApplicationPage>
+</platform:PhoneApplicationPage>
 ```
 
 `PhoneApplicationPage` 暴露 `State`、`NavigationContext`、`Orientation`、`SupportedOrientations`、`NavigatedTo`、`NavigatingFrom`、`NavigatedFrom`、`BackKeyPress` 和 `ApplicationBar`。生命周期方法由 `PhoneApplicationFrame`/`TransitionFrame` 触发，因此页面应放在这些 Frame 内。
@@ -267,7 +268,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 ## 8. 系统栏与应用栏
 
-`ApplicationBar` 已完整移植：可以在 XAML 中声明（`<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></phone:PhoneApplicationPage.ApplicationBar>`），也可以在代码中赋值；frame 会在页面底部绘制它并为页面预留空间。图标按钮需要 `IconUri`（应用相对路径，例如 `/Images/appbar.save.rest.png`）和 `Text`；一个应用栏最多 4 个图标按钮和 50 个菜单项，其 item 会触发 `Click`。`SystemTray.IsVisible` 是附加属性，状态对象已实现，但默认 Frame 模板仍未绘制完整的 Windows Phone 状态栏；需要时请自行承载该 chrome。
+`ApplicationBar` 已完整移植：可以在 XAML 中声明（`<platform:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></platform:PhoneApplicationPage.ApplicationBar>`），也可以在代码中赋值；frame 会在页面底部绘制它并为页面预留空间。图标按钮需要 `IconUri`（应用相对路径，例如 `/Images/appbar.save.rest.png`）和 `Text`；一个应用栏最多 4 个图标按钮和 50 个菜单项，其 item 会触发 `Click`。`SystemTray.IsVisible` 是附加属性，状态对象已实现，但默认 Frame 模板仍未绘制完整的 Windows Phone 状态栏；需要时请自行承载该 chrome。
 
 ## 9. 资源与主题迁移
 
@@ -275,7 +276,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 ```xml
 <ResourceDictionary.MergedDictionaries>
-    <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+    <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
     <ResourceDictionary Source="MyTheme.xaml" />
 </ResourceDictionary.MergedDictionaries>
 ```
@@ -292,7 +293,7 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
 ## 11. 常见迁移陷阱
 
-- `xmlns:toolkit` 仍指向旧程序集；删除它并使用 `xmlns:phone`。
+- `xmlns:toolkit` 仍指向旧程序集；删除它，toolkit 控件使用 `xmlns:phone`，`PhoneApplicationPage`/`PhoneApplicationFrame` 使用 `xmlns:platform`。
 - 区分 WPF 的 `System.Windows.Controls.WrapPanel` 和移植版的 `Microsoft.Phone.Controls.WrapPanel`；明确使用 `phone:` 前缀。
 - 同时导入 `Microsoft.Phone.Controls` 和 `System.Windows.Controls` 时，`ContextMenu` 会产生歧义；在 C# 中限定类型。
 - `DatePicker` 同样有歧义；使用别名或限定类型。

@@ -138,14 +138,16 @@
 
 | XAML 形式 | 结果 |
 |---|---|
-| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"` | 所有移植类型必需。 |
+| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"` | toolkit 控件与转场类型必需。 |
+| `xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"` | `PhoneApplicationPage`、`PhoneApplicationFrame`、`NavigationContext` 和方向类型（兼容层）必需。 |
+| `xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"` | `ApplicationBar`、`SystemTray` 和 `PhoneApplicationService` 必需。 |
 | `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 仅修改命名空间即可（以及应用使用的 WPF 资源键）。 |
 | `<phone:HyperlinkButton NavigateUri="..." />` | 可用：相对 URI 导航最近帧；外部 URI 打开系统处理程序。`TargetName` 保留，但命名目标不受支持。 |
 | 使用 `phone:` 前缀的 `<toolkit:TransitionService.NavigationInTransition>...` | 可用。 |
 | `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection`（按需包装）或 `ProjectionHost`。 |
 | `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 Panel 的直接子元素，且该 Panel 不是 items panel），清除投影时自动解包。 |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | 可用。 |
-| 使用 `shell:SystemTray.IsVisible` 的原始 `PhoneApplicationPage` XAML | 使用移植 `shell` 命名空间可解析；视觉 chrome 有限。 |
+| 使用 `shell:SystemTray.IsVisible` 的原始 `platform:PhoneApplicationPage` XAML | 使用兼容层的 `platform`/`shell` 命名空间可解析；视觉 chrome 有限。 |
 | 原始 `shell:ApplicationBar` XAML | 可用：应用栏（含菜单、最小化模式与为页面预留的空间）由 frame chrome（`ApplicationBarPresenter`）渲染。 |
 | 原始 `phone:PhoneApplicationPage` 的 `SupportedOrientations`/`Orientation` | 可解析并保留；不会强制旋转桌面窗口。 |
 | `phone:LongListSelector` XAML | 可用；分组对象必须实现 `IList`，跳转列表是 WPF `Popup`。 |
@@ -171,7 +173,7 @@
 | Pivot 测试 | `tests/.../PivotTests.cs` |
 | 导航/转场测试 | `tests/.../NavigationTests.cs` |
 | 效果测试 | `tests/.../EffectsTests.cs` |
-| 示例运行冒烟 | `src/Community.Phone.Controls.Toolkit.WPF.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
+| 示例运行冒烟 | `src/Community.Phone.Controls.Toolkit.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
 | 包安装测试 | `build/verify-package.ps1` + `tests/PackageConsumer`（隔离缓存，构建并运行） |
 
 实现状态变化时必须同步更新本矩阵；没有构建/测试或明确手动证据的功能不得声称完成。

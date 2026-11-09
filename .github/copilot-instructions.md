@@ -1,9 +1,9 @@
-# Copilot instructions — Community.Phone.Controls.Toolkit.WPF
+# Copilot instructions — Community.Phone.Controls.Toolkit
 
 ## What this repository is
 
 - A WPF compatibility port of the archived Microsoft **Windows Phone Toolkit** (MS-PL; original source at `D:\repos\repo-other\WindowsPhoneToolkit`), shipped as one NuGet package.
-- Package/assembly: `Community.Phone.Controls.Toolkit.WPF`. **Root namespace is `Microsoft.Phone.Controls`** (plus `Microsoft.Phone.Shell`), target framework `net10.0-windows`, no third-party runtime dependencies.
+- Package: `Community.Phone.Controls.Toolkit`. It contains two assemblies: the toolkit assembly `Community.Phone.Controls.Toolkit` and the Windows Phone compatibility layer `Community.Phone`. **Root namespaces stay `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell`**, target framework `net10.0-windows`, no third-party runtime dependencies.
 - Goal: a WP toolkit app moves over by changing namespaces and wrapping projected content; Metro visuals, page transitions and 3D projection should behave like WP 8.1. This is a compatibility port, not a new UI framework.
 
 ## Non-negotiable principles
@@ -15,6 +15,14 @@
 5. Transition numbers (angles, durations, delays, easing) come from the original storyboard XAML under `Microsoft.Phone.Controls.Toolkit\Transitions\Storyboards\*.xaml`. Copy them; never invent or "tune" them.
 
 ## Architecture constraints — do not break these
+
+### Project split
+
+- `src/Community.Phone` is the `Microsoft.Phone.dll` compatibility layer: `Microsoft.Phone.Controls.PhoneApplicationFrame` / `PhoneApplicationPage` / `NavigationContext` / orientation types and every `Microsoft.Phone.Shell` type (application bar, system tray, application service). It has no toolkit dependency.
+- `src/Community.Phone.Controls.Toolkit` is the toolkit assembly. It references `Community.Phone`; never move toolkit controls into the compatibility layer or add a reference in the other direction.
+- Both assemblies are packed into the single `Community.Phone.Controls.Toolkit` NuGet package (`IncludeCompatibilityLayerInPackage` in the csproj). Do not split them into two packages.
+- Toolkit and platform types share `Microsoft.Phone.Controls`, so XAML needs two prefixes: `phone:` (`assembly=Community.Phone.Controls.Toolkit`) for toolkit controls and `platform:` (`assembly=Community.Phone`) for pages/frames; `shell:` maps to `Community.Phone`.
+- The compatibility layer owns its theme dictionary (`src/Community.Phone/Themes/Generic.xaml`, currently the `PhoneApplicationFrame` template); the toolkit theme stays in `src/Community.Phone.Controls.Toolkit/Themes/Generic.xaml`.
 
 ### Projection / PlaneProjection
 
@@ -39,11 +47,11 @@
 ## Engineering rules
 
 - Build: `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` must stay at **0 warnings / 0 errors**.
-- Tests: xUnit, WPF tests run through `StaTest.Run`. Run the whole suite: `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` (currently 68 tests, all passing). Every bug fix gets a regression test that fails before the fix.
+- Tests: xUnit, WPF tests run through `StaTest.Run`. Run the whole suite: `dotnet test Community.Phone.Controls.Toolkit.slnx -c Release` (currently 144 tests: 142 pass, and the two `ListPicker` assertions that also fail at baseline). Every bug fix gets a regression test that fails before the fix.
 - Package: `build\verify-package.ps1` packs `Release`, then restores/builds/runs a fresh consumer from the local feed. Re-run it after public API or behavior changes.
-- Sample: `src/Community.Phone.Controls.Toolkit.WPF.Sample` is the manual/visual verification surface. It mirrors the original `PhoneToolkitSample8`: `MainPage` lists the samples, each sample is its own page, and `SampleNavigator` sets both transitions explicitly. When a behavior changes, the sample must still demonstrate it and still start cleanly.
+- Sample: `src/Community.Phone.Controls.Toolkit.Sample` is the manual/visual verification surface. It mirrors the original `PhoneToolkitSample8`: `MainPage` lists the samples, each sample is its own page, and `SampleNavigator` sets both transitions explicitly. When a behavior changes, the sample must still demonstrate it and still start cleanly.
 - Docs are bilingual: English in `docs/en/`, Chinese in `docs/zh-CN/`; root-level docs use the `_zh-CN` suffix. Update **both** languages in the same change.
-- `Themes/Generic.xaml` is the single theme source. Do not hand-edit generated resource designer files or the original WP project under `repo-other`.
+- `Themes/Generic.xaml` is the theme source for each assembly: the toolkit theme (Metro palette, control templates) and the compatibility layer theme (frame template). Do not hand-edit generated resource designer files or the original WP project under `repo-other`.
 - Keep the library dependency-free; add a package only with a concrete, documented need.
 
 ## Verification environment notes

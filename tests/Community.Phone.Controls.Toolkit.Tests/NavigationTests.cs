@@ -9,12 +9,12 @@ using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class NavigationTests
     {
         private const string NavigationCachePageUri =
-            "pack://application:,,,/Community.Phone.Controls.Toolkit.WPF.Tests;component/NavigationCachePage.xaml";
+            "pack://application:,,,/Community.Phone.Controls.Toolkit.Tests;component/NavigationCachePage.xaml";
 
         [Fact]
         public void Frame_NavigatesAndRaisesPageLifecycle()

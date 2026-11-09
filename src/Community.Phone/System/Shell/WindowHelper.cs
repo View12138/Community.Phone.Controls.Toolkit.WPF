@@ -28,24 +28,6 @@ namespace Microsoft.Phone.Shell
         {
             var content = window.Content as FrameworkElement;
             return new Size(content.ActualWidth, content.ActualHeight);
-
-            var hwnd = new WindowInteropHelper(window).Handle;
-
-            if (hwnd == IntPtr.Zero || !GetClientRect(hwnd, out var rect))
-            {
-                return Size.Empty;
-            }
-
-            var source = HwndSource.FromHwnd(hwnd);
-            var dpi = source?.CompositionTarget?.TransformFromDevice;
-
-            if (dpi == null)
-            {
-                return new Size(rect.Right - rect.Left, rect.Bottom - rect.Top);
-            }
-
-            var size = dpi.Value.Transform(new Vector(rect.Right - rect.Left, rect.Bottom - rect.Top));
-            return new Size(size.X, size.Y);
         }
 
         public static Rect GetVisibleWindowBounds(Window window)
@@ -56,31 +38,6 @@ namespace Microsoft.Phone.Shell
                 resizeRect = SystemParameters.WindowResizeBorderThickness;
             }
             return new Rect(window.Left, window.Top, window.ActualWidth - resizeRect.Left - resizeRect.Right, window.ActualHeight - resizeRect.Top - resizeRect.Bottom);
-
-            IntPtr hwnd = new WindowInteropHelper(window).Handle;
-
-            if (hwnd == IntPtr.Zero)
-            {
-                return Rect.Empty;
-            }
-
-            int hr = DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, out RECT rect, Marshal.SizeOf(typeof(RECT)));
-
-            if (hr != 0)
-                return Rect.Empty;
-
-            var source = HwndSource.FromHwnd(hwnd);
-            var transform = source?.CompositionTarget?.TransformFromDevice;
-
-            DpiScale dpi = VisualTreeHelper.GetDpi(window);
-            if (transform == null)
-            {
-                return Rect.Empty;
-            }
-
-            Point topLeft = transform.Value.Transform(new Point(rect.Left, rect.Top));
-            Point bottomRight = transform.Value.Transform(new Point(rect.Right, rect.Bottom));
-            return new Rect(topLeft, bottomRight);
         }
 
     }

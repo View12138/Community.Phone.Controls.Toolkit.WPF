@@ -14,23 +14,30 @@
 ## 2. 仓库与工程
 
 ```text
-PhoneToolkit.WPF.slnx
-├─ src/Community.Phone.Controls.Toolkit.WPF/          （单一可分发程序集）
-│  ├─ Projection/    Projection、PlaneProjection、Matrix3DProjection、ProjectionHost、ProjectionService
+Community.Phone.Controls.Toolkit.slnx
+├─ src/Community.Phone/                           （Microsoft.Phone 兼容层）
 │  ├─ Navigation/    PhoneApplicationFrame、PhoneApplicationPage、NavigationContext、方向类型
-│  ├─ Shell/         PhoneApplicationService、SystemTray、ApplicationBar
+│  ├─ System/Shell/  PhoneApplicationService、SystemTray、ApplicationBar 及其 presenter
+│  └─ Themes/Generic.xaml  PhoneApplicationFrame 模板
+├─ src/Community.Phone.Controls.Toolkit/          （toolkit 程序集）
+│  ├─ Projection/    Projection、PlaneProjection、Matrix3DProjection、ProjectionHost、ProjectionService
 │  ├─ Transitions/   ITransition/Transition、TransitionFrame、TransitionService、各转场系列
 │  ├─ Effects/       TiltEffect、TurnstileFeatherEffect
 │  ├─ Controls/      WrapPanel、ToggleSwitch、Rating、PhoneTextBox、ExpanderView、HubTile、
 │  │                 ListPicker、Pivot（含 PivotHeadersControl/PivotHeaderItem）、ContextMenu、
 │  │                 CustomMessageBox、DatePicker/TimePicker、PerformanceProgressBar、转换器、辅助类
 │  ├─ LocalizedResources/  51 个从原始本地化工程复制的 .resx
-│  └─ Themes/Generic.xaml  Metro 调色板、字体、Frame 模板、控件模板
-├─ src/Community.Phone.Controls.Toolkit.WPF.Sample/   可运行 WPF 示例
-└─ tests/Community.Phone.Controls.Toolkit.WPF.Tests/  xUnit 测试（STA 辅助）
+│  └─ Themes/Generic.xaml  Metro 调色板、字体、Frame/控件模板
+├─ src/Community.Phone.Controls.Toolkit.Sample/   可运行 WPF 示例
+└─ tests/Community.Phone.Controls.Toolkit.Tests/  xUnit 测试（STA 辅助）
 ```
 
-包 ID 为 `Community.Phone.Controls.Toolkit.WPF`。包中只包含一个主程序集及其卫星资源、主题字典、XML 文档、README、许可证和文档，不需要额外安装内部包。
+解决方案产出两个程序集，但对外仍然是**一个 NuGet 包** `Community.Phone.Controls.Toolkit`：
+
+- `Community.Phone` 是 Windows Phone 兼容层，重新实现 WPF 不提供的 `Microsoft.Phone.dll` 表面（`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext`、方向类型，以及 `Microsoft.Phone.Shell` 的应用栏、系统栏和应用服务类型）。
+- `Community.Phone.Controls.Toolkit` 是 toolkit 程序集，保留 toolkit 控件与转场，并引用 `Community.Phone`。
+
+包中同时包含两个程序集、toolkit 卫星资源、主题字典、XML 文档、README 和许可证；使用方不需要额外安装兼容层包。
 
 库保留了原工具包源码，这些文件通过 `#if WINDOWS_PHONE` 选择兼容命名空间（`Microsoft.Phone.Controls`）和本地化资源，因此 `WINDOWS_PHONE;WP8` 在**所有**配置下都必须定义；只有 Release 不定义时，`LengthConverter`、`TypeConverters`、`RoutedPropertyChangingEventArgs` 和 `InteractionHelper` 会编译失败。
 
@@ -38,15 +45,26 @@ PhoneToolkit.WPF.slnx
 
 | 原始命名空间 | 移植命名空间 | 原因 |
 |---|---|---|
-| `Microsoft.Phone.Controls` | `Microsoft.Phone.Controls` | 保留 toolkit API 名称。 |
+| `Microsoft.Phone.Controls`（平台：`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext`、方向类型） | `Microsoft.Phone.Controls` | 保留平台 API，类型位于 `Community.Phone` 程序集。 |
+| `Microsoft.Phone.Controls`（toolkit 控件） | `Microsoft.Phone.Controls` | 保留 toolkit API 名称，类型位于 `Community.Phone.Controls.Toolkit` 程序集。 |
 | `Microsoft.Phone.Controls.Primitives` | `Microsoft.Phone.Controls.Primitives` | 保留 primitive API 名称。 |
 | `Microsoft.Phone.Controls.LocalizedResources` | 同名 | 保留资源类。 |
-| `Microsoft.Phone.Shell` | `Microsoft.Phone.Shell` | 保留系统栏/应用服务 API。 |
+| `Microsoft.Phone.Shell` | `Microsoft.Phone.Shell` | 保留系统栏/应用服务 API，类型位于 `Community.Phone` 程序集。 |
 | `Microsoft.Phone.Maps.Toolkit` | 未实现 | 没有 WPF 地图提供程序。 |
 | `System.Windows.Controls`（toolkit 自带的 `WrapPanel`、`LengthConverter`、`TimeTypeConverter`） | `Microsoft.Phone.Controls` 或 WPF 原生 | 避免重新定义 WPF 类型。`WrapPanel` 放在 `Microsoft.Phone.Controls`，WPF 原生 `WrapPanel` 保持不变。 |
 | `System.Windows`（toolkit 的 `HierarchicalDataTemplate`） | WPF 原生 | 使用 `System.Windows.HierarchicalDataTemplate`。 |
 
 WPF 有 `System.Windows.Controls.ContextMenu`；移植版的 `Microsoft.Phone.Controls.ContextMenu` 继承它。XAML 用户必须使用 `phone:` 前缀选择移植类型，这属于**需要迁移**，不能声称 XAML 原样兼容。
+
+由于 toolkit 类型和平台类型共用 `Microsoft.Phone.Controls` 命名空间但位于不同程序集，同时使用两者的 XAML 需要两个前缀：
+
+```xml
+xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
+```
+
+`platform:PhoneApplicationPage` / `platform:PhoneApplicationFrame` 是页面和框架基类；`phone:` 选择 `Pivot`、`Rating`、`ToggleSwitch` 等 toolkit 控件。
 
 ## 4. 投影子系统
 
@@ -192,9 +210,9 @@ Windows Phone 由合成器绘制应用栏；移植版由新增的 `ApplicationBa
 
 ### 5.4 转场系列
 
-原版的 27 个 storyboard XAML（`Transitions/Storyboards/*.xaml`）以 WPF 资源形式内嵌，并按原版工具箱的方式加载：`Application.GetResourceStream("/Community.Phone.Controls.Toolkit.WPF;component/Transitions/Storyboards/<Name>.xaml")` → 缓存文本 → `XamlReader.Load`（WPF 需要 `XmlReader`/流，不能直接传字符串）。`Transitions.GetEnumStoryboard` 把 `<系列><模式>` 映射到对应文件，`Storyboard.SetTarget(storyboard, element)` 把动画绑定到页面，工厂在返回 `Transition` 前设置投影（Slide 则是 `RenderTransform`）。
+原版的 27 个 storyboard XAML（`Transitions/Storyboards/*.xaml`）以 WPF 资源形式内嵌，并按原版工具箱的方式加载：`Application.GetResourceStream("/Community.Phone.Controls.Toolkit;component/Transitions/Storyboards/<Name>.xaml")` → 缓存文本 → `XamlReader.Load`（WPF 需要 `XmlReader`/流，不能直接传字符串）。`Transitions.GetEnumStoryboard` 把 `<系列><模式>` 映射到对应文件，`Storyboard.SetTarget(storyboard, element)` 把动画绑定到页面，工厂在返回 `Transition` 前设置投影（Slide 则是 `RenderTransform`）。
 
-storyboard 内部唯一的改动是属性路径：Silverlight 写 `(UIElement.Projection).(PlaneProjection.RotationY)`，移植版写 `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)`（`xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"`），因为 `Projection` 是投影宿主上的附加属性。角度、关键时间和缓动函数都是原值，WPF 能正确解析带前缀的路径。
+storyboard 内部唯一的改动是属性路径：Silverlight 写 `(UIElement.Projection).(PlaneProjection.RotationY)`，移植版写 `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)`（`xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"`），因为 `Projection` 是投影宿主上的附加属性。角度、关键时间和缓动函数都是原值，WPF 能正确解析带前缀的路径。
 
 系列包括 Roll、Rotate（8 模式）、Slide（8 模式）、Swivel（6 模式）、Turnstile（4 模式）、TurnstileFeather（4 模式）。`TransitionService` 和 `NavigationTransition` / `NavigationInTransition` / `NavigationOutTransition` 保留原始附加属性形态。
 
@@ -238,7 +256,7 @@ Turnstile 系列保留移植版仅有的两个常量偏差（均在 `Transitions
 
 ## 8. 打包
 
-单包工程。包含 `GenerateDocumentationFile`、包元数据（`PackageId`、描述、标签、MS-PL 许可证表达式）、README/LICENSE 打包、符号和本地 `artifacts/packages` 输出。包内含 `Community.Phone.Controls.Toolkit.WPF.dll`、卫星资源程序集、`Themes/Generic.xaml`（编译为 BAML）、XML 文档、README、LICENSE、第三方声明和中英文文档。
+单包工程。包含 `GenerateDocumentationFile`、包元数据（`PackageId`、描述、标签、MS-PL 许可证表达式）、README/LICENSE 打包、符号和本地 `artifacts/packages` 输出。包内含 `Community.Phone.Controls.Toolkit.dll` 与 `Community.Phone.dll`、卫星资源程序集、`Themes/Generic.xaml`（编译为 BAML）、XML 文档、README、LICENSE、第三方声明和中英文文档。toolkit 工程以 `PrivateAssets="all"` 引用 `Community.Phone`，并通过 `BuildOutputInPackage` 把兼容层程序集放进包中，而不是生成包依赖。
 
 使用全新 WPF 消费工程做安装测试：从 `artifacts/packages` 添加包、构建、加载主题资源、实例化 `ProjectionHost` 和示例控件并运行。`build/verify-package.ps1` 使用隔离的本地源和 NuGet 缓存执行该流程，消费工程只有在加载主题和控件成功后才写入成功标记。
 

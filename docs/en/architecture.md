@@ -14,23 +14,30 @@ The port therefore uses **compatibility types in the original `Microsoft.Phone.C
 ## 2. Repository and projects
 
 ```text
-PhoneToolkit.WPF.slnx
-├─ src/Community.Phone.Controls.Toolkit.WPF/          (single distributable assembly)
+Community.Phone.Controls.Toolkit.slnx
+├─ src/Community.Phone/                           (Microsoft.Phone compatibility layer)
+│  ├─ Navigation/    PhoneApplicationFrame, PhoneApplicationPage, NavigationContext, orientation types
+│  ├─ System/Shell/  PhoneApplicationService, SystemTray, ApplicationBar and its presenter
+│  └─ Themes/Generic.xaml  PhoneApplicationFrame template
+├─ src/Community.Phone.Controls.Toolkit/          (toolkit assembly)
 │  ├─ Projection/    Projection, PlaneProjection, Matrix3DProjection, ProjectionHost, ProjectionService
-│  ├─ Navigation/    PhoneApplicationFrame, PhoneApplicationPage, orientation types
-│  ├─ Shell/         PhoneApplicationService, SystemTray, ApplicationBar
 │  ├─ Transitions/   ITransition/Transition, TransitionFrame, TransitionService, transition families
 │  ├─ Effects/       TiltEffect, TurnstileFeatherEffect
 │  ├─ Controls/      WrapPanel, ToggleSwitch, Rating, PhoneTextBox, ExpanderView, HubTile,
 │  │                 ListPicker, Pivot (with PivotHeadersControl/PivotHeaderItem), ContextMenu,
 │  │                 CustomMessageBox, DatePicker/TimePicker, PerformanceProgressBar, converters, helpers
 │  ├─ LocalizedResources/  51 .resx resources copied from the original localization project
-│  └─ Themes/Generic.xaml  Metro palette, fonts, frame templates, control templates
-├─ src/Community.Phone.Controls.Toolkit.WPF.Sample/   runnable WPF sample
-└─ tests/Community.Phone.Controls.Toolkit.WPF.Tests/  xUnit tests (STA helper for WPF)
+│  └─ Themes/Generic.xaml  Metro palette, fonts, frame/control templates
+├─ src/Community.Phone.Controls.Toolkit.Sample/   runnable WPF sample
+└─ tests/Community.Phone.Controls.Toolkit.Tests/  xUnit tests (STA helper for WPF)
 ```
 
-The single package ID is `Community.Phone.Controls.Toolkit.WPF`. The package contains the main assembly, its satellite resources, theme dictionary, XML documentation, README, and license. There are no internal packages that a consumer must install separately.
+The solution produces two assemblies but still ships as **one NuGet package**, `Community.Phone.Controls.Toolkit`:
+
+- `Community.Phone` is the Windows Phone compatibility layer. It re-implements the `Microsoft.Phone.dll` surface that WPF does not provide (`PhoneApplicationFrame`, `PhoneApplicationPage`, `NavigationContext`, orientation types, and the `Microsoft.Phone.Shell` application bar/system tray/application service types).
+- `Community.Phone.Controls.Toolkit` is the toolkit assembly. It keeps the toolkit controls and transitions and references `Community.Phone`.
+
+The package contains both assemblies, the toolkit satellite resources, theme dictionaries, XML documentation, README, and license. There is no separate compatibility package that a consumer must install.
 
 The library keeps the original toolkit sources, which branch on `#if WINDOWS_PHONE` to select the compatible namespaces (`Microsoft.Phone.Controls`) and the localized resources. `WINDOWS_PHONE;WP8` is therefore defined for **every** configuration; a Release-only build without it cannot compile `LengthConverter`, `TypeConverters`, `RoutedPropertyChangingEventArgs` or `InteractionHelper`.
 
@@ -38,15 +45,26 @@ The library keeps the original toolkit sources, which branch on `#if WINDOWS_PHO
 
 | Original namespace | Port namespace | Reason |
 |---|---|---|
-| `Microsoft.Phone.Controls` | `Microsoft.Phone.Controls` | Preserves toolkit API names. |
+| `Microsoft.Phone.Controls` (platform: `PhoneApplicationFrame`, `PhoneApplicationPage`, `NavigationContext`, orientation types) | `Microsoft.Phone.Controls` | Preserves the platform API; the types live in the `Community.Phone` assembly. |
+| `Microsoft.Phone.Controls` (toolkit controls) | `Microsoft.Phone.Controls` | Preserves toolkit API names; the types live in the `Community.Phone.Controls.Toolkit` assembly. |
 | `Microsoft.Phone.Controls.Primitives` | `Microsoft.Phone.Controls.Primitives` | Preserves primitive API names. |
 | `Microsoft.Phone.Controls.LocalizedResources` | same | Preserves resource class. |
-| `Microsoft.Phone.Shell` | `Microsoft.Phone.Shell` | Preserves system tray/application service API. |
+| `Microsoft.Phone.Shell` | `Microsoft.Phone.Shell` | Preserves system tray/application service API; the types live in the `Community.Phone` assembly. |
 | `Microsoft.Phone.Maps.Toolkit` | not implemented | No WPF map provider. |
 | `System.Windows.Controls` (toolkit’s own `WrapPanel`, `LengthConverter`, `TimeTypeConverter`) | `Microsoft.Phone.Controls` or WPF native | Avoid redefining WPF types. `WrapPanel` is in `Microsoft.Phone.Controls`; WPF’s own `WrapPanel` remains untouched. |
 | `System.Windows` (`HierarchicalDataTemplate` in the toolkit) | WPF native | Use `System.Windows.HierarchicalDataTemplate`. |
 
 WPF has a `System.Windows.Controls.ContextMenu`; the port’s `Microsoft.Phone.Controls.ContextMenu` derives from it. XAML users must choose the `phone:` prefix. This is a **requires migration** case, not a claim of identical XAML.
+
+Because toolkit and platform types share the `Microsoft.Phone.Controls` namespace but live in different assemblies, XAML that uses both needs two prefixes:
+
+```xml
+xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
+```
+
+`platform:PhoneApplicationPage` / `platform:PhoneApplicationFrame` are the page and frame base types; `phone:` selects the toolkit controls such as `Pivot`, `Rating`, or `ToggleSwitch`.
 
 ## 4. Projection subsystem
 
@@ -193,9 +211,9 @@ Two original behaviours had to be adapted:
 
 ### 5.4 Transition families
 
-The original storyboard XAML files (`Transitions/Storyboards/*.xaml`, 27 files) are embedded as WPF resources and loaded the way the original toolkit loaded them: `Application.GetResourceStream("/Community.Phone.Controls.Toolkit.WPF;component/Transitions/Storyboards/<Name>.xaml")`, cached as text, then parsed with `XamlReader.Load` — WPF needs an `XmlReader`/stream instead of a string. `Transitions.GetEnumStoryboard` maps `<family><mode>` to that file, `Storyboard.SetTarget(storyboard, element)` binds the animations to the page, and the factory assigns the projection (or the `RenderTransform` for Slide) before returning a `Transition`.
+The original storyboard XAML files (`Transitions/Storyboards/*.xaml`, 27 files) are embedded as WPF resources and loaded the way the original toolkit loaded them: `Application.GetResourceStream("/Community.Phone.Controls.Toolkit;component/Transitions/Storyboards/<Name>.xaml")`, cached as text, then parsed with `XamlReader.Load` — WPF needs an `XmlReader`/stream instead of a string. `Transitions.GetEnumStoryboard` maps `<family><mode>` to that file, `Storyboard.SetTarget(storyboard, element)` binds the animations to the page, and the factory assigns the projection (or the `RenderTransform` for Slide) before returning a `Transition`.
 
-The only edits to the storyboards are the property paths: Silverlight wrote `(UIElement.Projection).(PlaneProjection.RotationY)`; the port writes `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)` with `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"`, because `Projection` is an attached property on the projection host. Angles, key times and easing functions are the original values, and WPF resolves the prefixed path correctly.
+The only edits to the storyboards are the property paths: Silverlight wrote `(UIElement.Projection).(PlaneProjection.RotationY)`; the port writes `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)` with `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"`, because `Projection` is an attached property on the projection host. Angles, key times and easing functions are the original values, and WPF resolves the prefixed path correctly.
 
 Families: Roll, Rotate (8 modes), Slide (8 modes), Swivel (6 modes), Turnstile (4 modes), TurnstileFeather (4 modes). `TransitionService` and `NavigationTransition`/`NavigationInTransition`/`NavigationOutTransition` preserve the original attached-property shape.
 
@@ -239,7 +257,7 @@ Design decisions per control:
 
 ## 8. Packaging
 
-Single package project. `GenerateDocumentationFile`, package metadata (`PackageId`, description, tags, MS-PL license expression), README/LICENSE packing, symbols, and a local `artifacts/packages` output. The package contains `Community.Phone.Controls.Toolkit.WPF.dll`, satellite resource assemblies, `Themes/Generic.xaml` (compiled BAML), XML docs, README, and LICENSE.
+Single package project. `GenerateDocumentationFile`, package metadata (`PackageId`, description, tags, MS-PL license expression), README/LICENSE packing, symbols, and a local `artifacts/packages` output. The package contains both `Community.Phone.Controls.Toolkit.dll` and `Community.Phone.dll`, satellite resource assemblies, `Themes/Generic.xaml` (compiled BAML), XML docs, README, and LICENSE. The toolkit project references `Community.Phone` with `PrivateAssets="all"` and adds the compatibility assembly to `BuildOutputInPackage`, so it is included in the package instead of becoming a package dependency.
 
 A fresh WPF consumer project is used as an installation test: add the package from `artifacts/packages`, build, load theme resources, instantiate `ProjectionHost`, and run the sample control set. This is part of the test/verification procedure.
 

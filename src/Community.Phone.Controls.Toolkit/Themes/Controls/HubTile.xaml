@@ -8,7 +8,7 @@
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
-        <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />-->
+        <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />-->
     </ResourceDictionary.MergedDictionaries>
 
     <controls:TileSizeToWidthConverter x:Key="WidthConverter" />

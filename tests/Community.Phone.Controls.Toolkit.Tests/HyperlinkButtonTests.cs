@@ -6,12 +6,12 @@ using System.Windows.Controls;
 using Microsoft.Phone.Controls;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public class HyperlinkButtonTests
     {
         private const string TargetPageUri =
-            "pack://application:,,,/Community.Phone.Controls.Toolkit.WPF.Tests;component/NavigateTargetPage.xaml";
+            "pack://application:,,,/Community.Phone.Controls.Toolkit.Tests;component/NavigateTargetPage.xaml";
 
         [Fact]
         public void HyperlinkButton_NavigatesApplicationUriInTheNearestFrame()

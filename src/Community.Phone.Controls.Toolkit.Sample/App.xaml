@@ -2,7 +2,7 @@
     x:Class="PhoneToolkitSample.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
     xmlns:local="clr-namespace:PhoneToolkitSample8"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -10,8 +10,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
-                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF.Sample;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
+                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.Sample;component/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
             
             <sys:String x:Key="ApplicationTitle">WINDOWS PHONE TOOLKIT for WPF</sys:String>

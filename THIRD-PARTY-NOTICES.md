@@ -14,7 +14,7 @@ The port retains the original source-file headers where code was copied or adapt
 
 ## Runtime dependencies
 
-The `Community.Phone.Controls.Toolkit.WPF` package has **no NuGet package dependencies**. It uses only the WPF/.NET framework assemblies that ship with .NET (`PresentationCore`, `PresentationFramework`, `WindowsBase`, and the base class library). It does not depend on:
+The `Community.Phone.Controls.Toolkit` package has **no NuGet package dependencies**. It uses only the WPF/.NET framework assemblies that ship with .NET (`PresentationCore`, `PresentationFramework`, `WindowsBase`, and the base class library). It does not depend on:
 
 - Windows Phone SDK
 - Silverlight

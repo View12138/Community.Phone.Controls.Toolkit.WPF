@@ -226,7 +226,7 @@ Internal dependency clusters: `Transitions` depends on `Effects` (feathering), `
 
 ## Original theme and resources
 - The WP8 `Generic.xaml` defines implicit styles for 25 control types and uses 40+ WP platform resource keys. It also defines storyboards and templates for `Rating`, `ListPicker`, `DatePicker`, `TimePicker`, `AutoCompleteBox`, `ContextMenu`, `MenuItem`, `Separator`, `ToggleSwitch`, `PhoneTextBox`, `ExpanderView`, `HubTile`, `CustomMessageBox`, `TransitionFrame`, `LongListMultiSelector`, `Pushpin`, and `UserLocationMarker`.
-- The port re-creates the keys used by the implemented controls in `src/Community.Phone.Controls.Toolkit.WPF/Themes/Generic.xaml` (Metro palette, fonts, sizes, text styles, button style, frame templates, and per-control templates).
+- The port re-creates the keys used by the implemented controls in `src/Community.Phone.Controls.Toolkit/Themes/Generic.xaml` (Metro palette, fonts, sizes, text styles, button style, frame templates, and per-control templates).
 - The 51 `.xlf` files are localization exchange files; 51 `.resx` files were copied into the WPF project. The English base plus satellite resources are embedded in the single NuGet package. The `qps-ploc` pseudo-locale is omitted because NuGet normalizes its culture casing and warns on the package.
 
 ## Highest-priority compatibility risks found in audit

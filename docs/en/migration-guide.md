@@ -3,17 +3,18 @@
 ## 1. Install
 
 ```powershell
-dotnet add package Community.Phone.Controls.Toolkit.WPF
+dotnet add package Community.Phone.Controls.Toolkit
 ```
 
-Add the namespace:
+Add the namespaces:
 
 ```xml
-xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
+xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
 ```
 
-Original WP XAML used `assembly=Microsoft.Phone` and `assembly=Microsoft.Phone.Controls.Toolkit`. Those assembly names are gone; the namespace and type names are preserved where possible, but the `assembly=` value must change.
+Original WP XAML used `assembly=Microsoft.Phone` and `assembly=Microsoft.Phone.Controls.Toolkit`. Those assembly names are gone; the namespace and type names are preserved where possible, but the `assembly=` value must change. Toolkits types (`Pivot`, `Rating`, `TransitionFrame`, transitions) are in `Community.Phone.Controls.Toolkit`; the platform types (`PhoneApplicationPage`, `PhoneApplicationFrame`, `NavigationContext`) and all `Microsoft.Phone.Shell` types are in `Community.Phone`.
 
 ## 2. Merge the theme resources
 
@@ -24,7 +25,7 @@ The package contains `Themes/Generic.xaml` with Metro colors, fonts, text styles
     <ResourceDictionary>
         <ResourceDictionary.MergedDictionaries>
             <ResourceDictionary
-                Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
         </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
 </Application.Resources>
@@ -48,14 +49,14 @@ public MainWindow()
 }
 ```
 
-Derive pages from `phone:PhoneApplicationPage`:
+Derive pages from `platform:PhoneApplicationPage`:
 
 ```xml
-<phone:PhoneApplicationPage
+<platform:PhoneApplicationPage
     x:Class="MyApp.HomePage"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF">
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone">
     ...
-</phone:PhoneApplicationPage>
+</platform:PhoneApplicationPage>
 ```
 
 `PhoneApplicationPage` exposes `State`, `NavigationContext`, `Orientation`, `SupportedOrientations`, `NavigatedTo`, `NavigatingFrom`, `NavigatedFrom`, `BackKeyPress`, and `ApplicationBar`. Lifecycle methods are raised by `PhoneApplicationFrame`/`TransitionFrame`, so keep pages inside those frames.
@@ -267,7 +268,7 @@ Targets must be wrappable by a `ProjectionHost`: a direct child of a panel that 
 
 ## 8. System tray and application bar
 
-`ApplicationBar` is fully ported: declare it in XAML (`<phone:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></phone:PhoneApplicationPage.ApplicationBar>`) or assign it in code, and the frame draws it at the bottom of the page, reserving the page space. Icon buttons need an `IconUri` (application-relative, for example `/Images/appbar.save.rest.png`) and a `Text`; a bar accepts at most 4 icon buttons and 50 menu items, and its items raise `Click`. `SystemTray.IsVisible` is an attached property and the state object is implemented, but the default frame template still does not paint the full Windows Phone status bar; host that chrome yourself if you need it.
+`ApplicationBar` is fully ported: declare it in XAML (`<platform:PhoneApplicationPage.ApplicationBar><shell:ApplicationBar .../></platform:PhoneApplicationPage.ApplicationBar>`) or assign it in code, and the frame draws it at the bottom of the page, reserving the page space. Icon buttons need an `IconUri` (application-relative, for example `/Images/appbar.save.rest.png`) and a `Text`; a bar accepts at most 4 icon buttons and 50 menu items, and its items raise `Click`. `SystemTray.IsVisible` is an attached property and the state object is implemented, but the default frame template still does not paint the full Windows Phone status bar; host that chrome yourself if you need it.
 
 ## 9. Resource and theme migration
 
@@ -275,7 +276,7 @@ The original WP platform supplied `PhoneAccentBrush`, `PhoneForegroundBrush`, `P
 
 ```xml
 <ResourceDictionary.MergedDictionaries>
-    <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+    <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
     <ResourceDictionary Source="MyTheme.xaml" />
 </ResourceDictionary.MergedDictionaries>
 ```
@@ -292,7 +293,7 @@ The original WP platform supplied `PhoneAccentBrush`, `PhoneForegroundBrush`, `P
 
 ## 11. Known migration traps
 
-- `xmlns:toolkit` still points at an old assembly; remove it and use `xmlns:phone`.
+- `xmlns:toolkit` still points at an old assembly; remove it and use `xmlns:phone` for toolkit controls and `xmlns:platform` for `PhoneApplicationPage`/`PhoneApplicationFrame`.
 - Keep WPF’s `System.Windows.Controls.WrapPanel` and the port’s `Microsoft.Phone.Controls.WrapPanel` distinct; use the `phone:` prefix intentionally.
 - `ContextMenu` is ambiguous if both `Microsoft.Phone.Controls` and `System.Windows.Controls` are imported; qualify the type in C#.
 - `DatePicker` is ambiguous the same way; use an alias or qualify.

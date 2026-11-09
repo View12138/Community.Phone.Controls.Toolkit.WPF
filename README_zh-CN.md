@@ -1,4 +1,4 @@
-# Community.Phone.Controls.Toolkit.WPF
+# Community.Phone.Controls.Toolkit
 
 这是归档的 **Windows Phone Toolkit** 的 WPF 兼容移植版，以一个 NuGet 包交付。该移植在 WPF 允许的范围内保留原有的 `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` 命名空间和 API 形态，并使用 WPF 原生能力实现真实的 3D 投影、导航转场和 Metro 风格控件。
 
@@ -26,10 +26,10 @@
 ## 安装
 
 ```powershell
-dotnet add package Community.Phone.Controls.Toolkit.WPF
+dotnet add package Community.Phone.Controls.Toolkit
 ```
 
-包 ID 为 `Community.Phone.Controls.Toolkit.WPF`，程序集名称相同，根命名空间为 `Microsoft.Phone.Controls`。
+包 ID 为 `Community.Phone.Controls.Toolkit`，包内包含两个程序集：toolkit 程序集 `Community.Phone.Controls.Toolkit` 和 Windows Phone 兼容层 `Community.Phone`。后者重新实现 WPF 不提供的 `Microsoft.Phone.dll` 类型（`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext` 以及 `Microsoft.Phone.Shell`）。两者都使用原始的 `Microsoft.Phone.*` 命名空间，使用方不需要额外安装兼容层包。
 
 ## 快速开始
 
@@ -44,7 +44,7 @@ dotnet add package Community.Phone.Controls.Toolkit.WPF
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary
-                    Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Generic.xaml" />
+                    Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
@@ -57,7 +57,9 @@ dotnet add package Community.Phone.Controls.Toolkit.WPF
 <Window x:Class="MyApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF">
+        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+        xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+        xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone">
     <phone:TransitionFrame x:Name="Frame" />
 </Window>
 ```
@@ -69,6 +71,8 @@ public MainWindow()
     Frame.Navigate(new HomePage());
 }
 ```
+
+`TransitionFrame` 是 toolkit 类型（`phone:`）。页面和框架基类（`PhoneApplicationPage`、`PhoneApplicationFrame`）位于 `Community.Phone` 兼容层，因此页面应继承 `platform:PhoneApplicationPage`，应用栏和系统栏使用 `shell:`；`Pivot`、`Rating`、`ToggleSwitch` 等 toolkit 控件仍使用 `phone:`。
 
 ## 投影
 
@@ -138,7 +142,7 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 dotnet restore
 dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
 dotnet test Community.Phone.Controls.Toolkit.slnx -c Release
-dotnet pack src\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj -c Release
+dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release
 ```
 
 包输出到 `artifacts/packages`。
@@ -153,16 +157,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 
 ## 验证状态
 
-- Release 构建：0 errors（2026-10-30 重新验证）。仍有 4 个唯一警告（`WindowHelper` ×2 与未改动的 `ViewportControl` 事件警告）；`LongListSelector` 的警告已消失。`WINDOWS_PHONE;WP8` 常量在所有配置下都定义，因为移植源码用它们选择兼容命名空间和本地化资源。
-- 自动化测试：Release 下 139/141 通过（约 38 秒；覆盖投影、控件、转换器、效果、导航/转场、Pivot、LongListSelector、HyperlinkButton 和 Shell API）。两个失败断言（`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`、`ListPicker_HighlightedVisualStateUsesBrushResources`）在基线 `b55dc12` 上同样失败。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）、`ListPicker` 完整模式页面的应用栏、`LongListSelector` 的分组/页眉/网格/滚动/跳转列表行为、`HyperlinkButton` 导航/自动化，以及 `Pivot` 的滑动/页眉/锁定行为（含 96 DPI 渲染检查）。
-- 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功。
+- Release 构建：0 errors。仍有 2 个唯一警告（`ViewportControl` 中刻意保留的公共事件）；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告。`WINDOWS_PHONE;WP8` 常量在所有配置下都定义，因为移植源码用它们选择兼容命名空间和本地化资源。
+- 自动化测试：Release 下 142/144 通过（约 40 秒；覆盖投影、控件、转换器、效果、导航/转场、Pivot、LongListSelector、HyperlinkButton 和 Shell API）。两个失败断言（`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`、`ListPicker_HighlightedVisualStateUsesBrushResources`）在基线上同样失败。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）、`ListPicker` 完整模式页面的应用栏、`LongListSelector` 的分组/页眉/网格/滚动/跳转列表行为、`HyperlinkButton` 导航/自动化，以及 `Pivot` 的滑动/页眉/锁定行为（含 96 DPI 渲染检查）。
+- 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功，并验证 `Community.Phone` 兼容层及主题资源能从包中加载。
 - 示例：启动成功；UI 自动化逐个打开示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus、Pivot）并每次返回示例索引，未产生启动错误。
 - 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。
 
 ## 运行示例
 
 ```powershell
-dotnet run --project src\Community.Phone.Controls.Toolkit.WPF.Sample
+dotnet run --project src\Community.Phone.Controls.Toolkit.Sample
 ```
 
 示例结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页 —— `ControlsPage`（带 WP 样式的 WPF 基础控件 + 全部已实现工具包控件）、`ProjectionPage`、`TransitionsPage`（可选任意转场族，包括羽化，并用它导航）、`FeatherPage`、`MenusPage`（ContextMenu、CustomMessageBox、ApplicationBar/SystemTray 状态）、`PivotSample`（拖拽、快速滑动、点击页眉、方向键、`IsLocked`）、`HubTileSample`（三项 `Pivot` + 原版 hub tile 与照片）、`LongListSelectorSample`（分组列表、跳转列表和网格模式），以及 ListPicker 和消息框示例。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。往示例工程新增图片后请重建（`dotnet build -t:Rebuild`）：增量构建可能保留旧的 `.g.resources` 文件列表，pack URI 会报「找不到资源」。

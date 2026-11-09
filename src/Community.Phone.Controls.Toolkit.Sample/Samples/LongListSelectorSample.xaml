@@ -5,16 +5,17 @@
 // All other rights reserved.
 -->
 
-<phone:PhoneApplicationPage 
+<platform:PhoneApplicationPage 
     x:Class="PhoneToolkitSample.Samples.LongListSelectorSample"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone.Controls.Toolkit.WPF"
-    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:local="clr-namespace:PhoneToolkitSample"
     xmlns:data="clr-namespace:PhoneToolkitSample.Data"
     mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
@@ -45,7 +46,7 @@
         </toolkit:NavigationOutTransition>
     </toolkit:TransitionService.NavigationOutTransition>
 
-    <phone:PhoneApplicationPage.Resources>
+    <platform:PhoneApplicationPage.Resources>
         <!-- MOVIE RESOURCES -->
 
         <!-- The template for the list header. This will scroll as a part of the list. -->
@@ -123,7 +124,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    </phone:PhoneApplicationPage.Resources>
+    </platform:PhoneApplicationPage.Resources>
 
     <Grid x:Name="LayoutRoot" Background="Transparent">
         <controls:Pivot Title="LONGLISTSELECTOR SAMPLES">
@@ -228,4 +229,4 @@
         </controls:Pivot>
     </Grid>
 
-</phone:PhoneApplicationPage>
+</platform:PhoneApplicationPage>

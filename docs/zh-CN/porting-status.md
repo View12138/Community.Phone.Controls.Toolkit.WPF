@@ -1,4 +1,4 @@
-# 移植状态 — Community.Phone.Controls.Toolkit.WPF
+# 移植状态 — Community.Phone.Controls.Toolkit
 
 [English](../porting-status.md) · 中文
 
@@ -12,7 +12,7 @@
 | 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
 | ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**证据快照（2026-10-30）：** Release 构建 0 错误、4 个唯一警告（`WindowHelper` ×2 与未改动的 `ViewportControl` 事件警告；`LongListSelector` 的警告已消失）· Release 下 **139/141 测试通过**（约 38 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）。两个失败是既有的 ListPicker 样式断言 `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ListPicker_HighlightedVisualStateUsesBrushResources`，在基线 `b55dc12` 上同样失败 · 新增的 7 个 `LongListSelectorTests`、3 个 `HyperlinkButtonTests` 及 `NavigationContext_ParsesQueryFromARelativeUri` 全部通过 · 示例冒烟运行：应用可启动，基于 `LongListSelector` 的索引通过 `HyperlinkButton` 导航到 `LongListSelectorSample`（组页眉/项目正常渲染），`Toggle grid` 可切换到网格模式，示例错误日志没有新增内容。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
+**证据快照（2026-11-09）：** Release 构建 0 错误、2 个唯一警告（`ViewportControl` 中刻意保留的公共事件；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告）· Release 下 **142/144 测试通过**（约 40 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）。两个失败是既有的 ListPicker 样式断言 `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ListPicker_HighlightedVisualStateUsesBrushResources`，在基线上同样失败 · 项目已拆分为 `Community.Phone`（`Microsoft.Phone.dll` 兼容层：导航/页面/Shell 类型）与 `Community.Phone.Controls.Toolkit`（toolkit 控件/转场），两者一起放进单一 `Community.Phone.Controls.Toolkit` 包 · 新增回归测试 `TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` 覆盖跨线程清理 · 示例冒烟运行：应用可启动，导航与 `LongListSelector` 示例正常渲染，没有启动错误。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
 
 ---
 
@@ -102,7 +102,8 @@
 |---|---|---|
 | Metro 主题 + WPF 基础控件 WP 样式 | ✅ 存在性已验证 / 🟡（保真度） | `Theme_ContainsMetroResources`；`Generic.xaml` 覆盖 `Button`、`TextBox`、`ComboBox`、`CheckBox`、`RadioButton`、`ListBox`、`ScrollBar`、`ContextMenu`、`ProgressBar`、`ToolTip` 及工具包控件。从未与 WP 做并排像素对比 |
 | 本地化资源 | ✅ 已验证 | 50 种文化 + 中性资源，包内包含卫星程序集；`OffOnConverterUsesLocalizedStrings` |
-| NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.WPF.0.1.0-preview.1.nupkg` + `.snupkg`，全新消费工程可构建运行 |
+| `Community.Phone` 兼容层 | ✅ 已验证 | `NavigationTests`、`ShellTests`、`ControlTests` 与包消费冒烟测试从独立程序集及它自己的 `Themes/Generic.xaml` 加载 `PhoneApplicationFrame`/`PhoneApplicationPage`/`ApplicationBar` |
+| NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` + `.snupkg` 同时包含两个程序集，全新消费工程可构建运行 |
 | 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`、`ListPickerSample`、`CustomMessageBoxSample`、`PivotSample`、`HubTileSample`、`LongListSelectorSample`；索引页本身就是一个 `LongListSelector`）。2026-10-27 UI 自动化冒烟：Pivot 示例可打开（活动 `PivotItem`、页眉、状态文本），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 HubTile 与图片）能渲染文本和图片。两个配置都先做了重新构建：往示例工程里新增 `Resource` 图片后必须重建，否则 `.g.resources` 仍是旧文件列表，pack URI 会找不到资源 |
 
 ---
@@ -110,11 +111,11 @@
 ## 7. 重新验证命令
 
 ```powershell
-dotnet build PhoneToolkit.WPF.slnx -c Release
-dotnet test  PhoneToolkit.WPF.slnx -c Release
+dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
+dotnet test  Community.Phone.Controls.Toolkit.slnx -c Release
 powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 # 示例（重建前先结束进程）
-.\src\Community.Phone.Controls.Toolkit.WPF.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.WPF.Sample.exe
+.\src\Community.Phone.Controls.Toolkit.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.Sample.exe
 ```
 
 ## 8. 维护规则

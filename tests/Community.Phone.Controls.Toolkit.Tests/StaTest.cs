@@ -7,7 +7,7 @@ using Xunit;
 // TiltEffect statics, SystemTray), so they run one at a time.
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     internal static class StaTest
     {

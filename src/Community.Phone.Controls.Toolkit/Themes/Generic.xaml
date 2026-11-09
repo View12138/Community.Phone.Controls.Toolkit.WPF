@@ -9,19 +9,19 @@
     xmlns:syswin="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Theme/DarkCobalt.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Theme/DarkCobalt.xaml" />
         
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/Button.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/ComboBox.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/CustomMessageBox.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/HubTile.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/ListBox.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/ListPicker.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/LongListSelector.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/PhoneApplicationFrame.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/Pivot.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/TextBlock.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit.WPF;component/Themes/Controls/TextBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/Button.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ComboBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/CustomMessageBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/HubTile.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListPicker.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/LongListSelector.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TransitionFrame.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/Pivot.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TextBlock.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TextBox.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!--  Default Metro styles for the WPF controls used by applications.  -->

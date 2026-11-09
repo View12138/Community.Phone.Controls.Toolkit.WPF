@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Community.Phone.Controls.Toolkit.WPF.Tests</RootNamespace>
+    <RootNamespace>Community.Phone.Controls.Toolkit.Tests</RootNamespace>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
@@ -15,7 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Community.Phone.Controls.Toolkit.WPF\Community.Phone.Controls.Toolkit.WPF.csproj" />
+    <ProjectReference Include="..\..\src\Community.Phone\Community.Phone.csproj" />
+    <ProjectReference Include="..\..\src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj" />
   </ItemGroup>
 
 </Project>

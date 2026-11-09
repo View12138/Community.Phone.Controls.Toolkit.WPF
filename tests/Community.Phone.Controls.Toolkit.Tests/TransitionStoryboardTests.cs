@@ -7,7 +7,7 @@ using System.Windows.Media.Animation;
 using Microsoft.Phone.Controls;
 using Xunit;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     /// <summary>
     /// Guards the values that come from the original

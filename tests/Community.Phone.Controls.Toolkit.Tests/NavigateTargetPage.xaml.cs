@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace Community.Phone.Controls.Toolkit.WPF.Tests
+namespace Community.Phone.Controls.Toolkit.Tests
 {
     public partial class NavigateTargetPage : Page
     {

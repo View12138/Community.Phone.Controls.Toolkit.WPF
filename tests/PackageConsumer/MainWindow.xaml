@@ -1,7 +1,8 @@
 <Window x:Class="PackageConsumer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit.WPF"
+        xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+        xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
         Title="Package consumer smoke test"
         Width="520"
         Height="700"
@@ -32,5 +33,6 @@
                 <phone:PlaneProjection RotationY="-28" RotationX="8" />
             </phone:ProjectionHost.Projection>
         </phone:ProjectionHost>
+        <platform:PhoneApplicationFrame x:Name="PhoneFrame" Height="150" Margin="0,8,0,0" />
     </StackPanel>
 </Window>
