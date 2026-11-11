@@ -50,7 +50,7 @@ namespace PhoneToolkitSample8
                 new SampleItem("/Samples/TiltEffectSample.xaml","tilteffect","make buttons visually responsive to touch" ),
                 new SampleItem("/Samples/TransferControlSample.xaml","transfercontrol","controls to show background downloads and uploads" ),
                 new SampleItem("/Samples/TransitionsSample.xaml","transitions","beautifully animate between pages" ),
-                new SampleItem("/Samples/WrapPanelSample.xaml","wrappanel","a non-virtualized wrapping control" )
+                new SampleItem("/Samples/WrapPanelSample.xaml","wrappanel","a non-virtualized wrapping control" ),
             };
         }
 

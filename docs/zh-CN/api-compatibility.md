@@ -25,6 +25,9 @@
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`、`ExtraData`。 |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | 同名 | B | 映射到 WPF 应用/窗口生命周期。 |
 | `Microsoft.Phone.Shell.SystemTray` | 同名 | B | API/状态已实现；视觉 chrome 尚未完成。 |
+| `Application.RequestedTheme`（平台） | `Microsoft.Phone.Shell.PhoneApplication.RequestedTheme`、`PhoneThemeManager.RequestedTheme` | B | 赋值后立即应用调色板；移植新增的 `ApplicationTheme.Auto` 跟随 Windows 应用主题。 |
+| —（移植新增） | `Microsoft.Phone.Shell.AccentColor` | D | 构建时从 `Themes/Colors/Light{Name}.xaml` / `Dark{Name}.xaml` 文件名生成（Amber … Yellow）；增加一对字典就会增加一个枚举值。 |
+| —（移植新增） | `Microsoft.Phone.Shell.PhoneThemeManager` | D | 运行时替换当前颜色字典；`CustomAccentColor` 接受任意 `Color`，无需匹配字典即可派生强调色画刷。 |
 | `Microsoft.Phone.Shell.ApplicationBar`（含 `IApplicationBar`、`IApplicationBarIconButton`、`IApplicationBarMenuItem`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 同名 | A/B | 保留原版 API 形状（最多 4 个图标按钮、最多 50 个菜单项、文本/图标校验、`StateChanged`）；应用栏由 frame 承载的 `ApplicationBarPresenter` 绘制，并像原版一样为页面预留空间。 |
 | `Microsoft.Phone.Controls.TransitionFrame` | 同名 | B | 模板部件是 `ProjectionHost`，不是 `ContentPresenter`。 |
 | `Microsoft.Phone.Controls.ITransition` 及转场类型 | 同名 | A/B | 相同 API 面；使用 WPF Storyboard 和状态跟踪。 |
@@ -162,6 +165,7 @@
 5. **控件**：DP 面和核心行为保留；WPF 没有对应 picker/popup 基础设施时，视觉细节和模态宿主不同。
 6. **本地化**：包含原始 resx 资源；`ControlResources` 使用 `CurrentUICulture`。
 7. **不支持模块**：AutoCompleteBox、LongListMultiSelector、MultiselectList、地图、传输、语音、`LockablePivot`、SlideInEffect 和手势 API 明确不支持，没有空壳。`LongListSelector` 已按上述 items-host 模型实现。
+8. **主题**：`PhoneThemeManager` 把调色板字典移到 `Application.Resources`（移除 `Themes/Generic.xaml` 中嵌套的那份），这样替换字典会触发 `DynamicResource` 消费者失效并更新。包内模板使用动态资源；应用 XAML 也必须用 `DynamicResource`，关键帧里捕获的颜色（例如 `PhoneTextBox` 获得焦点时的颜色）只会在模板重新应用时刷新。
 
 ## 验证状态
 
@@ -174,6 +178,7 @@
 | 导航/转场测试 | `tests/.../NavigationTests.cs` |
 | 效果测试 | `tests/.../EffectsTests.cs` |
 | 示例运行冒烟 | `src/Community.Phone.Controls.Toolkit.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
+| 主题/强调色切换（手动） | 示例 `Samples/ThemeSample.xaml`：明/暗主题、调色板强调色、自定义强调色 |
 | 包安装测试 | `build/verify-package.ps1` + `tests/PackageConsumer`（隔离缓存，构建并运行） |
 
 实现状态变化时必须同步更新本矩阵；没有构建/测试或明确手动证据的功能不得声称完成。

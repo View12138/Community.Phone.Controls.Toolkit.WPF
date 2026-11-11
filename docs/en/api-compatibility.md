@@ -25,6 +25,9 @@ This matrix is based on the source audit in [porting-inventory.md](porting-inven
 | `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF has no equivalent; exposes `Uri`, `QueryString`, `ExtraData`. |
 | `Microsoft.Phone.Shell.PhoneApplicationService` | `Microsoft.Phone.Shell.PhoneApplicationService` | B | WPF app/window lifetime mapping. |
 | `Microsoft.Phone.Shell.SystemTray` | `Microsoft.Phone.Shell.SystemTray` | B | API/state implemented; chrome rendering pending. |
+| `Application.RequestedTheme` (platform) | `Microsoft.Phone.Shell.PhoneApplication.RequestedTheme`, `PhoneThemeManager.RequestedTheme` | B | Assignment applies the palette immediately; the port-only `ApplicationTheme.Auto` value follows the Windows app theme. |
+| — (port-only) | `Microsoft.Phone.Shell.AccentColor` | D | Enum generated at build time from the `Themes/Colors/Light{Name}.xaml` / `Dark{Name}.xaml` file names (Amber … Yellow); adding a dictionary pair adds a value. |
+| — (port-only) | `Microsoft.Phone.Shell.PhoneThemeManager` | D | Replaces the active color dictionary at run time; `CustomAccentColor` accepts any `Color` and derives the accent brushes without a matching dictionary. |
 | `Microsoft.Phone.Shell.ApplicationBar` (and `IApplicationBar`, `IApplicationBarIconButton`, `IApplicationBarMenuItem`, `ApplicationBarIconButton`, `ApplicationBarMenuItem`, `ApplicationBarMode`, `ApplicationBarStateChangedEventArgs`) | same names | A/B | Original API shape (max 4 icon buttons, max 50 menu items, text/icon validation, `StateChanged`); the bar is drawn by `ApplicationBarPresenter` hosted by the frame, which reserves the page space like the original. |
 | `Microsoft.Phone.Controls.TransitionFrame` | `Microsoft.Phone.Controls.TransitionFrame` | B | Template parts are `ProjectionHost`, not `ContentPresenter`. |
 | `Microsoft.Phone.Controls.ITransition` and transition types | same names | A/B | Same surface; WPF storyboards and state tracking. |
@@ -162,6 +165,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 5. **Controls** — DP surfaces and core behavior are preserved; visual details and modal hosts differ where WPF has no WP picker/popup infrastructure.
 6. **Localization** — all original resx resources are included; `CurrentUICulture` is used by `ControlResources`.
 7. **Unsupported modules** — AutoCompleteBox, LongListMultiSelector, MultiselectList, maps, transfer, speech, `LockablePivot`, SlideInEffect, and gesture APIs are explicitly unsupported, not stubbed. `LongListSelector` is implemented with the ported items-host model described above.
+8. **Theming** — `PhoneThemeManager` moves the palette dictionary to `Application.Resources` (removing the copy nested in `Themes/Generic.xaml`) so replacing it invalidates `DynamicResource` consumers. The templates supplied by the packages are dynamic; application XAML must use `DynamicResource` as well, and keyframe captures (such as the `PhoneTextBox` focus colors) are refreshed only when a template is re-applied.
 
 ## Verification status
 
@@ -173,6 +177,7 @@ The 27 original `Transitions/Storyboards/*.xaml` files ship as WPF resources and
 | Pivot tests | `tests/.../PivotTests.cs` |
 | Navigation/transition tests | `tests/.../NavigationTests.cs` |
 | Sample runtime smoke test | `src/Community.Phone.Controls.Toolkit.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
+| Theme/accent switching (manual) | sample `Samples/ThemeSample.xaml`: light/dark, palette accent, custom accent |
 | Package install test | `build/verify-package.ps1` + `tests/PackageConsumer` (fresh isolated cache, build and run) |
 
 This matrix is updated when implementation status changes; it must not be used to claim a feature is complete unless the corresponding build/test or manual evidence exists.

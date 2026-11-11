@@ -13,17 +13,6 @@ namespace Microsoft.Phone.Shell
 {
     public class WindowHelper
     {
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT { public int Left, Top, Right, Bottom; }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        private const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
-        [DllImport("dwmapi.dll")]
-        private static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out RECT pvAttribute, int cbAttribute);
-
         public static Size GetClientSize(Window window)
         {
             var content = window.Content as FrameworkElement;

@@ -6,9 +6,9 @@
     xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}">
+    Foreground="{DynamicResource PhoneForegroundBrush}">
 
-    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+    <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <StackPanel Margin="12,24,12,12">
             <TextBlock
                 Text="target page"

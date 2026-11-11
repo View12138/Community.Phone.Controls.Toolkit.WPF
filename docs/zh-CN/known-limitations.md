@@ -34,7 +34,7 @@
 
 1. **系统栏**：`SystemTray.IsVisible`、`SystemTray.ProgressIndicator`、`SystemTray.Opacity`、`SystemTray.BackgroundColor`、`SystemTray.ForegroundColor` 及状态变化事件以 API 模型实现。默认 Frame 模板**不会**绘制完整的 Windows Phone 状态栏（信号、电池、时钟、全屏行为）。需要视觉 chrome 的应用应自行渲染。
 2. **应用栏**：已移植原版 `Microsoft.Phone.Shell` API —— `IApplicationBar`、`ApplicationBar`（最多 4 个图标按钮、最多 50 个菜单项、文本/图标校验、`Opacity` 截断、`Mode`、`StateChanged`）、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode` 与 `ApplicationBarStateChangedEventArgs`。frame 通过 `ApplicationBarPresenter`（替代原生合成器的移植新增类型）绘制应用栏：圆形图标按钮（48 DIP 圆环、2 DIP 白色描边，内部 32 DIP 图标）及标签、菜单按钮、菜单浮层、最小化模式、颜色/透明度，以及为页面预留的空间（不可见或半透明时浮在页面之上，与原版一致）。差异：应用栏属于 frame 的 chrome，因此不随页面转场动画进入；默认颜色使用 Metro chrome 颜色（原生默认值无法从托管代码观察）；菜单以 WPF `Popup` 打开；图标 URI 按应用资源解析，缺失图标时按钮不显示图片而不是报错。
-3. **主题颜色**：提供 Metro 颜色和文本样式资源，但没有自动明/暗主题切换和 WP accent 颜色集成。应用可以覆盖资源键。
+3. **主题颜色**：提供 Metro 颜色和文本样式资源；`Microsoft.Phone.Shell.PhoneThemeManager` 支持运行时切换明/暗主题和强调色（枚举调色板或任意自定义 `Color`），`ApplicationTheme.Auto` 会跟随 Windows 应用主题。库内模板使用 `DynamicResource`，会就地更新。应用 XAML 里用 `StaticResource` 解析的主题画刷会保留该 XAML 解析时的值，动画关键帧里捕获的颜色（例如 `PhoneTextBox` 获得焦点时的背景）只会在模板重新应用时刷新；应用 XAML 中的主题画刷请使用 `DynamicResource`。
 4. **屏幕尺寸**：不强制 WP 布局常量（800×480、480×800、768×1280 等）。示例使用桌面窗口尺寸。
 
 ## 4. 投影与 3D

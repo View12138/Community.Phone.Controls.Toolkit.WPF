@@ -281,6 +281,24 @@ The original WP platform supplied `PhoneAccentBrush`, `PhoneForegroundBrush`, `P
 </ResourceDictionary.MergedDictionaries>
 ```
 
+### Runtime theme and accent switching
+
+`Microsoft.Phone.Shell.PhoneThemeManager` replaces the active `Themes/Colors` palette at run time. The `AccentColor` enum is generated from the dictionary file names; `CustomAccentColor` accepts any `System.Windows.Media.Color`:
+
+```csharp
+using System.Windows.Media;
+using Microsoft.Phone.Shell;
+
+PhoneThemeManager.RequestedTheme = ApplicationTheme.Auto;   // default: follow Windows
+PhoneThemeManager.AccentColor = AccentColor.Red;
+PhoneThemeManager.Apply();                                  // when Application.Resources is not ready yet
+
+PhoneThemeManager.CustomAccentColor = Color.FromRgb(0x12, 0x34, 0x56);
+PhoneThemeManager.CustomAccentColor = null;                 // back to the palette accent
+```
+
+`PhoneApplication` applies the manager at startup and forwards `RequestedTheme`, `AccentColor` and `CustomAccentColor`; an application that derives from it only sets the properties. `PhoneThemeManager.ThemeChanged` is raised after each applied change. The manager updates `DynamicResource` consumers, so use `DynamicResource` for theme brushes in application XAML too.
+
 ## 10. Verification checklist
 
 1. Project builds against `net10.0-windows` (or your chosen Windows TFM) with `UseWPF`.

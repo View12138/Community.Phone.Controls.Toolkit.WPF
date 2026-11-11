@@ -13,7 +13,8 @@
     mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
+    Background="{DynamicResource PhoneBackgroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True" Margin="0,1,0,-1"
     toolkit:TiltEffect.IsTiltEnabled="True">

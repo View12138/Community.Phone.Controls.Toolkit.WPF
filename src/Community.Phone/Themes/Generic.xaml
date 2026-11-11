@@ -5,7 +5,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell">
     
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Colors/DarkCobalt.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/DarkTheme.xaml" />
 
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Button.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/LongListSelector.xaml" />

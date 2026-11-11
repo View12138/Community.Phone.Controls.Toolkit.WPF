@@ -20,6 +20,15 @@
 		<Resource Include="Images\*.png" />
 		<Resource Include="Images\*.jpg" />
 		<Content Include="Data\LoremIpsum.txt" />
+		<Compile Update="Resources\AppResources.Designer.cs">
+		  <DesignTime>True</DesignTime>
+		  <AutoGen>True</AutoGen>
+		  <DependentUpon>AppResources.resx</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Resources\AppResources.resx">
+		  <Generator>ResXFileCodeGenerator</Generator>
+		  <LastGenOutput>AppResources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
 		<Page Update="Themes\Generic.xaml">
 			<Generator>MSBuild:Compile</Generator>
 			<SubType>Designer</SubType>

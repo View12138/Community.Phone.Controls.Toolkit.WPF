@@ -6,9 +6,9 @@
     xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}">
+    Foreground="{DynamicResource PhoneForegroundBrush}">
 
-    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+    <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -22,7 +22,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12,0,12,24">
                 <phone:ProjectionHost x:Name="ProjectionDemo" Height="180" Margin="0,8,0,16">
-                    <Border Background="{StaticResource PhoneAccentBrush}">
+                    <Border Background="{DynamicResource PhoneAccentBrush}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="PlaneProjection" Foreground="White" FontSize="24" HorizontalAlignment="Center" />
                             <TextBlock Text="real Viewport2DVisual3D" Foreground="White" FontSize="14" HorizontalAlignment="Center" />
@@ -36,7 +36,7 @@
                 <Border
                     Height="120"
                     Margin="0,0,0,16"
-                    Background="{StaticResource PhoneAccentBrush}">
+                    Background="{DynamicResource PhoneAccentBrush}">
                     <phone:ProjectionService.Projection>
                         <phone:PlaneProjection x:Name="HostlessProjection" RotationY="-22" RotationX="10" />
                     </phone:ProjectionService.Projection>

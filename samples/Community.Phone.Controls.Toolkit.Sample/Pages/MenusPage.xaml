@@ -12,7 +12,7 @@
     d:DesignWidth="480"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
     mc:Ignorable="d">
 
     <platform:PhoneApplicationPage.ApplicationBar>
@@ -28,7 +28,7 @@
         </shell:ApplicationBar>
     </platform:PhoneApplicationPage.ApplicationBar>
 
-    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+    <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -41,7 +41,7 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12,0,12,24">
-                <Border Margin="0,0,0,16" Padding="12" Background="{StaticResource PhoneChromeBrush}">
+                <Border Margin="0,0,0,16" Padding="12" Background="{DynamicResource PhoneChromeBrush}">
                     <phone:ContextMenuService.ContextMenu>
                         <phone:ContextMenu>
                             <phone:MenuItem Click="OnContextMenuCopy" Header="Copy" />

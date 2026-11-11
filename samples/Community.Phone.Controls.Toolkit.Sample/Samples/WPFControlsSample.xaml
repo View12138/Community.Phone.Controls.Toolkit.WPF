@@ -7,9 +7,9 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}">
+    Foreground="{DynamicResource PhoneForegroundBrush}">
 
-    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+    <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

@@ -281,6 +281,24 @@ projection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 </ResourceDictionary.MergedDictionaries>
 ```
 
+### 运行时切换主题和强调色
+
+`Microsoft.Phone.Shell.PhoneThemeManager` 在运行时替换当前 `Themes/Colors` 调色板。`AccentColor` 枚举由字典文件名生成；`CustomAccentColor` 接受任意 `System.Windows.Media.Color`：
+
+```csharp
+using System.Windows.Media;
+using Microsoft.Phone.Shell;
+
+PhoneThemeManager.RequestedTheme = ApplicationTheme.Auto;   // 默认：跟随 Windows
+PhoneThemeManager.AccentColor = AccentColor.Red;
+PhoneThemeManager.Apply();                                  // Application.Resources 尚未就绪时调用
+
+PhoneThemeManager.CustomAccentColor = Color.FromRgb(0x12, 0x34, 0x56);
+PhoneThemeManager.CustomAccentColor = null;                 // 恢复枚举调色板
+```
+
+`PhoneApplication` 会在启动时应用主题，并把 `RequestedTheme`、`AccentColor` 和 `CustomAccentColor` 转发给管理器；继承它的应用只需设置这些属性。每次应用成功后都会触发 `PhoneThemeManager.ThemeChanged`。管理器更新的是 `DynamicResource` 消费者，因此应用 XAML 里的主题画刷也应使用 `DynamicResource`。
+
 ## 10. 验证清单
 
 1. 工程以 `net10.0-windows`（或选择的 Windows TFM）和 `UseWPF` 构建。

@@ -6,6 +6,7 @@
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
     xmlns:local="clr-namespace:PhoneToolkitSample8"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     Startup="OnStartup">
     <Application.Resources>
@@ -54,8 +55,8 @@
 
             <Style x:Key="PhoneButtonBase" TargetType="ButtonBase">
                 <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderBrush" Value="{StaticResource PhoneForegroundBrush}"/>
-                <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}"/>
                 <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}"/>
                 <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiBold}"/>
                 <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMediumLarge}"/>

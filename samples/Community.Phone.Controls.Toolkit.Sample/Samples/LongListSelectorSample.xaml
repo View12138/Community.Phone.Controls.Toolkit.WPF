@@ -21,7 +21,7 @@
     mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait"  Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
@@ -60,14 +60,14 @@
         <!-- The group header template, for groups in the main list -->
         <DataTemplate x:Key="movieGroupHeader">
             <TextBlock Text="{Binding Key}" FontSize="{StaticResource PhoneFontSizeLarge}"
-                       Foreground="{StaticResource PhoneAccentBrush}" Margin="12,28,0,24"/>
+                       Foreground="{DynamicResource PhoneAccentBrush}" Margin="12,28,0,24"/>
         </DataTemplate>
 
         <!-- The template for groups when they are items in the "jump list". Not setting -->
         <!-- the GroupItemTemplate property will disable "jump list" functionality. -->
         <DataTemplate x:Key="groupItemHeader">
             <phone:ProjectionHost>
-                <Border Background="{StaticResource PhoneAccentBrush}"
+                <Border Background="{DynamicResource PhoneAccentBrush}"
                     Width="432" Height="62"
                     Margin="6" Padding="12,0,0,6">
                     <TextBlock Text="{Binding Key}" 
@@ -110,7 +110,7 @@
             <Setter Property="ItemTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <Border Background="{StaticResource PhoneAccentBrush}"
+                        <Border Background="{DynamicResource PhoneAccentBrush}"
                                 Width="432" Height="62"
                                 Margin="6" Padding="12,0,0,6"
                                 toolkit:TiltEffect.IsTiltEnabled="True">
@@ -137,7 +137,7 @@
                     <platform:LongListSelector.GroupHeaderTemplate>
                         <DataTemplate>
                             <Border Background="Transparent" Margin="12,8,0,8">
-                                <Border Background="{StaticResource PhoneAccentBrush}" 	
+                                <Border Background="{DynamicResource PhoneAccentBrush}" 	
                                         Padding="8,0,0,0" Width="62" Height="62" 				 
                                         HorizontalAlignment="Left">
                                     <TextBlock Text="{Binding Key}" 

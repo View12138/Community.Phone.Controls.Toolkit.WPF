@@ -27,7 +27,7 @@
     <FontFamily x:Key="PhoneFontFamilySymbol">Segoe MDL2 Assets</FontFamily>
 
     <Style TargetType="{x:Type RadioButton}">
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
         <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -47,14 +47,14 @@
                             Height="24"
                             VerticalAlignment="Top"
                             Background="Transparent"
-                            BorderBrush="{StaticResource PhoneSubtleBrush}"
+                            BorderBrush="{DynamicResource PhoneSubtleBrush}"
                             BorderThickness="2"
                             CornerRadius="12">
                             <Ellipse
                                 x:Name="RadioMark"
                                 Width="12"
                                 Height="12"
-                                Fill="{StaticResource PhoneAccentBrush}"
+                                Fill="{DynamicResource PhoneAccentBrush}"
                                 Visibility="Collapsed" />
                         </Border>
                         <ContentPresenter
@@ -65,11 +65,11 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="RadioRoot" Property="BorderBrush" Value="{StaticResource PhoneAccentBrush}" />
+                            <Setter TargetName="RadioRoot" Property="BorderBrush" Value="{DynamicResource PhoneAccentBrush}" />
                             <Setter TargetName="RadioMark" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="RadioRoot" Property="BorderBrush" Value="{StaticResource PhoneAccentBrush}" />
+                            <Setter TargetName="RadioRoot" Property="BorderBrush" Value="{DynamicResource PhoneAccentBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="RadioRoot" Property="Opacity" Value="0.4" />
@@ -81,9 +81,9 @@
     </Style>
 
     <Style x:Key="PhoneContextMenuStyle" TargetType="{x:Type ContextMenu}">
-        <Setter Property="Background" Value="{StaticResource PhoneChromeBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneSubtleBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
@@ -109,7 +109,7 @@
 
     <Style x:Key="PhoneMenuItemStyle" TargetType="{x:Type MenuItem}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="Padding" Value="12,8" />
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
         <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
@@ -143,7 +143,7 @@
                                 Grid.Column="2"
                                 Margin="16,0,0,0"
                                 VerticalAlignment="Center"
-                                Foreground="{StaticResource PhoneSubtleBrush}"
+                                Foreground="{DynamicResource PhoneSubtleBrush}"
                                 Text="{TemplateBinding InputGestureText}" />
                             <Popup
                                 x:Name="PART_Popup"
@@ -152,7 +152,7 @@
                                 IsOpen="{TemplateBinding IsSubmenuOpen}"
                                 Placement="Right"
                                 PopupAnimation="Fade">
-                                <Border Background="{StaticResource PhoneChromeBrush}" BorderBrush="{StaticResource PhoneSubtleBrush}" BorderThickness="1">
+                                <Border Background="{DynamicResource PhoneChromeBrush}" BorderBrush="{DynamicResource PhoneSubtleBrush}" BorderThickness="1">
                                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
                                 </Border>
                             </Popup>
@@ -178,7 +178,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Separator}">
-                    <Border Height="1" Margin="8,2" Background="{StaticResource PhoneSubtleBrush}" />
+                    <Border Height="1" Margin="8,2" Background="{DynamicResource PhoneSubtleBrush}" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -191,7 +191,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Thumb}">
-                    <Border Margin="2" Background="{StaticResource PhoneSubtleBrush}" CornerRadius="3" />
+                    <Border Margin="2" Background="{DynamicResource PhoneSubtleBrush}" CornerRadius="3" />
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -241,15 +241,15 @@
 
     <Style TargetType="{x:Type ProgressBar}">
         <Setter Property="Height" Value="8" />
-        <Setter Property="Background" Value="{StaticResource PhoneChromeBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneAccentBrush}" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 
     <Style TargetType="{x:Type ToolTip}">
-        <Setter Property="Background" Value="{StaticResource PhoneChromeBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneSubtleBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
@@ -258,9 +258,9 @@
 
     <!--  ToggleSwitchButton and ToggleSwitch.  -->
     <Style TargetType="{x:Type primitives:ToggleSwitchButton}">
-        <Setter Property="Background" Value="{StaticResource PhoneBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />
         <Setter Property="IsTabStop" Value="False" />
-        <Setter Property="SwitchForeground" Value="{StaticResource PhoneAccentBrush}" />
+        <Setter Property="SwitchForeground" Value="{DynamicResource PhoneAccentBrush}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type primitives:ToggleSwitchButton}">
@@ -287,8 +287,8 @@
                                             <TranslateTransform x:Name="BackgroundTranslation" />
                                         </Rectangle.RenderTransform>
                                     </Rectangle>
-                                    <Border BorderBrush="{StaticResource PhoneForegroundBrush}" BorderThickness="3">
-                                        <Border BorderBrush="{StaticResource PhoneBackgroundBrush}" BorderThickness="4" />
+                                    <Border BorderBrush="{DynamicResource PhoneForegroundBrush}" BorderThickness="3">
+                                        <Border BorderBrush="{DynamicResource PhoneBackgroundBrush}" BorderThickness="4" />
                                     </Border>
                                 </Grid>
                                 <Border
@@ -297,15 +297,15 @@
                                     Height="38"
                                     Margin="-4,0"
                                     HorizontalAlignment="Left"
-                                    BorderBrush="{StaticResource PhoneBackgroundBrush}"
+                                    BorderBrush="{DynamicResource PhoneBackgroundBrush}"
                                     BorderThickness="4,0">
                                     <Border.RenderTransform>
                                         <TranslateTransform x:Name="ThumbTranslation" />
                                     </Border.RenderTransform>
                                     <Border
                                         x:Name="ThumbCenter"
-                                        Background="{StaticResource PhoneForegroundBrush}"
-                                        BorderBrush="{StaticResource PhoneForegroundBrush}"
+                                        Background="{DynamicResource PhoneForegroundBrush}"
+                                        BorderBrush="{DynamicResource PhoneForegroundBrush}"
                                         BorderThickness="2" />
                                 </Border>
                             </Grid>
@@ -378,13 +378,13 @@
     </Style>
 
     <Style TargetType="{x:Type controls:ToggleSwitch}">
-        <Setter Property="Background" Value="{StaticResource PhoneBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyLight}" />
         <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeLarge}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="SwitchForeground" Value="{StaticResource PhoneAccentBrush}" />
+        <Setter Property="SwitchForeground" Value="{DynamicResource PhoneAccentBrush}" />
         <Setter Property="VerticalContentAlignment" Value="Top" />
         <Setter Property="Template">
             <Setter.Value>
@@ -408,7 +408,7 @@
                                 ContentTemplate="{TemplateBinding HeaderTemplate}"
                                 FontFamily="{StaticResource PhoneFontFamilyNormal}"
                                 FontSize="{StaticResource PhoneFontSizeNormal}"
-                                Foreground="{StaticResource PhoneSubtleBrush}"
+                                Foreground="{DynamicResource PhoneSubtleBrush}"
                                 IsTabStop="False" />
                             <ContentControl
                                 x:Name="Content"
@@ -455,8 +455,8 @@
 
     <!--  Rating.  -->
     <Style TargetType="{x:Type controls:Rating}">
-        <Setter Property="Background" Value="{StaticResource PhoneBackgroundBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="Width" Value="215" />
         <Setter Property="Height" Value="43" />
         <Setter Property="Template">
@@ -500,14 +500,14 @@
         <Setter Property="FilledItemStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type controls:RatingItem}">
-                    <Setter Property="Background" Value="{StaticResource PhoneForegroundBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource PhoneForegroundBrush}" />
                 </Style>
             </Setter.Value>
         </Setter>
         <Setter Property="UnfilledItemStyle">
             <Setter.Value>
                 <Style TargetType="{x:Type controls:RatingItem}">
-                    <Setter Property="Background" Value="{StaticResource PhoneSubtleBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource PhoneSubtleBrush}" />
                 </Style>
             </Setter.Value>
         </Setter>
@@ -533,9 +533,9 @@
     <Style TargetType="{x:Type controls:PhoneTextBox}">
         <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
         <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMediumLarge}" />
-        <Setter Property="Background" Value="{StaticResource PhoneTextBoxBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneTextBoxForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneTextBoxBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PhoneTextBoxBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneTextBoxForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneTextBoxBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
         <Setter Property="Padding" Value="{StaticResource PhoneBorderThickness}" />
         <Setter Property="Template">
@@ -549,7 +549,7 @@
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Bottom"
                                 FontSize="{StaticResource PhoneFontSizeNormal}"
-                                Foreground="{StaticResource PhoneContrastBackgroundBrush}"
+                                Foreground="{DynamicResource PhoneContrastBackgroundBrush}"
                                 Opacity="0"
                                 TextAlignment="Right" />
                         </Border>
@@ -603,7 +603,7 @@
                                 FontStyle="{TemplateBinding FontStyle}"
                                 FontWeight="{TemplateBinding FontWeight}"
                                 Foreground="{TemplateBinding Foreground}"
-                                SelectionBrush="{StaticResource PhoneAccentBrush}"
+                                SelectionBrush="{DynamicResource PhoneAccentBrush}"
                                 Style="{x:Null}"
                                 Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 TextAlignment="{TemplateBinding TextAlignment}"
@@ -798,7 +798,7 @@
                             Grid.Column="1"
                             HorizontalAlignment="Left"
                             Stretch="Fill"
-                            Stroke="{StaticResource PhoneSubtleBrush}"
+                            Stroke="{DynamicResource PhoneSubtleBrush}"
                             StrokeThickness="3"
                             X1="0"
                             X2="0"
@@ -873,9 +873,9 @@
                     <Grid>
                         <ProgressBar
                             x:Name="EmbeddedProgressBar"
-                            Background="{StaticResource PhoneChromeBrush}"
+                            Background="{DynamicResource PhoneChromeBrush}"
                             BorderThickness="0"
-                            Foreground="{StaticResource PhoneAccentBrush}"
+                            Foreground="{DynamicResource PhoneAccentBrush}"
                             IsIndeterminate="{TemplateBinding ActualIsIndeterminate}" />
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="VisibilityStates">
@@ -918,8 +918,8 @@
     <!--  DatePicker and TimePicker.  -->
     <Style TargetType="{x:Type controls:DatePicker}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Template">
@@ -931,7 +931,7 @@
                             Content="{TemplateBinding Header}"
                             ContentTemplate="{TemplateBinding HeaderTemplate}"
                             FontSize="{StaticResource PhoneFontSizeSmall}"
-                            Foreground="{StaticResource PhoneSubtleBrush}" />
+                            Foreground="{DynamicResource PhoneSubtleBrush}" />
                         <Button
                             x:Name="DateTimeButton"
                             Padding="12,8"
@@ -949,8 +949,8 @@
 
     <Style TargetType="{x:Type controls:TimePicker}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Template">
@@ -962,7 +962,7 @@
                             Content="{TemplateBinding Header}"
                             ContentTemplate="{TemplateBinding HeaderTemplate}"
                             FontSize="{StaticResource PhoneFontSizeSmall}"
-                            Foreground="{StaticResource PhoneSubtleBrush}" />
+                            Foreground="{DynamicResource PhoneSubtleBrush}" />
                         <Button
                             x:Name="DateTimeButton"
                             Padding="12,8"

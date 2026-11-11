@@ -6,7 +6,7 @@
     xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}">
+    Foreground="{DynamicResource PhoneForegroundBrush}">
 
     <phone:TransitionService.NavigationInTransition>
         <phone:NavigationInTransition>
@@ -30,7 +30,7 @@
         </phone:NavigationOutTransition>
     </phone:TransitionService.NavigationOutTransition>
 
-    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+    <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12,24,12,12">
                 <TextBlock
