@@ -253,6 +253,7 @@ namespace Microsoft.Phone.Controls.Primitives
 
             if (_root != null && _track != null && _thumb != null && (_backgroundTranslation != null || _thumbTranslation != null))
             {
+                _root.IsManipulationEnabled = true;
                 _root.ManipulationStarted += OnManipulationStarted;
                 _root.ManipulationDelta += OnManipulationDelta;
                 _root.ManipulationCompleted += OnManipulationCompleted;
