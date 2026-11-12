@@ -11,7 +11,7 @@
     xmlns:data="clr-namespace:PhoneToolkitSample.Data"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     mc:Ignorable="d"
     shell:SystemTray.IsVisible="True">
@@ -72,14 +72,12 @@
 
 
                 <toolkit:ListPicker Name="requestedTheme_listpicker" Header="Requested Theme">
-                    <sys:String>Auto</sys:String>
-                    <sys:String>Dark</sys:String>
-                    <sys:String>Light</sys:String>
+                    
                 </toolkit:ListPicker>
 
                 <toolkit:ListPicker Name="accentColor_listpicker" 
                                 Header="Accent color" 
-                                FullModeHeader="ACCENTS" 
+                                FullModeHeader="ACCENT COLORS" 
                                 CacheMode="BitmapCache">
                     <toolkit:ListPicker.ItemTemplate>
                         <DataTemplate>
@@ -91,11 +89,11 @@
                     </toolkit:ListPicker.ItemTemplate>
                     <toolkit:ListPicker.FullModeItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0 21 0 20">
-                                <Rectangle Fill="{Binding Converter={StaticResource SystemAccentColorNameToBrush}}" Width="43" Height="43"/>
+                            <StackPanel Orientation="Horizontal" Margin="0 12 0 12">
+                                <Rectangle Fill="{Binding Converter={StaticResource SystemAccentColorNameToBrush}}" Width="32" Height="32"/>
                                 <TextBlock Text="{Binding}"
                                        Margin="16 0 0 0"
-                                       FontSize="43"
+                                       FontSize="32"
                                        FontFamily="{StaticResource PhoneFontFamilyLight}"/>
                             </StackPanel>
                         </DataTemplate>

@@ -30,8 +30,7 @@
                     to the frame, so it cannot see the application's theme
                     resources while its styles are applied. Carry the phone
                     colors on the page itself.-->
-                <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />
-                <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Theme/Dark.xaml" />-->
+                <ResourceDictionary Source="/Community.Phone;component/Themes/Theme.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <Style x:Key="AnyFontSizeCheckBoxStyle" TargetType="CheckBox">

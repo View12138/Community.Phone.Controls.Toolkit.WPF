@@ -5,31 +5,63 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
 namespace Microsoft.Phone.Shell;
 
+/// <summary>
+/// Applies the Windows Phone theme (light/dark) and accent color to a WPF
+/// application.
+/// </summary>
 public static class ThemeManager
 {
-    private static readonly IReadOnlyList<AccentColor> accentColors = Array.AsReadOnly(Enum.GetValues<AccentColor>());
-    public static IReadOnlyList<AccentColor> AvailableAccentColors => accentColors;
+    /// <summary>
+    /// Gets every accent color known to the Windows Phone palette.
+    /// </summary>
+    public static IReadOnlyList<ApplicationTheme> AvailableApplicationThemes => Array.AsReadOnly(Enum.GetValues<ApplicationTheme>());
+    /// <summary>
+    /// Gets every accent color known to the Windows Phone palette.
+    /// </summary>
+    public static IReadOnlyList<AccentColor> AvailableAccentColors => Array.AsReadOnly(Enum.GetValues<AccentColor>());
 
+    /// <summary>
+    /// Occurs right after a theme has been applied (the color animation, when
+    /// enabled, has just been started).
+    /// </summary>
     public static event EventHandler<ThemeChangedEventArgs>? ThemeChanged;
 
+    /// <summary>
+    /// Gets the theme that is actually in effect (resolves
+    /// <see cref="ApplicationTheme.Auto"/> against Windows).
+    /// </summary>
     public static ApplicationTheme ActualTheme => requestedTheme == ApplicationTheme.Auto ? GetSystemTheme() : requestedTheme;
+
+    /// <summary>
+    /// Gets the accent color that is actually in effect, ignoring
+    /// <c>Application.CustomAccentColor</c> (resolves
+    /// <see cref="Shell.AccentColor.Auto"/> against Windows).
+    /// </summary>
     public static Color ActualAccentColor => accentColor == AccentColor.Auto ? GetSystemAccentColor() : AccentColors.From(accentColor);
 
+    private static TimeSpan ThemeTransitionDuration = TimeSpan.FromMilliseconds(300);
     private static ApplicationTheme requestedTheme;
     private static AccentColor accentColor;
     private static Color? customAccentColor;
 
+    private static ApplicationTheme lastAppliedTheme = (ApplicationTheme)(-2);
+    private static Color lastAppliedAccent;
+
     extension(Application application)
     {
+        /// <summary>
+        /// Gets or sets the requested theme. Setting it applies the new theme
+        /// to the application (turned into a Windows Phone style color
+        /// transition), without recreating any window, page or control.
+        /// </summary>
         public ApplicationTheme RequestedTheme
         {
             get => requestedTheme;
@@ -43,6 +75,10 @@ public static class ThemeManager
             }
         }
 
+        /// <summary>
+        /// Gets or sets the accent color. <see cref="Shell.AccentColor.Auto"/>
+        /// follows the Windows accent color.
+        /// </summary>
         public AccentColor AccentColor
         {
             get => accentColor;
@@ -56,6 +92,10 @@ public static class ThemeManager
             }
         }
 
+        /// <summary>
+        /// Gets or sets an arbitrary accent color. When set, it takes
+        /// precedence over <see cref="AccentColor"/>.
+        /// </summary>
         public Color? CustomAccentColor
         {
             get => customAccentColor;
@@ -69,9 +109,12 @@ public static class ThemeManager
             }
         }
 
-        public void InitializeTheme() => ApplyTheme(application);
+        /// <summary>
+        /// Ensures the theme dictionary exists and applies the current theme.
+        /// Call this once at startup, before the first window is created.
+        /// </summary>
+        public void InitializeTheme() => ApplyTheme(application, false);
     }
-
 
     static ThemeManager()
     {
@@ -79,11 +122,9 @@ public static class ThemeManager
         accentColor = AccentColor.Auto;
         SystemEvents.UserPreferenceChanged += (s, e) =>
         {
-            if (requestedTheme == ApplicationTheme.Auto)
+            if (requestedTheme == ApplicationTheme.Auto || accentColor == AccentColor.Auto)
             {
-                if (e.Category == UserPreferenceCategory.General ||
-                    e.Category == UserPreferenceCategory.VisualStyle ||
-                    e.Category == UserPreferenceCategory.Color)
+                if (e.Category == UserPreferenceCategory.General || e.Category == UserPreferenceCategory.VisualStyle || e.Category == UserPreferenceCategory.Color)
                 {
                     ApplyTheme(Application.Current);
                 }
@@ -91,69 +132,95 @@ public static class ThemeManager
         };
     }
 
-    internal static void ApplyTheme(Application application)
+
+    internal static void ApplyTheme(Application application, bool useAnimation = true)
     {
         if (!application.Dispatcher.CheckAccess())
         {
-            application.Dispatcher.BeginInvoke(DispatcherPriority.Normal, () => ApplyTheme(application));
+            application.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => ApplyTheme(application, useAnimation)));
             return;
         }
-
-        application.Resources ??= new ResourceDictionary();
-        if (!ReplaceThemeDictionaries(application.Resources, CreateColorDictionary()))
+        ThemePalette palette = (ActualTheme == ApplicationTheme.Light ? ThemePalette.Light : ThemePalette.Dark).WithAccent(customAccentColor ?? ActualAccentColor);
+        ApplyTheme(application.Resources, palette, useAnimation);
+        if (ActualTheme != lastAppliedTheme || palette.PhoneAccentColor != lastAppliedAccent)
         {
-            application.Resources.MergedDictionaries.Insert(0, CreateColorDictionary());
+            lastAppliedTheme = ActualTheme;
+            lastAppliedAccent = palette.PhoneAccentColor;
+            ThemeChanged?.Invoke(application, new ThemeChangedEventArgs(ActualTheme, palette.PhoneAccentColor));
         }
-        ThemeChanged?.Invoke(application, new ThemeChangedEventArgs(ActualTheme, ActualAccentColor));
     }
 
-    private static ResourceDictionary CreateColorDictionary()
+    internal static void ApplyTheme(FrameworkElement element, bool useAnimation = true)
     {
-        string themeName = ActualTheme == ApplicationTheme.Light ? "Light" : "Dark";
-        string source = $"pack://application:,,,/Community.Phone;component/Themes/{themeName}Theme.xaml";
-        ResourceDictionary dictionary = new ResourceDictionary { Source = new Uri(source, UriKind.Absolute) };
-        var accentColorValue = customAccentColor ?? ActualAccentColor;
-        var brush = new SolidColorBrush(accentColorValue);
-        dictionary["PhoneAccentColor"] = accentColorValue;
-        dictionary["PhoneAccentBrush"] = brush;
-        dictionary["PhoneTextBoxEditBorderBrush"] = brush;
-        dictionary["PhoneRadioCheckBoxPressedBrush"] = brush;
-        return dictionary;
+        if (!element.Dispatcher.CheckAccess())
+        {
+            element.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => ApplyTheme(element, useAnimation)));
+            return;
+        }
+        ThemePalette palette = (ActualTheme == ApplicationTheme.Light ? ThemePalette.Light : ThemePalette.Dark).WithAccent(customAccentColor ?? ActualAccentColor);
+        ApplyTheme(element.Resources, palette, useAnimation);
     }
 
-    private static bool ReplaceThemeDictionaries(ResourceDictionary root, ResourceDictionary themeDictionary, HashSet<ResourceDictionary>? visited = null)
+    internal static void ApplyTheme(ResourceDictionary dictionary, ThemePalette palette, bool useAnimation = true)
     {
-        bool changed = false;
+        var themeDictionary = ResolveDictionary(dictionary, "/Community.Phone;component/Themes/Theme.xaml")
+            ?? throw new Exception("Theme dictionary not found.");
+
+        foreach (var key in ThemePalette.ResourceKeys)
+        {
+            var oldValue = themeDictionary[key];
+            var newValue = palette.GetValue(key);
+            if (newValue != null)
+            {
+                if (oldValue is SolidColorBrush oldBrush && newValue is Color newColor)
+                {
+                    if (oldBrush.IsFrozen)
+                    {
+                        oldBrush = new SolidColorBrush(oldBrush.Color);
+                        var animation = new ColorAnimation(oldBrush.Color, oldBrush.Color, TimeSpan.Zero, FillBehavior.HoldEnd);
+                        oldBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
+                        themeDictionary[key] = oldBrush;
+                    }
+
+                    if (oldBrush.Color != newColor && !oldBrush.IsFrozen)
+                    {
+                        var duration = useAnimation ? ThemeTransitionDuration : TimeSpan.Zero;
+                        var animation = new ColorAnimation(oldBrush.Color, newColor, duration, FillBehavior.HoldEnd);
+                        oldBrush.BeginAnimation(SolidColorBrush.ColorProperty, animation, HandoffBehavior.SnapshotAndReplace);
+                    }
+
+                }
+                else if (oldValue != newValue)
+                {
+                    themeDictionary[key] = newValue;
+                }
+            }
+        }
+    }
+
+    public static ResourceDictionary? ResolveDictionary(ResourceDictionary root, string source, HashSet<ResourceDictionary>? visited = null)
+    {
         visited ??= new HashSet<ResourceDictionary>();
         if (!visited.Add(root))
         {
-            return changed;
+            return null;
         }
 
-        var mergedDictionaries = root.MergedDictionaries;
-        for (int i = mergedDictionaries.Count - 1; i >= 0; i--)
+        if (root.Source?.OriginalString.Contains(source, StringComparison.OrdinalIgnoreCase) ?? false)
         {
-            ResourceDictionary dictionary = mergedDictionaries[i];
-            if (dictionary.Source.OriginalString.Contains("/Community.Phone;component/Themes/DarkTheme.xaml", StringComparison.OrdinalIgnoreCase))
+            return root;
+        }
+
+        foreach (ResourceDictionary mergedDictionary in root.MergedDictionaries)
+        {
+            var result = ResolveDictionary(mergedDictionary, source, visited);
+            if (result != null)
             {
-                mergedDictionaries.RemoveAt(i);
-                mergedDictionaries.Insert(i, themeDictionary);
-                changed = true;
-            }
-            else if (dictionary.Source.OriginalString.Contains("/Community.Phone;component/Themes/LightTheme.xaml", StringComparison.OrdinalIgnoreCase))
-            {
-                mergedDictionaries.RemoveAt(i);
-                mergedDictionaries.Insert(i, themeDictionary);
-                changed = true;
-            }
-            else
-            {
-                changed |= ReplaceThemeDictionaries(dictionary, themeDictionary, visited);
+                return result;
             }
         }
-        return changed;
+        return null;
     }
-
 
     internal static ApplicationTheme GetSystemTheme()
     {
@@ -179,7 +246,7 @@ public static class ThemeManager
             using var key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\DWM");
             if (int.TryParse(key?.GetValue("ColorizationColor")?.ToString(), out int value))
             {
-                return Color.FromArgb((byte)((value >> 24) & 0xFF), (byte)((value >> 16) & 0xFF), (byte)((value >> 8) & 0xFF), (byte)(value & 0xFF));
+                return Color.FromHexValue(value);
             }
         }
         catch (System.IO.IOException) { }
