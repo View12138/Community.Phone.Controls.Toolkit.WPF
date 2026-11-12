@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Windows;
 using System.Windows.Media;
@@ -33,5 +34,10 @@ internal static class Extensions
             byte b = (byte)(hex & 0xFF);
             return Color.FromArgb(a, r, g, b);
         }
+    }
+
+    extension(DesignerProperties)
+    {
+        public static bool IsInDesignTool { get => false; }
     }
 }
