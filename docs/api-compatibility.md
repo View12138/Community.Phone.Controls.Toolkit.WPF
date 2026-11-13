@@ -1,184 +1,174 @@
 # API 兼容矩阵
 
-本矩阵基于 [porting-inventory.md](porting-inventory.md) 的源码审计。“完全兼容”表示公共 API 和观察到的行为已实现并有测试覆盖；它**不**表示任意 Windows Phone XAML 可以原样编译——WPF 仍需要修改命名空间，投影还需要包装元素。
+本矩阵逐类型列出移植版提供的公共 API 与原始 Windows Phone Toolkit / `Microsoft.Phone` 的对应关系。“完全兼容”指公共 API 与观察到的行为已实现；它**不**表示任意 Windows Phone XAML 可以原样编译 —— WPF 仍需要调整命名空间，投影还需要包装元素。
 
 ## 兼容级别
 
 | 级别 | 含义 |
 |---|---|
-| **A. 完全兼容** | 在支持的场景中 API 和行为与原始实现一致，并有测试。 |
-| **B. API 兼容、行为有差异** | 名称、DP、事件和总体行为存在，但 WPF 实现使用不同宿主或平台服务。 |
+| **A. 完全兼容** | 在支持的场景中 API 与行为与原实现一致。 |
+| **B. API 兼容、行为有差异** | 名称、依赖属性、事件和总体行为存在，但 WPF 实现使用不同宿主或平台服务。 |
 | **C. 需要迁移** | XAML 或 C# 必须修改（命名空间、包装、不同基类）。 |
-| **D. 替代/包装** | 需要新的 WPF 专用类型来表达该功能。 |
-| **E. 不支持** | 没有兼容实现；请使用替代方案或保留 WP 应用。 |
+| **D. 替代/包装** | 需要新的 WPF 专用类型表达该功能。 |
+| **E. 不支持** | 没有兼容实现。 |
 
-## 命名空间与类型映射
+## 平台类型
 
-| WP 原始类型 | WPF 移植类型 | 级别 | 说明 |
-|---|---|---|---|
-| `Microsoft.Phone.Controls.PlaneProjection`（平台 `System.Windows.Media.PlaneProjection`） | `Microsoft.Phone.Controls.PlaneProjection` | C/D | 使用 `phone:` 前缀；赋给元素上的 `ProjectionService.Projection`（按需包装）或赋给 `ProjectionHost`。 |
-| `Microsoft.Phone.Controls.Projection`（平台） | `Microsoft.Phone.Controls.Projection` | D | 新基类，继承 `Animatable`。 |
-| `Microsoft.Phone.Controls.Matrix3DProjection`（平台） | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | 矩阵使用 0..1 归一化坐标。 |
-| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | WPF 元素没有原地投影属性；赋值时会按需把元素包进 `ProjectionHost`，且 `(ProjectionService.Projection).(PlaneProjection.RotationY)` 可作为 storyboard 路径。 |
-| `Microsoft.Phone.Controls.PhoneApplicationFrame` | 同名 | B/C | 继承 WPF `Frame`，增加页面参数导航。 |
-| `Microsoft.Phone.Controls.PhoneApplicationPage` | 同名 | B/C | 继承 WPF `Page`；生命周期由 Frame 触发；返回导航保留页面实例（`KeepAlive = true`，需要新实例时设为 `false`）。 |
-| `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`、`ExtraData`。 |
-| `Microsoft.Phone.Shell.PhoneApplicationService` | 同名 | B | 映射到 WPF 应用/窗口生命周期。 |
-| `Microsoft.Phone.Shell.SystemTray` | 同名 | B | API/状态已实现；视觉 chrome 尚未完成。 |
-| `Application.RequestedTheme`（平台） | `Microsoft.Phone.Shell.PhoneApplication.RequestedTheme`、`PhoneThemeManager.RequestedTheme` | B | 赋值后立即应用调色板；移植新增的 `ApplicationTheme.Auto` 跟随 Windows 应用主题。 |
-| —（移植新增） | `Microsoft.Phone.Shell.AccentColor` | D | 构建时从 `Themes/Colors/Light{Name}.xaml` / `Dark{Name}.xaml` 文件名生成（Amber … Yellow）；增加一对字典就会增加一个枚举值。 |
-| —（移植新增） | `Microsoft.Phone.Shell.PhoneThemeManager` | D | 运行时替换当前颜色字典；`CustomAccentColor` 接受任意 `Color`，无需匹配字典即可派生强调色画刷。 |
-| `Microsoft.Phone.Shell.ApplicationBar`（含 `IApplicationBar`、`IApplicationBarIconButton`、`IApplicationBarMenuItem`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 同名 | A/B | 保留原版 API 形状（最多 4 个图标按钮、最多 50 个菜单项、文本/图标校验、`StateChanged`）；应用栏由 frame 承载的 `ApplicationBarPresenter` 绘制，并像原版一样为页面预留空间。 |
-| `Microsoft.Phone.Controls.TransitionFrame` | 同名 | B | 模板部件是 `ProjectionHost`，不是 `ContentPresenter`。 |
-| `Microsoft.Phone.Controls.ITransition` 及转场类型 | 同名 | A/B | 相同 API 面；使用 WPF Storyboard 和状态跟踪。 |
-| `Microsoft.Phone.Controls.ContextMenu` | 同名 | B/C | 继承 WPF `ContextMenu`。 |
-| `Microsoft.Phone.Controls.WrapPanel` | 同名 | A | 与 WPF 自带 `System.Windows.Controls.WrapPanel` 并存。 |
-| `Microsoft.Phone.Controls.Pivot`、`PivotItem`、`Microsoft.Phone.Controls.Primitives.PivotHeadersControl`、`PivotHeaderItem` | 同名 | A/B | 使用 `phone:` / `primitives:` 前缀；页眉基础类型保持公开，`PivotHeadersControl.VisualFirstIndex` 语义不变（左边缘的索引）。 |
-| `System.Windows.Controls.HierarchicalDataTemplate`（toolkit） | `System.Windows.HierarchicalDataTemplate` | A | 使用 WPF 原生类型。 |
-| `System.Windows.Controls.HeaderedItemsControl`（toolkit） | `System.Windows.Controls.HeaderedItemsControl` | A | 使用 WPF 原生类型。 |
-| `System.Windows.Controls.LengthConverter` / `TimeTypeConverter`（toolkit） | 未重新定义 | E | 使用 WPF 类型转换器或在应用代码中解析。 |
-| `Microsoft.Phone.Maps.Toolkit.*` | 未实现 | E | 没有 WPF 地图提供程序。 |
-| `Microsoft.Phone.BackgroundTransfer` / `TransferControl` | 未实现 | E | 没有 WPF 等价服务。 |
-| `Windows.Phone.Speech.Recognition` / `SpeechTextBox` | 未实现 | E | 没有 WPF 等价语音服务。 |
-| 所有转场工厂 | 同名 | A/B | storyboard 直接使用原版 XAML 资源在运行时解析；角度、关键时间和缓动都来自原文件。工厂抛异常会向上传播，与原版一致（没有回退事件）。 |
+| 原始类型 | 移植类型 | 程序集 | 级别 | 说明 |
+|---|---|---|---|---|
+| `Microsoft.Phone.Controls.PhoneApplicationFrame` | 同名 | `Community.Phone` | B/C | 继承 WPF `Frame`；增加 `Orientation`、`SupportedOrientations`、`OrientationChanged`、`IsPortrait`、`ApplicationBar`、`Navigate(page, parameters)`、`GoBack()`（先触发 `BackKeyPress`）。 |
+| `Microsoft.Phone.Controls.PhoneApplicationPage` | 同名 | `Community.Phone` | B/C | 继承 WPF `Page`；`State`、`NavigationContext`、`ApplicationBar`、生命周期虚方法与对应事件；`KeepAlive = true`。 |
+| `System.Windows.Navigation.NavigationContext` | `Microsoft.Phone.Controls.NavigationContext` | `Community.Phone` | B/C | WPF 无等价类型；提供 `Uri`、`QueryString`（大小写不敏感）、`ExtraData`、静态 `Empty`。 |
+| `Microsoft.Phone.Controls.PageOrientation` / `SupportedPageOrientation` | 同名 | `Community.Phone` | A | 枚举值一致。 |
+| `Microsoft.Phone.Shell.PhoneApplicationService` | 同名 | `Community.Phone` | B | `Current`、`State`、`Launching`/`Activated`/`Deactivated`/`Closing` 事件、idle 检测模式枚举。 |
+| `Microsoft.Phone.Shell.SystemTray` | 同名 | `Community.Phone` | B | **静态类**，`IsVisible`、`Opacity`、`BackgroundColor`、`ForegroundColor`、`ProgressIndicator` 映射到 `SystemTrayState.Current`；不绘制状态栏，也不是附加属性。 |
+| `Microsoft.Phone.Shell.SystemTrayState`、`ProgressIndicator` | 同名 | `Community.Phone` | D | 移植新增的状态载体（`INotifyPropertyChanged`）。 |
+| `Microsoft.Phone.Shell.ApplicationBar`（含 `IApplicationBar`、`IApplicationBarIconButton`、`IApplicationBarMenuItem`、`ApplicationBarIconButton`、`ApplicationBarMenuItem`、`ApplicationBarMode`、`ApplicationBarStateChangedEventArgs`） | 同名 | `Community.Phone` | A/B | 保留原版 API（4 个图标按钮、50 个菜单项上限、文本/图标校验、`Opacity` 截断、`StateChanged`）；由 `ApplicationBarPresenter` 绘制。 |
+| `Application.RequestedTheme`（平台） | `ThemeManager` 的 `RequestedTheme` 扩展属性 | `Community.Phone` | D | `application.RequestedTheme = ...` 立即应用调色板；`ThemeManager` 是静态类，另提供 `AccentColor`、`CustomAccentColor`、`InitializeTheme()`。 |
+| —（移植新增） | `ApplicationTheme`、`AccentColor`、`AccentColors` | `Community.Phone` | D | `ApplicationTheme.Auto/Light/Dark`，`AccentColor.Auto` 加 20 个 Metro 强调色；`AccentColors.From` 返回对应 `Color`。 |
+| —（移植新增） | `ThemePalette`、`ThemeChangedEventArgs` | `Community.Phone` | D | 调色板记录类型与主题变更事件参数。 |
+| `Microsoft.Phone.Controls.Pivot`、`PivotItem` | 同名 | `Community.Phone` | A/B | `HeaderTemplate`、`SelectedIndex`、`SelectedItem`、`Title`、`TitleTemplate`、`IsLocked`、四个 `*PivotItem` 事件、`SelectionChanged`。 |
+| `Microsoft.Phone.Controls.Primitives.PivotHeadersControl`、`PivotHeaderItem` | 同名 | `Community.Phone` | A/B | `VisualFirstIndex`、`IsSelected`、`SelectionStates`。 |
+| `Microsoft.Phone.Controls.Primitives.ViewportControl` | 同名 | `Community.Phone` | B | `ContentControl`，作为 `LongListSelector` 的内容宿主与模板部件，不是手机的滚动器。 |
+| `Microsoft.Phone.Controls.LongListSelector`（WP8.1） | 同名 | `Community.Phone` | A/B | 见[控件](#控件)。 |
+| `Microsoft.Phone.Controls.HyperlinkButton` | 同名 | `Community.Phone` | A/B | 相对/pack URI 导航最近 frame；`TargetName` 保留但命名目标不受支持。 |
+| `Microsoft.Phone.Maps.Toolkit.*` | 未实现 | — | E | 没有 WPF 地图提供程序。 |
+| `Microsoft.Phone.BackgroundTransfer` / `TransferControl` | 未实现 | — | E | 没有 WPF 等价服务。 |
+| `Windows.Phone.Speech.Recognition` / `SpeechTextBox` | 未实现 | — | E | 没有 WPF 等价语音服务。 |
 
 ## 投影与效果
 
-| 原始类型 | 移植 | 级别 | XAML 修改 | 行为差异 |
+| 原始类型 / 用法 | 移植类型 | 级别 | XAML 修改 | 行为差异 |
 |---|---|---|---|---|
-| `PlaneProjection` | `PlaneProjection` | C/D | `phone:` 前缀；赋给元素或 `ProjectionHost` | 通过 `Viewport2DVisual3D` 做真实 3D；使用 XAML 固定的 999 DIP 透视深度；旋转、中心和偏移的正负与 XAML 一致。元素的内容会被裁剪到布局边界，但投影结果不会被裁剪（与平台一致）。接收投影的元素会按需被包进 `ProjectionHost`。 |
-| `Matrix3DProjection` | `Matrix3DProjection` | C/D | 同上 | 矩阵归一化 0..1，转换为像素空间。 |
-| `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled` 可用于容器 | 普通控件按需包装；使用 `PreviewMouseDown/Move/Up`，容器可倾斜子按钮而不吞按钮点击；跳过列表 item 容器。 |
-| `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标必须可包装；跳过 item 容器/content presenter。 |
-| `SlideInEffect` | 未实现 | E | — | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已实现，效果本身尚未移植。 |
+| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | 显式 `ProjectionHost`，或在元素上写 `phone:ProjectionService.Projection`（按需包装） | WPF 元素没有原地投影属性；storyboard 路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。 |
+| `System.Windows.Media.PlaneProjection` | `Microsoft.Phone.Controls.PlaneProjection` | C/D | `phone:` 前缀 | 通过 `Viewport2DVisual3D` 做真实 3D；固定 999 DIP 透视深度；旋转、中心、偏移的正负与 XAML 一致。 |
+| `System.Windows.Media.Matrix3DProjection` | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | 同上 | 矩阵使用 0..1 归一化坐标。 |
+| — | `Projection`、`ProjectionService`、`ProjectionHost` | D | — | 移植新增：投影基类、附加属性服务与 3D 宿主。 |
+| `TiltEffect` | `TiltEffect` | C/D | `phone:TiltEffect.IsTiltEnabled`、`SuppressTilt`、`TiltableItems` | 普通控件按需包装；使用隧道式 `PreviewMouse*`，容器可倾斜子按钮而不吞点击；跳过 item 容器。 |
+| `TurnstileFeatherEffect` | `TurnstileFeatherEffect` | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标必须可包装；跳过 item 容器；目标从页面可视树收集。 |
+| `SlideInEffect` | 未实现 | E | — | `Pivot` 已实现，效果本身未移植。 |
 
 ## 导航与转场
 
 | 原始 | 移植 | 级别 | 说明 |
 |---|---|---|---|
-| `PhoneApplicationFrame` | 同名 | B/C | WPF journal/`NavigationService`；方向由尺寸推断。 |
-| `PhoneApplicationPage` | 同名 | B/C | `State`、方向、事件；生命周期由 Frame 触发；返回导航保留现有实例（`KeepAlive = true`）。 |
-| `TransitionFrame` | 同名 | B | 自定义模板，包含两个 `ProjectionHost`。 |
-| `TransitionService.NavigationInTransition` | 同名 | A | 保留附加属性名。 |
-| `TransitionService.NavigationOutTransition` | 同名 | A | 保留附加属性名。 |
-| `NavigationInTransition` / `NavigationOutTransition` | 同名 | A | 保留 Forward/Backward DP。 |
-| `TurnstileTransition` | 同名 | A | 保留 Mode 值。 |
-| `TurnstileTransitionMode` | 同名 | A | ForwardIn/ForwardOut/BackwardIn/BackwardOut。 |
-| `SlideTransition` | 同名 | A | 保留模式。 |
-| `RotateTransition` | 同名 | A | 保留模式；保留 FlowDirection 调整。 |
-| `SwivelTransition` | 同名 | A | 保留模式。 |
+| `PhoneApplicationFrame` | 同名 | B/C | WPF journal / `NavigationService`；方向由尺寸推断。 |
+| `PhoneApplicationPage` | 同名 | B/C | 生命周期由 Frame 触发；返回导航保留现有实例。 |
+| `TransitionFrame` | 同名 | B | 自定义模板，部件是两个 `ProjectionHost`。 |
+| `TransitionService.NavigationInTransition` / `NavigationOutTransition` | 同名 | A | 保留附加属性名与 `Forward`/`Backward` 依赖属性。 |
+| `NavigationInTransition` / `NavigationOutTransition` / `NavigationTransition` | 同名 | A | 保留类型层次。 |
+| `ITransition` / `Transition` | 同名 | A/B | 保留 API 面；用 WPF `Storyboard` 与自维护状态。 |
+| `TransitionElement` | 同名 | A | 保留抽象基类与 `GetTransition` 契约。 |
+| `TurnstileTransition` / `TurnstileTransitionMode` | 同名 | A | 4 个模式。 |
+| `TurnstileFeatherTransition` / `TurnstileFeatherTransitionMode` | 同名 | A/B | 4 个模式；使用包装目标。 |
+| `SlideTransition` / `SlideTransitionMode` | 同名 | A | 8 个模式。 |
+| `RotateTransition` / `RotateTransitionMode` | 同名 | A | 8 个模式。 |
+| `SwivelTransition` / `SwivelTransitionMode` | 同名 | A | 6 个模式。 |
 | `RollTransition` | 同名 | A | 单一模式。 |
-| `TurnstileFeatherTransition` | 同名 | A/B | `Mode`、`BeginTime`；使用包装目标。 |
 | `FeatheredTransition` | 同名 | A/B | 保留公共类型。 |
 
-原始 27 个 `Transitions/Storyboards/*.xaml` 以 WPF 资源形式随包发布并在运行时加载，因此时长、关键时间、角度和缓动都是原值。文件内唯一的改动是投影属性路径（`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)`），因为 WPF 没有 `UIElement.Projection`。
+原版 27 个 `Transitions/Storyboards/*.xaml` 以 WPF 资源随包发布并在运行时加载，时长、关键时间、角度和缓动都是原值；文件内唯一的改动是投影属性路径。`Transitions.cs` 中的 `TurnstileCenterOfRotationX = -0.05` 与 `TurnstileDurationScale = 1.2` 是仅移植版的调优常量。
+
+## Shell 与主题
+
+| 类型 | 状态 | 说明 |
+|---|---|---|
+| `ApplicationBar` | 实现 | `[ContentProperty("Buttons")]`、`IsVisible`、`Opacity`（截断到 0..1）、`IsMenuEnabled`、`BackgroundColor`、`ForegroundColor`、`Mode`、`DefaultSize`（72）、`MiniSize`（30）、`Buttons`、`MenuItems`、`StateChanged`。 |
+| `ApplicationBarPresenter` | 实现（移植新增） | 绘制应用栏、图标槽、菜单按钮与 `Popup` 菜单；`ReservedHeight` 驱动页面预留高度。 |
+| `SystemTray` | 状态实现 | 无视觉 chrome、无附加属性；XAML 中 `shell:SystemTray.IsVisible` 不可用。 |
+| `PhoneApplicationService` | 状态实现 | `State`、生命周期事件、idle 检测模式；不复刻 tombstoning。 |
+| `ThemeManager` | 实现（移植新增） | `AvailableApplicationThemes`、`AvailableAccentColors`、`ActualTheme`、`ActualAccentColor`、`ThemeChanged`；扩展属性 `RequestedTheme`、`AccentColor`、`CustomAccentColor`、方法 `InitializeTheme()`；`ResolveDictionary`、`GetSystemAccentColor`。 |
+| `ThemePalette` | 实现（移植新增） | 24 个 `Phone*Color` 属性、`IsDark` 相关的 Visibility/Opacity 值、`PivotUnselectedItemOpacity`、`WithAccent`、`Dark`/`Light` 静态调色板、`ResourceKeys`。 |
 
 ## 控件
 
-| 控件 | 移植状态 | 级别 | 保留内容 | 差异 |
+| 控件 | 状态 | 级别 | 保留内容 | 差异 |
 |---|---|---|---|---|
-| `AutoCompleteBox` | 未实现 | E | — | 大型 Silverlight popup/选择基础设施未移植。 |
-| `ContextMenu` / `MenuItem` / `Separator` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`RegionOfInterest` | 继承 WPF 菜单类型；右键打开。 |
-| `CustomMessageBox` | 已实现 | B | `Show`、`Dismiss`、`Dismissing`、`Dismissed`、按钮、标题/说明/消息、结果枚举 | 由 WPF `Window` 承载；视觉布局在代码中重建。 |
-| `DatePicker` | 已实现 | B | `Value`、`ValueString`、`ValueStringFormat`、`ValueChanged`、`Header`、`PickerPageUri` | 在模态 Window 中使用 WPF `DatePicker`；picker page 未移植。 |
-| `TimePicker` | 已实现 | B | 同上 | 在模态 Window 中使用小时/分钟 ComboBox。 |
-| `RecurringDaysPicker` | 已实现 | A/B | 星期列表、多选、摘要 | 基于移植的 `ListPicker`；使用本地化星期名。 |
-| `ExpanderView` | 已实现 | B | `Expander`、`ExpanderTemplate`、`NonExpandableHeader`、`HasItems`、`IsExpanded`、`Expanded`/`Collapsed` | WPF `HeaderedItemsControl`；简化高度动画；部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas`。 |
-| `HyperlinkButton` | 已实现（行为） | A/B | `NavigateUri`、`TargetName`、内容、Click、`CommonStates` 视觉状态、`ButtonBase` 键盘激活，以及带 `IInvokeProvider` 的超链接自动化对等体 | 相对/pack URI 导航最近的 `NavigationService`/`Frame`；绝对非 pack URI 交给系统默认处理程序（浏览器、邮件客户端等）。WPF 没有命名导航目标，`TargetName` 保留但不生效。默认模板把字符串内容渲染为下划线文本；非字符串内容需要自定义模板。 |
-| `HubTile` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`Size`；`HubTileService` | 定时器驱动循环。仅模板层面的适配：滑动偏移由代码施加，翻转走 3D 路径（双面），`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面）。 |
-| `ListPicker` | 已实现 | A/B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`FullModeHeader`、`FullModeItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`Open()`、`SelectionChanged`、`ListPickerMode` | 完整模式导航到原版 `ListPickerPage`（pack URI 来自 `PickerPageUri`），点 `Done`/返回时提交选择；页面操作用原版 `ApplicationBar`（勾/叉图标按钮）。普通模式与原版一致，对模板 Canvas 做高度动画。 |
-| `LongListSelector`（WP8.1） | 已实现（行为） | A/B | `ItemsSource`（平铺或分组）、`IsGroupingEnabled`、`HideEmptyGroups`、`ItemTemplate`、`GroupHeaderTemplate`、`GroupFooterTemplate`、`ListHeader`/`ListFooter`（及模板）、`LayoutMode`、`GridCellSize`、`SelectedItem`、`ScrollTo`、`ItemRealized`/`ItemUnrealized`、`JumpListStyle`、`JumpListOpening`/`Closed`、`SelectionChanged`、`ManipulationState(Changed)`、模板部件 `ViewportControl`/`VerticalScrollBar` | 列表模式使用可回收虚拟化的 WPF items host；网格模式使用固定单元格、非虚拟化面板（跳转列表/图库规模较小）。分组对象必须实现 `IList`，与手机一致。点击组页眉会打开 `Popup` 跳转列表；原版 `PlaneProjection` 翻转动画由简单的 popup 取代。`ViewportControl` 是内容宿主（`ContentControl`，不是手机的滚动器），`VerticalScrollBar` 驱动内部 `ScrollViewer`。分组/项目绑定到真实数据对象，容器与手机一致为 `ContentPresenter`。`SelectedItem` 同时是依赖属性（附加）。 |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`RegionOfInterest` | 继承 WPF 菜单类型；右键打开；部分 WP zoom/fade 视觉未复刻。 |
+| `CustomMessageBox` | 已实现 | B | `Show`、`Dismiss`、`Dismissing`、`Dismissed`、`LeftButtonContent`、`RightButtonContent`、`IsLeftButtonEnabled`/`IsRightButtonEnabled`、`Title`（继承）、`Caption`、`Message`、`IsFullScreen`、`IsCenterScreen`、`CustomMessageBoxResult` | 由 WPF `Window` 承载；弹入/关闭播放 Swivel。 |
+| `DatePicker` / `TimePicker` | 已实现 | B | `Value`、`ValueString`、`ValueStringFormat`、`ValueChanged`、`Header`、`HeaderTemplate`、`PickerPageUri` | 在模态 `Window` 中用 WPF 日期/时间 UI；picker page 未移植。 |
+| `RecurringDaysPicker` | 已实现 | A/B | 星期多选与摘要 | 继承 `ListPicker`；本地化星期名。 |
+| `ExpanderView` | 已实现 | B | `Expander`、`ExpanderTemplate`、`NonExpandableHeader`、`NonExpandableHeaderTemplate`、`IsExpanded`、`HasItems`、`IsNonExpandable`、`Expanded`/`Collapsed`；部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas` | 基于 `HeaderedItemsControl`；高度动画简化。 |
+| `HyperlinkButton` | 已实现 | A/B | `NavigateUri`、`TargetName`、`Click`、`CommonStates`、`IInvokeProvider` | 相对/pack URI 导航最近 frame；外部 URI 交给系统处理程序；`TargetName` 不生效；非字符串内容需要自定义模板。 |
+| `HubTile` / `HubTileService` | 已实现 | B | `Source`、`Title`、`Notification`、`Message`、`DisplayNotification`、`IsFrozen`、`GroupTag`、`State`、`Size`、`TileSize` | 定时器驱动状态循环；滑动偏移由代码施加，翻转走 3D 路径，`CenterOfRotationY` 为 `0.5`（原版 `0.25` 相对两倍高表面）。 |
+| `ListPicker` / `ListPickerItem` | 已实现 | A/B | `SelectedIndex`、`SelectedItem`、`SelectedItems`、`SelectionMode`、`Header`、`HeaderTemplate`、`FullModeHeader`、`FullModeItemTemplate`、`ShadowItemTemplate`、`ItemCountThreshold`、`ExpansionMode`、`PickerPageUri`、`ListPickerMode`、`IsOpen`、`Open()`、`SelectionChanged`、`SummaryForSelectedItemsDelegate` | 完整模式导航到 `ListPickerPage`，用原版 `ApplicationBar` 确认/取消；普通模式直接对模板 Canvas 做高度/位移动画。 |
+| `LongListSelector` | 已实现 | A/B | `ItemsSource`、`IsGroupingEnabled`、`HideEmptyGroups`、`ItemTemplate`、`GroupHeaderTemplate`、`GroupFooterTemplate`、`ListHeader`/`ListFooter`（及模板）、`LayoutMode`、`GridCellSize`、`SelectedItem`、`ScrollTo`、`ItemRealized`/`ItemUnrealized`、`JumpListStyle`、`JumpListOpening`/`JumpListClosed`、`SelectionChanged`、`ManipulationState`/`ManipulationStateChanged`、模板部件 `ViewportControl`/`VerticalScrollBar` | 列表模式回收虚拟化，网格模式固定单元格非虚拟化；跳转列表是 `Popup`；分组对象必须实现 `IList`。 |
+| `PhoneTextBox` | 已实现 | A/B | `Hint`、`HintStyle`、`ActualHintVisibility`、`LengthIndicatorVisible`、`LengthIndicatorThreshold`、`DisplayedMaxLength`、`ActionIcon`、`HidesActionItemWhenEmpty`、`ActionIconTapped` | 内部 `TextBox` 使用双向 `Text` 绑定。 |
+| `Rating` / `RatingItem` | 已实现 | A/B | `FilledItemStyle`、`UnfilledItemStyle`、`RatingItemCount`、`Value`、`ReadOnly`、`AllowHalfItemIncrement`、`AllowSelectingZero`、`ShowSelectionHelper`、`Orientation`、`StrokeThickness`、`ValueChanged` | 星形项目在代码中生成；半星模式 `Value` 以“星”为单位。 |
+| `ToggleSwitch` / `ToggleSwitchButton` | 已实现 | A/B | `Header`、`HeaderTemplate`、`SwitchForeground`、`IsChecked`、`Checked`/`Unchecked`/`Indeterminate`/`Click` | WPF 视觉状态与 manipulation。 |
+| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | 已实现 | A/B | 见上表 | 输入是鼠标拖拽 + 方向键；页眉条循环排布但只绘制一圈；`IsLocked` 是依赖属性。 |
+| `PerformanceProgressBar` | 已实现 | B | `IsIndeterminate`、`ActualIsIndeterminate` | 内嵌 WPF `ProgressBar`；简单淡入淡出。 |
+| `RelativeAnimatingContentControl` | 已存在 | B | 公共 `ContentControl` 派生类型 | 原版的相对动画重写未移植。 |
+| `WrapPanel` | 已实现 | A | `ItemHeight`、`ItemWidth`、`Orientation`、布局算法 | 与 WPF 自带 `System.Windows.Controls.WrapPanel` 并存。 |
+| `ClipToBounds` | 已实现 | A | `IsEnabled` 附加属性 | 使用 WPF `Clip`。 |
+| `AutoCompleteBox` | 未实现 | E | — | Silverlight popup/选择基础设施未移植。 |
 | `LongListMultiSelector`（WP8） | 未实现 | E | — | 依赖 WP8 列表基础设施。 |
-| Maps 扩展 | 未实现 | E | — | 无 WPF 地图提供程序。 |
 | `MultiselectList` | 未实现 | E | — | 未移植。 |
-| `PhoneTextBox` | 已实现 | A/B | `Hint`、`HintStyle`、`ActualHintVisibility`、`LengthIndicatorVisible`、`LengthIndicatorThreshold`、`DisplayedMaxLength`、`ActionIcon`、`HidesActionItemWhenEmpty`、`ActionIconTapped` | 内部 TextBox 使用双向 Text 绑定。 |
-| `Rating` / `RatingItem` | 已实现 | A/B | `FilledItemStyle`、`UnfilledItemStyle`、`RatingItemCount`、`Value`、`ReadOnly`、`AllowHalfItemIncrement`、`AllowSelectingZero`、`ShowSelectionHelper`、`Orientation`、`ValueChanged` | 星形项目在代码中生成；保留模板部件。 |
-| `ToggleSwitch` / `ToggleSwitchButton` | 已实现 | A/B | `Header`、`HeaderTemplate`、`SwitchForeground`、`IsChecked`、`Checked`/`Unchecked`/`Indeterminate`/`Click`；开关模板部件 | WPF 视觉状态和 manipulation。 |
+| Maps 扩展 | 未实现 | E | — | 无 WPF 地图提供程序。 |
 | `TransferControl` | 未实现 | E | — | 需要 WP 后台传输服务。 |
 | `SpeechTextBox` | 未实现 | E | — | 需要 Windows Phone 语音。 |
-| `PerformanceProgressBar` | 已实现 | B | `IsIndeterminate`、`ActualIsIndeterminate` | 不确定模板；简单淡入淡出。 |
-| `RelativeAnimatingContentControl` | 已实现 | B | 公共 content control | 未移植 magic-number 相对动画重写。 |
-| `WrapPanel` | 已实现 | A | `ItemHeight`、`ItemWidth`、`Orientation`、布局算法 | 测试未发现差异。 |
-| `Pivot` / `PivotItem` | 已实现 | A/B | `HeaderTemplate`、`SelectedIndex`、`SelectedItem`、`Title`、`TitleTemplate`、`ItemContainerStyle`、`IsLocked`、`LoadingPivotItem`、`LoadedPivotItem`、`UnloadingPivotItem`、`UnloadedPivotItem`、`SelectionChanged`；模板部件 `PivotItemPresenter`、`HeadersListElement`、`TitleElement`；`PivotItem.Header` 与 `Position States` 视觉状态 | 各项在 `Grid` 中堆叠，只有当前项可见且可交互。鼠标拖拽（或超过半个视口的快速滑动）、点击页眉、方向键 Left/Right/Home/End 均可切换；进入项以 0.25 秒 `QuarticEase` 滑入、离开项滑出，页眉条以 0.5 秒滚动；拖拽跟随指针速度为原版 600 px/s。`Pivot.IsLocked` 会淡出页眉并拒绝修改项。 |
-| `PivotHeadersControl` / `PivotHeaderItem` | 已实现 | A/B | `VisualFirstIndex`、`ItemContainerStyle`、`IsSelected`、`SelectionStates` 视觉状态 | 页眉条在 `Canvas` 上循环排布（最后一个页眉之后接第一个），以 0.5 秒 `QuarticEase` 滚动；手机版本由合成器移动同一条页眉带 |
-| `LockablePivot` | 未实现 | E | — | 已由 `Pivot.IsLocked` 取代（手机 8.1 的 `Pivot` 本身即提供该属性）。 |
-| `GestureListener` / `GestureService` | 未实现 | E | — | WPF 触摸/manipulation API 不同。 |
-| `LoopingSelector` / `LoopingSelectorItem` | 未实现 | E | — | WP 日期/时间页内部使用；移植 picker 不需要。 |
-| `ClipToBounds` | 已实现 | A | `IsEnabled` 附加属性 | 使用 WPF `Clip`。 |
-| `LengthConverter` / `TimeTypeConverter` | 未重新定义 | E | — | 使用 WPF 原生转换器。 |
+| `LockablePivot` | 未实现 | E | — | 由 `Pivot.IsLocked` 取代。 |
+| `GestureListener` / `GestureService` | 未实现 | E | — | 使用 WPF 触摸/manipulation API。 |
+| `LoopingSelector` / `LoopingSelectorItem` | 未实现 | E | — | WP picker 内部实现；移植 picker 使用 WPF 模态窗口。 |
+| `LengthConverter` / `TimeTypeConverter` | 已提供 | A | 同名 `TypeConverter` | 位于 `Microsoft.Phone.Controls`，不覆盖 WPF 类型。 |
 
 ## 转换器与本地化
 
 | 类型 | 状态 | 说明 |
 |---|---|---|
-| `DailyDateTimeConverter` | 已实现 | 原格式化和校验。 |
-| `HourlyDateTimeConverter` | 已实现 | 原格式化和校验。 |
-| `FullViewDateTimeConverter` | 已实现 | 原文化分支。 |
-| `ListViewDateTimeConverter` | 已实现 | 原格式化。 |
-| `ThreadDateTimeConverter` | 已实现 | 原格式化。 |
-| `RelativeTimeConverter` | 已实现 | 原阈值和复数规则；使用内嵌 `ControlResources`。 |
-| `OffOnConverter` | 已实现 | 使用本地化 On/Off。 |
-| `ControlResources` | 已实现 | 51 个 resx 内嵌；50 个真实文化加中性资源。 |
+| `DailyDateTimeConverter`、`HourlyDateTimeConverter`、`FullViewDateTimeConverter`、`ListViewDateTimeConverter`、`ThreadDateTimeConverter` | 已实现 | 原始格式化与文化分支；辅助类 `DateTimeFormatHelper`。 |
+| `RelativeTimeConverter` | 已实现 | 原阈值与复数规则，使用内嵌 `ControlResources`。 |
+| `OffOnConverter` | 已实现 | 使用本地化 On/Off 字符串。 |
+| `TileSizeToWidthConverter`、`TileSizeToHeightConverter` | 已实现 | `TileSize` → 尺寸。 |
+| `JumpListItemBackgroundConverter`、`JumpListItemForegroundConverter` | 已实现 | 跳转列表磁贴着色。 |
+| `ControlResources` | 已实现 | 51 个 `ControlResources*.resx`：50 个文化 + 中性资源，由原始 designer 生成。 |
+| `CultureInfoExtensions`、`SortedLocaleGrouping`、`RoutedPropertyChangingEventArgs<T>`、`WeakReferenceHelper` | 已实现 | 被已移植控件使用的辅助类型。 |
 
-## 重要依赖属性默认值
+## 依赖属性默认值
 
 | 类型 | 属性 | 默认值 |
 |---|---|---|
-| `PlaneProjection` | `CenterOfRotationX/Y` | `0.5` |
+| `PlaneProjection` | `CenterOfRotationX` / `CenterOfRotationY` | `0.5` |
 | `PlaneProjection` | `CenterOfRotationZ`、旋转、偏移 | `0` |
-| `Rating` | `RatingItemCount` | `5` |
-| `Rating` | `Value` | `0` |
+| `ProjectionHost` | `PerspectiveDepth` / `Prefer3D` | `999` / `false` |
+| `Rating` | `RatingItemCount` / `Value` / 布尔开关 | `5` / `0` / `false` |
 | `ToggleSwitch` | `IsChecked` | `false` |
-| `ListPicker` | `SelectedIndex` | `-1` |
-| `ListPicker` | `ItemCountThreshold` | `5` |
-| `ListPicker` | `ExpansionMode` | `ExpansionAllowed` |
-| `ExpanderView` | `IsExpanded` | `false` |
-| `DatePicker` | `Value` | 构造时为今天 |
-| `TimePicker` | `Value` | 构造时为当前时间 |
+| `ListPicker` | `SelectedIndex` / `ItemCountThreshold` / `ListPickerMode` | `-1` / `5` / `Normal` |
+| `ExpanderView` | `IsExpanded` / `HasItems` / `IsNonExpandable` | `false` |
+| `DatePicker` / `TimePicker` | `Value` | 构造时为今天 / 当前时间 |
 | `PerformanceProgressBar` | `IsIndeterminate` / `ActualIsIndeterminate` | `false` |
+| `HubTile` | `State` / `Size` / `IsFrozen` | `Expanded` / `TileSize.Default` / `false` |
+| `CustomMessageBox` | `IsLeftButtonEnabled` / `IsRightButtonEnabled` | `true` |
+| `PhoneApplicationFrame` | `Orientation` / `SupportedOrientations` | `PortraitUp` / `PortraitOrLandscape` |
+| `ApplicationBar` | `DefaultSize` / `MiniSize` / `IsVisible` | `72` / `30` / `true` |
 
 ## XAML 兼容边界
 
 | XAML 形式 | 结果 |
 |---|---|
-| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"` | toolkit 控件与转场类型必需。 |
-| `xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"` | `PhoneApplicationPage`、`PhoneApplicationFrame`、`NavigationContext` 和方向类型（兼容层）必需。 |
-| `xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"` | `ApplicationBar`、`SystemTray` 和 `PhoneApplicationService` 必需。 |
-| `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 仅修改命名空间即可（以及应用使用的 WPF 资源键）。 |
-| `<phone:HyperlinkButton NavigateUri="..." />` | 可用：相对 URI 导航最近帧；外部 URI 打开系统处理程序。`TargetName` 保留，但命名目标不受支持。 |
-| 使用 `phone:` 前缀的 `<toolkit:TransitionService.NavigationInTransition>...` | 可用。 |
-| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection`（按需包装）或 `ProjectionHost`。 |
-| `<Grid phone:ProjectionService.Projection="...">` | 可用：元素会按需被包进 `ProjectionHost`（需为 Panel 的直接子元素，且该 Panel 不是 items panel），清除投影时自动解包。 |
+| `xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"` | toolkit 控件、投影、转场、效果必需。 |
+| `xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"` | `PhoneApplicationPage`、`PhoneApplicationFrame`、`NavigationContext`、`Pivot`、`LongListSelector`、`HyperlinkButton` 必需。 |
+| `xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"` | `ApplicationBar`、`ApplicationBarIconButton`、`ApplicationBarMenuItem` 必需。 |
+| `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />` | 只需改命名空间。 |
+| `<phone:HyperlinkButton NavigateUri="..." />` | 可用；`TargetName` 不受支持。 |
+| `<phone:TransitionService.NavigationInTransition>...` | 可用。 |
+| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `ProjectionService.Projection` 或 `ProjectionHost`。 |
+| `<Grid phone:ProjectionService.Projection="...">` | 可用：元素按需被包进 `ProjectionHost`（需为 Panel 的直接子元素且该 Panel 不是 items panel）。 |
 | `<phone:ProjectionHost.Projection><phone:PlaneProjection .../></phone:ProjectionHost.Projection>` | 可用。 |
-| 使用 `shell:SystemTray.IsVisible` 的原始 `platform:PhoneApplicationPage` XAML | 使用兼容层的 `platform`/`shell` 命名空间可解析；视觉 chrome 有限。 |
-| 原始 `shell:ApplicationBar` XAML | 可用：应用栏（含菜单、最小化模式与为页面预留的空间）由 frame chrome（`ApplicationBarPresenter`）渲染。 |
-| 原始 `phone:PhoneApplicationPage` 的 `SupportedOrientations`/`Orientation` | 可解析并保留；不会强制旋转桌面窗口。 |
-| `phone:LongListSelector` XAML | 可用；分组对象必须实现 `IList`，跳转列表是 WPF `Popup`。 |
-| `phone:AutoCompleteBox`、地图、语音、传输 XAML | 当前 preview 不支持。 |
+| `shell:SystemTray.IsVisible="..."` | **不可用**：`SystemTray` 是无附加属性的静态类，标记编译失败；请在代码中设置。 |
+| `shell:ApplicationBar` 声明在 `PhoneApplicationPage.ApplicationBar` 上 | 可用；由 frame 的呈现器渲染。 |
+| `platform:PhoneApplicationPage` 的 `SupportedOrientations` / `Orientation` | 可解析并保留；不强制旋转桌面窗口。 |
+| `phone:LongListSelector` | 可用；分组对象必须实现 `IList`，跳转列表是 `Popup`。 |
+| `phone:AutoCompleteBox`、地图、语音、传输 XAML | 不支持。 |
 
 ## 按功能的兼容注意事项
 
-1. **投影与 3D**：真实 3D 渲染和动画已实现。原始 `<Grid.Projection>` 形式不编译，但把 `ProjectionService.Projection`（或 `element.Projection`）赋给任意元素时会按需把它包进 `ProjectionHost`，无需手动包装；模板中仍建议显式使用 Host。相机复现了 XAML 固定的 999 DIP 透视深度，因此缩放与透视收缩与 WP 一致；只有依赖“透视原点移出元素边界”的效果存在差异（见已知限制）。
-2. **转场**：时序、角度和模式与原始 storyboard 一致。由于 WPF `GetCurrentState()` 需要可控宿主，移植版自行跟踪 storyboard 状态。
-3. **导航**：保留 WPF `Frame`/`Page` 和 journal 行为，但 WP 页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 检测策略没有 WPF 系统等价物。
-4. **效果**：TiltEffect 和 TurnstileFeatherEffect 使用真实投影管线。无法包装的目标会被跳过：items panel 内的 item 容器（子元素由 WPF 管理）以及不是 Panel 直接子元素的元素；作为 Panel 子元素的 `ContentPresenter` 可以正常包装。
-5. **控件**：DP 面和核心行为保留；WPF 没有对应 picker/popup 基础设施时，视觉细节和模态宿主不同。
-6. **本地化**：包含原始 resx 资源；`ControlResources` 使用 `CurrentUICulture`。
-7. **不支持模块**：AutoCompleteBox、LongListMultiSelector、MultiselectList、地图、传输、语音、`LockablePivot`、SlideInEffect 和手势 API 明确不支持，没有空壳。`LongListSelector` 已按上述 items-host 模型实现。
-8. **主题**：`PhoneThemeManager` 把调色板字典移到 `Application.Resources`（移除 `Themes/Generic.xaml` 中嵌套的那份），这样替换字典会触发 `DynamicResource` 消费者失效并更新。包内模板使用动态资源；应用 XAML 也必须用 `DynamicResource`，关键帧里捕获的颜色（例如 `PhoneTextBox` 获得焦点时的颜色）只会在模板重新应用时刷新。
+1. **投影与 3D**：真实 3D 渲染与动画；`<Grid.Projection>` 不编译，但给任意元素赋 `ProjectionService.Projection`（或 `element.Projection`）会按需包装。相机复现 XAML 固定的 999 DIP 透视深度；依赖“透视原点移出元素边界”的效果存在差异（见[已知限制](known-limitations.md#4-投影与-3d)）。
+2. **转场**：时序、角度与模式取自原始 storyboard 资源；WPF 的 storyboard 状态查询与 Silverlight 不同，移植版自行跟踪。
+3. **导航**：保留 WPF `Frame`/`Page` 与 journal 行为；页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 策略没有 WPF 系统等价物。
+4. **效果**：`TiltEffect` 与 `TurnstileFeatherEffect` 使用真实投影管线。无法包装的目标被跳过：items panel 内的 item 容器、不是 Panel 直接子元素的元素。
+5. **控件**：依赖属性面与核心行为保留；WPF 缺少 picker/popup 基础设施时，视觉细节与模态宿主不同。
+6. **本地化**：包含原始 resx 资源，`ControlResources` 使用 `CurrentUICulture`。
+7. **主题**：`ThemeManager` 在运行时改色；库内模板使用 `DynamicResource`，应用 XAML 也应使用 `DynamicResource`。`Themes/Theme.xaml` 在应用级字典中会被 WPF 冻结，`ThemeManager` 首次应用时把它替换为可变副本。
 
-## 验证状态
-
-| 证据 | 位置 |
-|---|---|
-| 构建（库、示例、测试） | `dotnet build -c Debug/Release` |
-| 投影渲染/方向/命中测试 | `tests/.../ProjectionTests.cs` |
-| 控件/API 测试 | `tests/.../ControlTests.cs`、`ShellTests.cs`、`ConverterTests.cs` |
-| Pivot 测试 | `tests/.../PivotTests.cs` |
-| 导航/转场测试 | `tests/.../NavigationTests.cs` |
-| 效果测试 | `tests/.../EffectsTests.cs` |
-| 示例运行冒烟 | `src/Community.Phone.Controls.Toolkit.Sample` + `%TEMP%\community-phone-toolkit-sample-error.txt` |
-| 主题/强调色切换（手动） | 示例 `Samples/ThemeSample.xaml`：明/暗主题、调色板强调色、自定义强调色 |
-| 包安装测试 | `build/verify-package.ps1` + `tests/PackageConsumer`（隔离缓存，构建并运行） |
-
-实现状态变化时必须同步更新本矩阵；没有构建/测试或明确手动证据的功能不得声称完成。
+实现状态或成员发生变化时必须同步更新本矩阵；没有实现依据的功能不得标记为已实现。

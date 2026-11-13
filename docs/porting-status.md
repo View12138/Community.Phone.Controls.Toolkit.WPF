@@ -1,123 +1,107 @@
-# 移植状态 — Community.Phone.Controls.Toolkit
+# 移植状态
 
-[English](../porting-status.md) · 中文
+按模块记录当前实现状态。本文件与[API 兼容矩阵](api-compatibility.md)的分工：那里逐类型列出 API 差异，这里给出模块级的范围与状态，并记录构建/运行事实。
 
-**本文档是什么。** 按模块记录的**当前**实现/验证状态，是本项目的权威状态表。内容来自源码树、测试套件和实测运行，而不是原始计划。Phase 0 审计（`docs/*/porting-inventory.md`）记录的是原版工具包**有什么**，不代表本移植版**现在能做什么**。
-
-**状态定义**
+## 状态定义
 
 | 状态 | 含义 |
 |---|---|
-| ✅ **已验证** | 已实现，且有自动化测试或实测数据（会引用具体数字）。 |
-| 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
-| ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
+| **已实现** | 源码中存在完整实现，API 面可用。 |
+| **部分实现** | 主体已实现，但有明确的功能或保真度缺口（见备注与[已知限制](known-limitations.md)）。 |
+| **未实现** | 源码中不存在，不得声称可用。 |
 
-**证据快照（2026-11-09）：** Release 构建 0 错误、2 个唯一警告（`ViewportControl` 中刻意保留的公共事件；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告）· Release 下 **142/144 测试通过**（约 40 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）。两个失败是既有的 ListPicker 样式断言 `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ListPicker_HighlightedVisualStateUsesBrushResources`，在基线上同样失败 · 项目已拆分为 `Community.Phone`（`Microsoft.Phone.dll` 兼容层：导航/页面/Shell 类型）与 `Community.Phone.Controls.Toolkit`（toolkit 控件/转场），两者一起放进单一 `Community.Phone.Controls.Toolkit` 包 · 新增回归测试 `TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` 覆盖跨线程清理 · 示例冒烟运行：应用可启动，导航与 `LongListSelector` 示例正常渲染，没有启动错误。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
+仓库内没有自动化测试工程，因此本文件不再按“测试是否通过”分级；状态由源码检查得出，行为差异与验证缺口见[已知限制](known-limitations.md)。
 
----
+## 构建与验证
+
+| 检查项 | 命令 | 结果 |
+|---|---|---|
+| `Community.Phone` 编译 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | 通过；只有警告（可空性 `CS86xx`、未使用事件 `CS0067`、XML 注释 `CS1574` 等） |
+| `Community.Phone.Controls.Toolkit` 编译 | 同上 | **失败**：`Controls/ListPicker/ListPickerPage.xaml(23,5)` 报 `MC3072` —— XML 命名空间 `clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone` 中不存在属性 `SystemTray.IsVisible` |
+| 示例工程编译 | 同上 | 无法进行：依赖 toolkit 工程；且 `MainPage.xaml`、`Settings.xaml` 与 `Samples/*.xaml` 中的 9 处页面也使用 `shell:SystemTray.IsVisible`，会报同一错误 |
+| 打包 | `dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release` | 无法进行：依赖编译成功；`csproj` 另外引用了不存在的 `README_zh-CN.md`、`THIRD-PARTY-NOTICES_zh-CN.md`、`docs/en/*.md`、`docs/zh-CN/*.md` |
+| 包消费验证 | `powershell -File build\verify-package.ps1` | 无法进行：脚本引用不存在的 `tests/PackageConsumer/PackageConsumer.csproj` |
+
+构建阻塞的根因：`Microsoft.Phone.Shell.SystemTray` 是静态类，只提供静态属性（`IsVisible`、`Opacity`、`BackgroundColor`、`ForegroundColor`、`ProgressIndicator`），没有附加依赖属性，因此不能作为 XAML 附加属性使用。该写法出现在 toolkit 的 `ListPickerPage.xaml` 与示例的 9 个页面中。
 
 ## 1. 投影
 
-| 项目 | 状态 | 证据 / 说明 |
+| 项目 | 状态 | 说明 |
 |---|---|---|
-| `Projection` 基类 | ✅ 已验证 | `PlaneProjection_HasSilverlightDefaults`、`…_DependencyPropertiesRoundTrip`；`Animatable`、`IsIdentity`、`ProjectionChanged` |
-| `PlaneProjection` 矩阵 | ✅ 已验证 | `…_IdentityMatrixLeavesCenterAndCornersUnchanged`、`…_RotationXAndZRespectTheCoordinateSystem`、`…_CenterOfRotationMovesThePivot`、`…_LocalOffsetIsRotatedButGlobalOffsetIsNot`、`…_UsesElementSizeForCentersAndScales`、`…_RotationYMatchesTheXamlDepthDirection` |
-| 透视模型（999 DIP 深度、按宽度推导 FOV） | ✅ 已验证 | `ProjectionHost_AppliesTheXamlPerspectiveDepth`（−80° 时铰链边 800 px、自由边 x≈134 / 543 px）、`ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`（200×400 槽位渲染出 199–200 px 宽，而不是 60%） |
-| 2D↔3D 切换与 `Prefer3D` | ✅ 已验证 | `ProjectionHost_RendersContentInTwoAndThreeDimensions`、`ProjectionHost_Enters3DWhenIdentityProjectionIsAnimated`、`TransitionFrame_PlaysTurnstileTransition`（断言首帧与结束后的 `Prefer3D`/`IsRenderingIn3D`） |
-| 命中测试、焦点、纹理方向 | ✅ 已验证 | `ProjectionHost_ForwardsHitTestingToProjectedContent`、`…_KeepsProjectedContentFocusable`、`…_PreservesTextureOrientation` |
-| 多宿主 / 高 DPI | ✅ 已验证 | `…_RendersIndependentProjectionsForMultipleHosts`、`…_RendersAtHighDpiWithoutChangingLayoutUnits` |
-| storyboard 定位（`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` 路径） | ✅ 已验证 | `Storyboard_AnimatesProjectionTarget`、`ProjectionHost_UpdatesTheSceneWhenTheProjectionIsAnimated`，以及从原版 storyboard 资源加载带前缀路径的 `TransitionStoryboardTests` 各族 |
-| `ProjectionService` 按需包装 | ✅ 已验证 | `ProjectionService_WrapsAnElementThatReceivesAProjection`、`ProjectionService_WrapsAContentPresenterDeclaredInAPanel`、`ProjectionService_KeepsTemplateBindingsWhenWrappingATemplatedContentPresenter`、`ProjectionService_WrapsAnItemContainerOutsideAnItemsControl`；items panel 内的 item 容器会被拒绝包装且不抛异常（`ProjectionService_DoesNotWrapItemContainersInAnItemsPanel`），因为该 Panel 的子元素由 WPF 管理 |
-| `Matrix3DProjection` | 🟡 已实现、未验证 | `Matrix3DProjection_TranslatesInNormalizedCoordinates` 只覆盖平移；其他矩阵约定与视觉一致性未测；示例无演示 |
-| identity 像素级一致 | ✅ 已验证 | 2026-10-19 实测：1 px 特征线在 2D 为 100.00、3D 为 100.01 px；无位移、无缩放。剩余差异是 ClearType→灰度抗锯齿 |
+| `Projection`、`PlaneProjection`、`Matrix3DProjection` | 已实现 | 12 个 `PlaneProjection` 依赖属性；`Animatable`；`ToMatrix3D` 复现 XAML 的 999 DIP 透视与符号约定；`Matrix3DProjection` 使用归一化矩阵 |
+| `ProjectionHost` | 已实现 | `Viewport3D` + `Viewport2DVisual3D`；`Content`、`Projection`、`PerspectiveDepth`（默认 999）、`Prefer3D`、`IsRenderingIn3D`；双面四边形；内容按布局槽裁剪，投影结果不裁剪 |
+| `ProjectionService` | 已实现 | 附加属性 `Projection`、扩展成员 `element.Projection`、`EnsureProjectionHost`（复制布局属性）、`ReleaseProjectionHost`、`GetDirectProjectionHost`、`GetProjectionPropertyPath`；item 容器不包装 |
+| storyboard 路径 `(ProjectionService.Projection).(PlaneProjection.X)` | 已实现 | 供原版 storyboard 使用 |
+| `Matrix3DProjection` 的复杂矩阵 | 部分实现 | `ToMatrix3D` 依次做“按尺寸归一化 → 应用矩阵 → 反归一化”；任意矩阵的视觉结果没有验证，示例未演示 |
 
-## 2. 导航
+## 2. 导航与 Shell
 
-| 项目 | 状态 | 证据 / 说明 |
+| 项目 | 状态 | 说明 |
 |---|---|---|
-| `PhoneApplicationFrame`（基于 WPF `Frame`）、journal、`Navigate(page, parameters)` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_NavigationContextCarriesParameters`、`Frame_RapidNavigationKeepsTheLatestPage`；示例导航 |
-| `PhoneApplicationPage`、生命周期（`OnNavigatedTo/From`、`OnBackKeyPress`）、`State` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_StateSurvivesBackNavigation`、`Frame_BackKeyPressCanCancelBackNavigation`、`Frame_BackNavigationReturnsTheExistingPageInstance` |
-| 方向检测 | ✅ 已验证 | `Frame_DetectsOrientationFromSize` |
-| Tombstone / 真实 WP 生命周期 | ⛔ 未实现 | `State` 是内存字典；见 `known-limitations.md` §2 |
-| `PhoneApplicationService` 状态 API | ✅ 已验证 | `SystemTrayAndApplicationServiceExposeState`；idle/deactivation 策略未实现 |
-| `SystemTray`（状态 API） | ✅ 已验证 | `SystemTrayStatePublishesPropertyChanges`；**不绘制视觉 chrome** |
-| `ApplicationBar`（API、chrome 与菜单） | ✅ 已验证 | `ApplicationBarItemsRaiseClicksThroughTheirViews`、`…DisabledItemsDoNotRaiseEvents`、`…EnforcesItemLimitsAndValidation`、`…MenuAcceptsTheMaximumNumberOfItems`、`…ReservedHeightFollowsTheOriginalRule`、`ApplicationBarPresenterOpensAndClosesTheMenu`、`ApplicationBarIconButtonDrawsThePhoneCircle`、`PhoneApplicationFrameHostsThePageApplicationBar`、`…HidesTheBarWhenThePageHasNone`、`…RejectsForeignApplicationBarImplementations`；应用栏由 Frame 模板中的 `ApplicationBarPresenter` 绘制（96×72 槽位、48 DIP 圆环内嵌 32 DIP 图标、12 px 标签），示例 `MenusPage` 已使用 |
-| `NavigationContext` 查询参数/附加数据 | ✅ 已验证 | `Frame_NavigationContextCarriesParameters` |
+| `PhoneApplicationFrame`（WPF `Frame`）、journal、`Navigate(page, parameters)` | 已实现 | 参数与 URI 查询串合并进 `NavigationContext` |
+| 页面生命周期分发 | 已实现 | `Navigating`/`Navigated` 触发 `OnNavigatingFrom`、`OnNavigatedFrom`、`OnNavigatedTo`；`GoBack()` 先触发 `BackKeyPress` |
+| 页面状态、`KeepAlive` | 已实现 | `State` 是内存字典，按页面实例保存；构造函数设置 `KeepAlive = true` |
+| 方向检测 | 已实现 | 按 Frame 尺寸推断；不强制旋转桌面窗口 |
+| Tombstone / 真实 WP 生命周期 | 未实现 | 见[已知限制 §2](known-limitations.md#2-导航与页面模型) |
+| `PhoneApplicationService` | 部分实现 | `State`、生命周期事件、idle 检测模式；无 tombstoning |
+| `SystemTray` | 部分实现 | 只有状态 API，无视觉 chrome；不是附加属性（见上方构建阻塞） |
+| `ApplicationBar`（API、chrome、菜单） | 已实现 | 原版 API 形状与限制；`ApplicationBarPresenter` 绘制 72/30 DIP 栏、96×72 图标槽、48 DIP 圆环、48 px 行高菜单 `Popup`；frame 按 `ReservedHeight` 预留高度 |
+| `NavigationContext` | 已实现 | `Uri`、`ExtraData`、大小写不敏感 `QueryString`；可从相对 URI 解析查询串 |
 
 ## 3. 转场
 
-| 族 | 状态 | 证据 / 说明 |
+| 族 | 状态 | 说明 |
 |---|---|---|
-| `TransitionFrame`（退场→入场串行、presenter 翻转、交互恢复） | ✅ 已验证 | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`、`…_HostsInitialContentInTheOutgoingPresenter`、`…_RapidNavigationDoesNotLeaveTransitionsActive`、`…_PlaysTurnstileTransition`、`…_UsesAnOutTransitionSetJustBeforeNavigating`（示例在导航前设置转场族）、`…_CompletesAFeatheredExitWithoutTargets`（空转场不得冻结新页面）。presenter 会做 `Prefer3D`/命中测试准备，但不加 `BitmapCache`（3D 路径本身已栅格化页面）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，因此原版针对 shell 导航的保护未移植。 |
-| `TurnstileTransition`（4 模式） | ✅ 已验证 | 使用原版 `Turnstile*` XAML 资源；`TurnstileTransition_AnimatesRotationYOverTheOriginalRange` + `TransitionFrame_PlaysTurnstileTransition`；实测入场 `−80°→0°` 为 420 ms、退场 `0→50°` 约 300 ms（0.35 s / 0.25 s 乘以 `TurnstileDurationScale = 1.2`），转场中间帧截图中页面呈透视梯形。几何按 999 DIP 解析模型实测。WP 对齐调优：`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`（`Transitions.cs` 中的单个常量；设为 `0` / `1` 即还原原工具包值）。 |
-| `TurnstileFeatherTransition` | ✅ 已验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget`、`TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` 覆盖动画、首次布局时的目标收集与清理；没有动画的转场（例如页面没有可羽化元素时的羽化）会正常完成而不冻结（`TransitionFrame_CompletesAFeatheredExitWithoutTargets`）。示例中实测：入场转场按序羽化 `FeatherPage`，转场结束后页面正常重绘（转场后截屏）。原版“页面中心透视原点”**未**复刻（已文档化）。已实测帧率（6 个元素约 64–68 fps）。注意：出站转场属于被离开的页面——想要羽化退场必须由源页声明或动态设置（示例在 `SampleNavigator` 中完成，源页没有可羽化元素时回退为 turnstile 退场）。 |
-| `SlideTransition`（8 模式） | ✅ 已验证 | 原版 `Slide*Fade*` XAML 资源；`SlideTransition_AnimatesTheRenderTransformOverTheOriginalRange` 在运行时观察 `TranslateTransform.X`（200 → 0）和透明度 |
-| `RotateTransition`（8 模式） | ✅ 已验证 | 原版 `Rotate*` XAML 资源；`RotateTransition_AnimatesRotationZOverTheOriginalRange` 在运行时观察 `RotationZ`（90 → 0）；流方向适配由工厂覆盖 |
-| `SwivelTransition`（6 模式） | ✅ 已验证 | 原版 `Swivel*` XAML 资源；`SwivelTransition_AnimatesRotationXOverTheOriginalRange` 在运行时观察 `RotationX`（−45 → 0） |
-| `RollTransition`（1 模式） | ✅ 已验证 | 原版 `Roll` XAML 资源；`RollTransition_AnimatesRotationZOverTheOriginalRange` 在运行时观察 `RotationZ`（0 → 45 → 90） |
-| storyboard 数值一致性 | ✅ 已验证 | `TransitionStoryboardTests` 在运行时断言每个族的动画属性与取值范围，因此改动 storyboard 资源或工厂都会让测试失败 |
+| `TransitionFrame` | 已实现 | 两个 `ProjectionHost` 部件；退场完成后再进场；准备阶段关闭命中测试并打开 `Prefer3D`；无动画的转场在下一个 dispatcher 周期完成 |
+| `Transition` | 已实现 | 自跟踪 begun/completed；可控时钟；`Stop()` 移除时钟；每次运行最多一次 `Completed` |
+| `TurnstileTransition`（4 模式） | 已实现 | 原版 storyboard；`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2` 为移植版调优常量 |
+| `TurnstileFeatherTransition`（4 模式） | 已实现 | 目标从页面可视树收集；逐元素 `ProjectionHost`；40/50 ms 交错；清理后重绘 |
+| `SlideTransition`（8 模式） | 已实现 | 原版 `Slide*Fade*` storyboard；`RenderTransform` 位移与透明度 |
+| `RotateTransition`（8 模式） | 已实现 | 原版 `Rotate*` storyboard |
+| `SwivelTransition`（6 模式） | 已实现 | 原版 `Swivel*` storyboard |
+| `RollTransition`（1 模式） | 已实现 | 原版 `Roll` storyboard |
+| `ProjectionTransition` | 已实现 | 转场完成/停止时清除附加投影 |
 
 ## 4. 效果
 
-| 项目 | 状态 | 证据 / 说明 |
+| 项目 | 状态 | 说明 |
 |---|---|---|
-| `TiltEffect` | ✅ 已验证 | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`、`TiltEffect_DoesNotTiltThePageThatHostsTheElement`、`TiltEffect_DoesNotWrapWhenSuppressed`；按压方向已按 XAML 约定做解析验证 |
-| `TurnstileFeatherEffect` | ✅ 已验证 | 同羽化转场的测试，另加 `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`；目标从页面可视树收集，宿主包装延迟到 dispatcher，元素卸载时释放包装。逐元素宿主与页面级投影可用，示例 `FeatherPage` 按序羽化且转场后正确重绘，但透视原点与原版不同 |
-| `SlideInEffect` | ⛔ 未实现 | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已实现，但效果本身尚未移植 |
+| `TiltEffect` | 已实现 | 通过 `ProjectionService` 赋投影；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation；跳过 item 容器 |
+| `TurnstileFeatherEffect` | 已实现 | 目标从可视树收集；包装延迟到 dispatcher；`Prefer3D` + `CenterOfRotationX = -0.2`；恢复后 `InvalidateVisual()` |
+| `SlideInEffect` | 未实现 | Pivot 选中项动画效果未移植 |
 
 ## 5. 控件
 
-| 控件 | 状态 | 证据 / 说明 |
+| 控件 | 状态 | 说明 |
 |---|---|---|
-| `WrapPanel` | ✅ 已验证 | `WrapPanel_WrapsChildrenAndHonorsItemSize` |
-| `ToggleSwitch` + `ToggleSwitchButton` | ✅ 已验证 | `ToggleSwitch_HasTemplateAndDependencyProperties`、`…_AnimatesThumbTranslation`、`…_SwitchButtonDrivesEvents` |
-| `Rating` | ✅ 已验证 | `Rating_CreatesConfiguredNumberOfItems`、`…_MouseClickChangesValue`、`…_ValueChangesRaiseEventAndUpdateItems`、`…_HalfItemIncrementKeepsValueInItemUnits`；半星模式现在以“星”为单位存值（已文档化的偏离：原版会填出两倍于指针位置的数量） |
-| `PhoneTextBox` | ✅ 已验证（行为） | `PhoneTextBox_ShowsHintWhenEmpty`、`…_TemplatePartsAndTwoWayText`、`…_InnerEditorIsVisibleAndReceivesFocus`；占位符起点现在与光标一致（实测 12 px），聚焦或输入法合成期间隐藏；水印动画视觉未验证 |
-| `ListPicker` / `ListPickerItem` | ✅ 已验证（行为） | `ListPicker_SelectionRoundTrips`、`…_ExpandedModeSelectsItemAndCollapses`、`…_OpenWithoutItemsExpands`、`…_FullModeWithoutFrameStaysUsable`、`…_FullModeNavigatesToPickerPageAndCommitsSelection`、`…_PageWithPickersLoadsWithoutAnimationErrors`、`…_HighlightedVisualStateUsesBrushResources`、`…_FullModePageUsesTheApplicationBarForSingleSelection`、`…_FullModePageCommitsFromTheApplicationBarDoneButton`（页面的原版应用栏、本地化文本、库内图标以及"完成→提交"链路）、`…_FullModePageAnimatesEveryItemInView`（每个 item 都有 `ProjectionHost`，从侧立开始、最终归零）、`…_FullModeSingleSelectionUsesThePhoneItemStyle`（没有桌面选中底色、选中文字为 accent 色、行高 98 px 而非桌面的 118）、`…_MultipleSelectionCheckBoxUsesThePhoneStyle`（透明填充、白色边框）、`…_ReturnsFromFullModeShowsTheSelectedItem`（presenter 位移到选中行）、`…_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt`（120 个虚拟化项目：不再抛 `NullReferenceException`，选中项滚入视口并参与动画，没有容器停留在侧立状态）。完整模式页面的 chrome 与间距已与 WP 8.1 截图对比 |
-| `ExpanderView` | 🟡 已实现、未验证 | `ExpanderView_TogglesAndRaisesEvents` 覆盖行为；高度动画与标题竖线间距属于纯视觉 |
-| `HubTile` / `HubTileService` | ✅ 已验证 | `HubTile_PropertiesAndGroupFreeze`、`HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel`；模板即 WP8 原版（滑动表面 + `RotationX` 翻转）：Expanded/Semiexpanded 把表面滑到 `-H`/`-0.4566H`，翻转从 `0` 转到 `180` 并渲染背面（投影四边形为双面），`Source` 图片则用 96 DPI 渲染像素验证 |
-| `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`；弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel（探针：弹出 `RotationX −45°→0°`，关闭 `0°→42°` 后窗口才关闭）。`Show()` 在没有 `Application` 的宿主中同样可用（主题色回退到固定值、窗口尺寸取默认值），测试正是这样驱动它的 |
-| `ContextMenu` / `ContextMenuService` | ✅ 已验证 | `ContextMenuService_AttachesMenu`、`ContextMenu_OpensAndCloses` |
-| `HyperlinkButton` | ✅ 已验证（行为） | `HyperlinkButton_NavigatesApplicationUriInTheNearestFrame`、`…_OpensExternalUrisThroughTheShell`、`…_RetainsTargetNameAndExposesAHyperlinkPeer`、`NavigationContext_ParsesQueryFromARelativeUri`。相对/pack URI 导航最近帧；外部 URI 使用系统处理程序；`TargetName` 保留但命名目标不受支持。示例索引页通过该控件进入每个示例页（UI 自动化：调用 LLS 条目后页面加载出组页眉/项目，`Toggle grid` 可切换到网格模式） |
-| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ 已验证（行为） | `DateTimePickers_HaveExpectedDefaultsAndFormatting`、`DateTimePickers_FormatValuesAndRaiseValueChanged`、`RecurringDaysPicker_SummarizesWeekdays`；picker **页面**与 `LoopingSelector` 未移植（改用 WPF 对话框） |
-| `PerformanceProgressBar` | 🟡 已实现、未验证 | 在 `Generic.xaml` 中有样式、示例中有展示；无专门测试，相对动画重写未移植 |
-| `RelativeAnimatingContentControl` | 🟡 已实现、未验证 | 有样式、示例中有展示；无专门测试 |
-| `ClipToBounds` | 🟡 已实现、未验证 | 位于 `Controls/ClipToBounds.cs`；无专门测试 |
-| 转换器（`OffOnConverter`、tile-size、`RelativeTimeConverter`） | ✅ 已验证 | `OffOnConverterUsesLocalizedStrings`、`TileSizeConvertersReturnExpectedDimensions`、`RelativeTimeConverterFormatsMinutesAndHours` |
-| 辅助类（`CultureInfoExtensions`、`RoutedPropertyChangingEventArgs`、`WeakReferenceHelper`） | 🟡 已实现、未验证 | 被已移植控件使用；无专门测试 |
-| `AutoCompleteBox` | ⛔ 未实现 | 源码中不存在 |
-| `LongListSelector`（WP8.1） | ✅ 已验证（行为） | `LongListSelector_RendersListPartsAndVirtualizedItems`、`…_GroupingBuildsGroupPartsAndHidesEmptyGroups`、`…_GridLayoutArrangesItemsInFixedCells`、`…_SelectionAndKeyboardNavigationUseItemData`、`…_ScrollToBringsAFarItemIntoView`、`…_CollectionChangesRebuildItemsAndRaiseUnrealized`、`…_JumpListOpensAndScrollsToTheChosenGroup`。列表模式使用 `VirtualizingStackPanel` 虚拟化；网格模式为固定单元格非虚拟化面板；跳转列表为 WPF `Popup`；像素/触摸保真度未验证 |
-| `LongListMultiSelector`（WP8） | ⛔ 未实现 | 源码中不存在 |
-| `MultiselectList` | ⛔ 未实现 | 源码中不存在 |
-| 地图（`MapChild`、`MapItemsControl`、`Pushpin` 等） | ⛔ 未实现 | 需要地图提供方 |
-| `SpeechTextBox` | ⛔ 未实现 | 需要 WP 语音 API |
-| `TransferControl` | ⛔ 未实现 | 需要 WP 后台传输服务 |
-| `GestureListener` / `GestureService` | ⛔ 未实现 | 改用 WPF manipulation 事件 |
-| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | ✅ 已验证（行为）/ 🟡（指针拖拽） | `Pivot_ShowsTheFirstItemAndBuildsTheHeaderStrip`、`…_SelectedIndexSlidesTheIncomingItemAndCompletes`、`…_BackwardSelectionEntersFromTheLeft`、`…_ClickingAHeaderSelectsItsItem`、`…_HeaderRunWrapsAroundAfterTheLastHeader`、`…_KeyboardNavigatesAndWrapsAround`、`…_IsLockedRefusesProgrammaticNavigationAndFadesHeaders`、`…_RaisesTheItemLifecycleEventsInOrder`、`…_ItemsAddedAfterTheTemplateAppears`、`…_OutOfRangeSelectionIsRejected`、`…_RendersTheTitleHeadersAndContent`（96 DPI 离屏渲染：标题、页眉与内容像素落在预期区域）。指针拖拽路径（捕获、600 px/s 跟踪、半视口阈值）没有自动化测试，且本环境无法用真实指针验证；功能已实现但未验证。输入使用鼠标拖拽加方向键，而不是 DirectManipulation；页眉条与原版一样循环排布，但只绘制一圈（见 `docs/*/known-limitations.md`） |
-| `LockablePivot` | ⛔ 未实现 | toolkit 的 WP7 辅助控件已被 `Pivot.IsLocked` 取代，移植版直接在 `Pivot` 上实现 |
+| `WrapPanel` | 已实现 | 原始布局算法 |
+| `ToggleSwitch` + `ToggleSwitchButton` | 已实现 | 视觉状态 + manipulation |
+| `Rating` / `RatingItem` | 已实现 | 代码生成项目；半星模式以“星”为单位（偏离原版翻倍行为） |
+| `PhoneTextBox` | 已实现 | hint、action icon、长度指示；占位符与光标对齐；输入法合成期间隐藏 |
+| `ListPicker` / `ListPickerItem` / `ListPickerPage` | 部分实现 | 普通/完整模式、原版应用栏、逐个翻转；页面 XAML 当前因 `shell:SystemTray.IsVisible` 无法编译 |
+| `ExpanderView` | 已实现 | 高度动画简化 |
+| `HubTile` / `HubTileService` | 已实现 | 两倍高表面滑动 + 真实 `RotationX` 翻转；组冻结 |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | 继承 WPF 菜单类型 |
+| `CustomMessageBox` | 已实现 | WPF `Window` 承载；Swivel 弹入/关闭；不依赖 `Application` |
+| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 部分实现 | 值/格式/事件完整；使用模态窗口，picker 页面未移植 |
+| `PerformanceProgressBar`、`RelativeAnimatingContentControl` | 已实现 | 不确定进度与透明动画 |
+| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | 已实现 | 代码动画替代 DirectManipulation；鼠标拖拽 + 方向键；`IsLocked` |
+| `LongListSelector` | 已实现 | 分组、页眉/页脚、列表/网格模式、跳转列表、`ScrollTo`、`ItemRealized`/`ItemUnrealized` |
+| `HyperlinkButton` | 已实现 | 相对/pack URI 导航；外部 URI 交系统处理；`IInvokeProvider` |
+| `ClipToBounds` | 已实现 | 附加属性 |
+| `AutoCompleteBox`、`LongListMultiSelector`、`MultiselectList`、地图、`TransferControl`、`SpeechTextBox`、`LockablePivot`、`GestureListener`/`GestureService`、`LoopingSelector` | 未实现 | 源码中不存在 |
 
 ## 6. 主题、本地化、打包
 
-| 项目 | 状态 | 证据 / 说明 |
+| 项目 | 状态 | 说明 |
 |---|---|---|
-| Metro 主题 + WPF 基础控件 WP 样式 | ✅ 存在性已验证 / 🟡（保真度） | `Theme_ContainsMetroResources`；`Generic.xaml` 覆盖 `Button`、`TextBox`、`ComboBox`、`CheckBox`、`RadioButton`、`ListBox`、`ScrollBar`、`ContextMenu`、`ProgressBar`、`ToolTip` 及工具包控件。从未与 WP 做并排像素对比 |
-| 本地化资源 | ✅ 已验证 | 50 种文化 + 中性资源，包内包含卫星程序集；`OffOnConverterUsesLocalizedStrings` |
-| `Community.Phone` 兼容层 | ✅ 已验证 | `NavigationTests`、`ShellTests`、`ControlTests` 与包消费冒烟测试从独立程序集及它自己的 `Themes/Generic.xaml` 加载 `PhoneApplicationFrame`/`PhoneApplicationPage`/`ApplicationBar` |
-| NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` + `.snupkg` 同时包含两个程序集，全新消费工程可构建运行 |
-| 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`、`ListPickerSample`、`CustomMessageBoxSample`、`PivotSample`、`HubTileSample`、`LongListSelectorSample`；索引页本身就是一个 `LongListSelector`）。2026-10-27 UI 自动化冒烟：Pivot 示例可打开（活动 `PivotItem`、页眉、状态文本），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 HubTile 与图片）能渲染文本和图片。两个配置都先做了重新构建：往示例工程里新增 `Resource` 图片后必须重建，否则 `.g.resources` 仍是旧文件列表，pack URI 会找不到资源 |
+| Metro 主题 + WPF 基础控件 WP 样式 | 已实现 | 两个程序集的 `Themes/Generic.xaml`；覆盖 toolkit 控件与常用 WPF 控件；未做与原版的并排像素对比 |
+| 运行时主题/强调色切换 | 已实现 | `ThemeManager` + `ThemePalette` + `Theme.xaml`；详见[主题系统](theming.md) |
+| 本地化资源 | 已实现 | 51 个 resx（50 个文化 + 中性）；`qps-ploc` 未打包 |
+| `Community.Phone` 兼容层 | 已实现 | 独立程序集、独立主题字典 |
+| NuGet 包 | 部分实现 | 单包包含两个程序集的设计与 `IncludeCompatibilityLayerInPackage` 已就位；但当前无法编译，且 `csproj` 引用了不存在的随包文档 |
+| 示例应用 | 部分实现 | 页面与控件演示齐全；索引 25 条中大部分没有对应页面文件；与库同样受 `SystemTray` XAML 问题影响 |
 
----
+## 维护规则
 
-## 7. 重新验证命令
-
-```powershell
-dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
-dotnet test  Community.Phone.Controls.Toolkit.slnx -c Release
-powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
-# 示例（重建前先结束进程）
-.\src\Community.Phone.Controls.Toolkit.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.Sample.exe
-```
-
-## 8. 维护规则
-
-行为变化或证据增减时，必须在同一次改动中更新本文件。某个 🟡 项获得自动化或实测证据后改为 ✅ 并引用测试/测量；出现回归则改回。**不得**基于“打算做”把某行升级。
+行为、API 面或构建状态发生变化时，必须在同一次改动中更新本文件与[API 兼容矩阵](api-compatibility.md)。未实现的内容不得从“未实现”改为“已实现”，除非源码中确实存在实现。

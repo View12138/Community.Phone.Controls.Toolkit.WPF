@@ -19,15 +19,9 @@
 - `Microsoft.Phone` / `Microsoft.Phone.Controls.Toolkit`
 - `System.Windows.Interactivity`
 
-## 仅测试/构建期依赖
+## 仅构建期依赖
 
-自动化测试工程使用 xUnit 和 .NET Test SDK。这些包**不会**包含在 NuGet 包中，消费方也不需要安装：
-
-- `Microsoft.NET.Test.Sdk`
-- `xunit`
-- `xunit.runner.visualstudio`
-
-它们各自许可证仅适用于测试执行。
+仓库内没有测试工程。构建只用 .NET SDK 自带的 MSBuild 与 WPF 目标，不存在需要随包分发的构建期 NuGet 包。
 
 ## 字体与图标
 
