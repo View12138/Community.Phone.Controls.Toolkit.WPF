@@ -78,10 +78,10 @@
 | `ToggleSwitch` + `ToggleSwitchButton` | 已实现 | 视觉状态 + manipulation |
 | `Rating` / `RatingItem` | 已实现 | 代码生成项目；半星模式以“星”为单位（偏离原版翻倍行为） |
 | `PhoneTextBox` | 已实现 | hint、action icon、长度指示；占位符与光标对齐；输入法合成期间隐藏 |
-| `ListPicker` / `ListPickerItem` / `ListPickerPage` | 部分实现 | 普通/完整模式、原版应用栏、逐个翻转；页面 XAML 当前因 `shell:SystemTray.IsVisible` 无法编译 |
+| `ListPicker` / `ListPickerItem` / `ListPickerPage` | 部分实现 | 普通/完整模式、原版应用栏、逐个翻转 |
 | `ExpanderView` | 已实现 | 高度动画简化 |
 | `HubTile` / `HubTileService` | 已实现 | 两倍高表面滑动 + 真实 `RotationX` 翻转；组冻结 |
-| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | 继承 WPF 菜单类型 |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | 原版 `Popup` 实现与模板；右键 + 左键长按打开（示例页 `Samples/ContextMenuSample.xaml` 手工验证：打开、关闭、再次打开） |
 | `CustomMessageBox` | 已实现 | WPF `Window` 承载；Swivel 弹入/关闭；不依赖 `Application` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 部分实现 | 值/格式/事件完整；使用模态窗口，picker 页面未移植 |
 | `PerformanceProgressBar`、`RelativeAnimatingContentControl` | 已实现 | 不确定进度与透明动画 |

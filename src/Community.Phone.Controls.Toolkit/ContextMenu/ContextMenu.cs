@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Microsoft.Phone.Controls.Primitives;
 using Microsoft.Phone.Shell;
 using ContextMenu = Microsoft.Phone.Controls.ContextMenu;
@@ -162,6 +163,26 @@ namespace Microsoft.Phone.Controls
         private bool _reversed;
 
         /// <summary>
+        /// Delay used to reproduce the Hold gesture with a mouse or a touch contact.
+        /// </summary>
+        private static readonly TimeSpan HoldDuration = TimeSpan.FromMilliseconds(800);
+
+        /// <summary>
+        /// Tracks the press that may become a Hold gesture.
+        /// </summary>
+        private DispatcherTimer _holdTimer;
+
+        /// <summary>
+        /// Position of the press that started the Hold gesture.
+        /// </summary>
+        private Point _holdStartPoint;
+
+        /// <summary>
+        /// Whether the current press has been held long enough to open the ContextMenu.
+        /// </summary>
+        private bool _holdCompleted;
+
+        /// <summary>
         /// System background brush.
         /// </summary>
         private Brush _backgroundBrush = (Brush)Application.Current.Resources["PhoneBackgroundBrush"];
@@ -179,7 +200,7 @@ namespace Microsoft.Phone.Controls
                     FrameworkElement ownerFrameworkElement = _owner as FrameworkElement;
                     if (null != ownerFrameworkElement)
                     {
-                        ownerFrameworkElement.Hold -= OnOwnerHold;
+                        DetachOwnerGestures(ownerFrameworkElement);
                         ownerFrameworkElement.Unloaded -= OnOwnerUnloaded;
 
                         OnOwnerUnloaded(null, null);
@@ -191,7 +212,7 @@ namespace Microsoft.Phone.Controls
                     FrameworkElement ownerFrameworkElement = _owner as FrameworkElement;
                     if (null != ownerFrameworkElement)
                     {
-                        ownerFrameworkElement.Hold += OnOwnerHold;
+                        AttachOwnerGestures(ownerFrameworkElement);
                         ownerFrameworkElement.Unloaded += OnOwnerUnloaded;
                     }
                 }
@@ -358,7 +379,7 @@ namespace Microsoft.Phone.Controls
             if (DesignerProperties.IsInDesignTool || _rootVisual.Orientation.IsPortrait())
             {
                 double x = 0.5;
-                if (null != _popupAlignmentPoint)
+                if (!double.IsNaN(Width) && (Width > 0))
                 {
                     x = _popupAlignmentPoint.X / Width;
                 }
@@ -517,11 +538,13 @@ namespace Microsoft.Phone.Controls
 
             Setter setterBackground = new Setter(Controls.ContextMenu.BackgroundProperty, backgroundBrush);
             Setter settterBorderBrush = new Setter(Controls.ContextMenu.BorderBrushProperty, borderBrush);
+            bool settersAdded = false;
 
             if (null == Style)
             {
                 newStyle.Setters.Add(setterBackground);
                 newStyle.Setters.Add(settterBorderBrush);
+                settersAdded = true;
             }
             else
             {
@@ -546,14 +569,22 @@ namespace Microsoft.Phone.Controls
                 if (!foundBackground)
                 {
                     newStyle.Setters.Add(setterBackground);
+                    settersAdded = true;
                 }
                 if (!foundBorderBrush)
                 {
                     newStyle.Setters.Add(settterBorderBrush);
+                    settersAdded = true;
                 }
             }
 
-            Style = newStyle;
+            // Assigning a new Style re-applies the template, which calls OnApplyTemplate
+            // again on a later layout pass. Only assign when a setter was actually added
+            // so the second pass (where both setters are already present) settles.
+            if (settersAdded)
+            {
+                Style = newStyle;
+            }
         }
 
         /// <summary>
@@ -703,17 +734,96 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        /// <summary>
-        /// Handles the Hold event for the owning element.
-        /// </summary>
-        /// <param name="sender">Source of the event.</param>
-        /// <param name="e">Event arguments.</param>
-        private void OnOwnerHold(object sender, System.Windows.Input.GestureEventArgs e)
+        private void AttachOwnerGestures(FrameworkElement element)
+        {
+            element.PreviewMouseLeftButtonDown += OnOwnerPreviewMouseLeftButtonDown;
+            element.PreviewMouseMove += OnOwnerPreviewMouseMove;
+            element.PreviewMouseLeftButtonUp += OnOwnerPreviewMouseLeftButtonUp;
+            element.PreviewMouseRightButtonUp += OnOwnerPreviewMouseRightButtonUp;
+        }
+
+        private void DetachOwnerGestures(FrameworkElement element)
+        {
+            element.PreviewMouseLeftButtonDown -= OnOwnerPreviewMouseLeftButtonDown;
+            element.PreviewMouseMove -= OnOwnerPreviewMouseMove;
+            element.PreviewMouseLeftButtonUp -= OnOwnerPreviewMouseLeftButtonUp;
+            element.PreviewMouseRightButtonUp -= OnOwnerPreviewMouseRightButtonUp;
+
+            StopHoldTimer();
+        }
+
+        private void OnOwnerPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (IsOpen)
+            {
+                return;
+            }
+
+            _holdStartPoint = e.GetPosition(null);
+            _holdCompleted = false;
+
+            if (null == _holdTimer)
+            {
+                _holdTimer = new DispatcherTimer { Interval = HoldDuration };
+                _holdTimer.Tick += OnHoldTimerTick;
+            }
+
+            _holdTimer.Stop();
+            _holdTimer.Start();
+        }
+
+        private void OnOwnerPreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if ((null == _holdTimer) || !_holdTimer.IsEnabled)
+            {
+                return;
+            }
+
+            Point position = e.GetPosition(null);
+            if ((Math.Abs(position.X - _holdStartPoint.X) > SystemParameters.MinimumHorizontalDragDistance) ||
+                (Math.Abs(position.Y - _holdStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance))
+            {
+                StopHoldTimer();
+            }
+        }
+
+        private void OnOwnerPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            bool holdCompleted = _holdCompleted;
+            StopHoldTimer();
+
+            if (holdCompleted && !IsOpen)
+            {
+                OpenPopup(_holdStartPoint);
+                e.Handled = true;
+            }
+        }
+
+        private void OnOwnerPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (!IsOpen)
             {
                 OpenPopup(e.GetPosition(null));
                 e.Handled = true;
+            }
+        }
+
+        private void OnHoldTimerTick(object sender, EventArgs e)
+        {
+            if (null != _holdTimer)
+            {
+                _holdTimer.Stop();
+            }
+
+            _holdCompleted = (Mouse.LeftButton == MouseButtonState.Pressed) && !IsOpen;
+        }
+
+        private void StopHoldTimer()
+        {
+            _holdCompleted = false;
+            if (null != _holdTimer)
+            {
+                _holdTimer.Stop();
             }
         }
 
@@ -906,13 +1016,29 @@ namespace Microsoft.Phone.Controls
         private void OnOverlayMouseButtonUp(object sender, MouseButtonEventArgs e)
         {
             // If they clicked in the context menu, then don't close
-            List<UIElement> list = VisualTreeHelper.FindElementsInHostCoordinates(e.GetPosition(null), _rootVisual) as List<UIElement>;
-            if (!list.Contains(this))
+            if (!IsInContextMenu(e.OriginalSource as DependencyObject))
             {
                 ClosePopup();
             }
 
             e.Handled = true;
+        }
+
+        private bool IsInContextMenu(DependencyObject element)
+        {
+            while (null != element)
+            {
+                if (this == element)
+                {
+                    return true;
+                }
+
+                element = (element is Visual || element is System.Windows.Media.Media3D.Visual3D) ?
+                    VisualTreeHelper.GetParent(element) :
+                    LogicalTreeHelper.GetParent(element);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1137,9 +1263,14 @@ namespace Microsoft.Phone.Controls
 
                 // Create a layer for the page content
                 var dpi = VisualTreeHelper.GetDpi(this);
-                WriteableBitmap writeableBitmap = new WriteableBitmap((int)width, (int)height, dpi, dpi, PixelFormats.Default);
-                writeableBitmap.Render(_rootVisual, null);
-                writeableBitmap.Invalidate();
+                RenderTargetBitmap pageBitmap = new RenderTargetBitmap(
+                    (int)Math.Max(1, width),
+                    (int)Math.Max(1, height),
+                    dpi.PixelsPerInchX,
+                    dpi.PixelsPerInchY,
+                    PixelFormats.Default);
+                pageBitmap.Render(_rootVisual);
+                pageBitmap.Freeze();
                 Transform scaleTransform = new ScaleTransform
                 {
                     CenterX = width / 2,
@@ -1147,7 +1278,7 @@ namespace Microsoft.Phone.Controls
                 };
                 UIElement contentLayer = new Image
                 {
-                    Source = writeableBitmap,
+                    Source = pageBitmap,
                     RenderTransform = scaleTransform,
                     CacheMode = new BitmapCache(),
                 };
@@ -1191,7 +1322,15 @@ namespace Microsoft.Phone.Controls
                     _overlay.Children.Insert(3, elementBackground);
 
                     // Create a layer for the element
-                    UIElement element = new Image { Source = new WriteableBitmap(ownerElement, null) };
+                    RenderTargetBitmap ownerBitmap = new RenderTargetBitmap(
+                        (int)Math.Max(1, ownerElement.ActualWidth),
+                        (int)Math.Max(1, ownerElement.ActualHeight),
+                        dpi.PixelsPerInchX,
+                        dpi.PixelsPerInchY,
+                        PixelFormats.Default);
+                    ownerBitmap.Render(ownerElement);
+                    ownerBitmap.Freeze();
+                    UIElement element = new Image { Source = ownerBitmap };
                     Canvas.SetLeft(element, point.X);
                     Canvas.SetTop(element, point.Y);
                     _overlay.Children.Insert(4, element);
@@ -1259,7 +1398,15 @@ namespace Microsoft.Phone.Controls
 
             _overlay.Children.Add(this);
 
-            _popup = new Popup { Child = _overlay };
+            // Silverlight opens a Popup at the origin of the root visual; WPF needs
+            // an explicit relative placement target to align the overlay the same way.
+            _popup = new Popup
+            {
+                Child = _overlay,
+                AllowsTransparency = true,
+                PlacementTarget = _rootVisual,
+                Placement = PlacementMode.Relative,
+            };
 
             _popup.Opened += (s, e) =>
             {
@@ -1279,13 +1426,15 @@ namespace Microsoft.Phone.Controls
                 SetBinding(DataContextProperty, new Binding("DataContext") { Source = dataContextSource });
             }
 
-            _popup.IsOpen = true;
-            Focus();
-
-            // Update IsOpen
+            // WPF raises Popup.Opened synchronously, while Silverlight raises it after the
+            // popup has been shown. IsOpen must already be true when OnOpened runs so the
+            // open visual states are applied instead of the closed ones.
             _settingIsOpen = true;
             IsOpen = true;
             _settingIsOpen = false;
+
+            _popup.IsOpen = true;
+            Focus();
         }
 
         /// <summary>

@@ -265,7 +265,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 | `ExpanderView` | 基于 `HeaderedItemsControl`，部件 `Presenter`/`ExpanderPanel`/`ItemsCanvas`，高度动画在代码中完成 |
 | `HubTile` / `HubTileService` | 定时器驱动 `Expanded → Semiexpanded → Collapsed → Expanded → Flipped`；两倍瓦片高的表面用 `TranslateTransform` 滑到 `-H` / `-0.4566H` / `0`，翻转用 `PlaneProjection.RotationX`（`0→180`、`180→360`）并在表面侧立时换面；`GroupTag` 支持组冻结 |
 | `ListPicker` / `ListPickerPage` | 普通模式对模板 Canvas 做高度/位移动画；完整模式通过宿主 frame 导航到 `ListPickerPage`（`PickerPageUri` 的 pack URI），页面用原版 `ApplicationBar` 确认/取消（图标来自 `Content/ApplicationBar.*.png`），项目逐个 `RotationX` 翻转展开；页面自带主题字典，等待列表就绪后再组合动画 |
-| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 继承 WPF 菜单类型，右键打开 |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 原版模板与视觉状态；自绘 `Popup`，`ContextMenuService` 只负责绑定所有者；右键与模拟长按打开 |
 | `CustomMessageBox` | `ContentControl` API，`Show()`/`Dismiss()` 由 WPF `Window` 承载，内容在 `ProjectionHost` 中播放 Swivel |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 保留 `Value`/`ValueString`/`Header`/`PickerPageUri` API，用 WPF 日期/时间 UI 在模态 `Window` 中实现 |
 | `PerformanceProgressBar` | 内嵌 WPF `ProgressBar` 与 `ActualIsIndeterminate`，透明度淡入淡出 |

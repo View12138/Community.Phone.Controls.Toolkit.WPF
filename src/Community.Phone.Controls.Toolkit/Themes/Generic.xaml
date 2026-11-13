@@ -13,6 +13,7 @@
 
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/Button.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ComboBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ContextMenu.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/CustomMessageBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/HubTile.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListBox.xaml" />
@@ -316,7 +317,6 @@
     </Style>
 
     <Style BasedOn="{StaticResource PhoneContextMenuStyle}" TargetType="{x:Type ContextMenu}" />
-    <Style BasedOn="{StaticResource PhoneContextMenuStyle}" TargetType="{x:Type controls:ContextMenu}" />
 
     <Style x:Key="PhoneMenuItemStyle" TargetType="{x:Type MenuItem}">
         <Setter Property="Background" Value="Transparent" />
@@ -383,7 +383,6 @@
     </Style>
 
     <Style BasedOn="{StaticResource PhoneMenuItemStyle}" TargetType="{x:Type MenuItem}" />
-    <Style BasedOn="{StaticResource PhoneMenuItemStyle}" TargetType="{x:Type controls:MenuItem}" />
 
     <Style x:Key="PhoneSeparatorStyle" TargetType="{x:Type Separator}">
         <Setter Property="Template">
@@ -396,7 +395,6 @@
     </Style>
 
     <Style BasedOn="{StaticResource PhoneSeparatorStyle}" TargetType="{x:Type Separator}" />
-    <Style BasedOn="{StaticResource PhoneSeparatorStyle}" TargetType="{x:Type controls:Separator}" />
 
     <Style x:Key="PhoneScrollBarThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="Template">

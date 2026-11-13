@@ -47,74 +47,13 @@ public static class ThemeManager
     /// </summary>
     public static Color ActualAccentColor => accentColor == AccentColor.Auto ? GetSystemAccentColor() : AccentColors.From(accentColor);
 
-    private static TimeSpan ThemeTransitionDuration = TimeSpan.FromMilliseconds(300);
-    private static ApplicationTheme requestedTheme;
-    private static AccentColor accentColor;
-    private static Color? customAccentColor;
+    internal static TimeSpan ThemeTransitionDuration = TimeSpan.FromMilliseconds(300);
+    internal static ApplicationTheme requestedTheme;
+    internal static AccentColor accentColor;
+    internal static Color? customAccentColor;
 
     private static ApplicationTheme lastAppliedTheme = (ApplicationTheme)(-2);
     private static Color lastAppliedAccent;
-
-    extension(Application application)
-    {
-        /// <summary>
-        /// Gets or sets the requested theme. Setting it applies the new theme
-        /// to the application (turned into a Windows Phone style color
-        /// transition), without recreating any window, page or control.
-        /// </summary>
-        public ApplicationTheme RequestedTheme
-        {
-            get => requestedTheme;
-            set
-            {
-                if (requestedTheme != value)
-                {
-                    requestedTheme = value;
-                    ApplyTheme(application);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the accent color. <see cref="Shell.AccentColor.Auto"/>
-        /// follows the Windows accent color.
-        /// </summary>
-        public AccentColor AccentColor
-        {
-            get => accentColor;
-            set
-            {
-                if (accentColor != value)
-                {
-                    accentColor = value;
-                    ApplyTheme(application);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets an arbitrary accent color. When set, it takes
-        /// precedence over <see cref="AccentColor"/>.
-        /// </summary>
-        public Color? CustomAccentColor
-        {
-            get => customAccentColor;
-            set
-            {
-                if (customAccentColor != value)
-                {
-                    customAccentColor = value;
-                    ApplyTheme(application);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Ensures the theme dictionary exists and applies the current theme.
-        /// Call this once at startup, before the first window is created.
-        /// </summary>
-        public void InitializeTheme() => ApplyTheme(application, false);
-    }
 
     static ThemeManager()
     {
@@ -131,7 +70,6 @@ public static class ThemeManager
             }
         };
     }
-
 
     internal static void ApplyTheme(Application application, bool useAnimation = true)
     {

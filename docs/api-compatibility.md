@@ -75,7 +75,7 @@
 |---|---|---|
 | `ApplicationBar` | 实现 | `[ContentProperty("Buttons")]`、`IsVisible`、`Opacity`（截断到 0..1）、`IsMenuEnabled`、`BackgroundColor`、`ForegroundColor`、`Mode`、`DefaultSize`（72）、`MiniSize`（30）、`Buttons`、`MenuItems`、`StateChanged`。 |
 | `ApplicationBarPresenter` | 实现（移植新增） | 绘制应用栏、图标槽、菜单按钮与 `Popup` 菜单；`ReservedHeight` 驱动页面预留高度。 |
-| `SystemTray` | 状态实现 | 无视觉 chrome、无附加属性；XAML 中 `shell:SystemTray.IsVisible` 不可用。 |
+| `SystemTray` | 状态实现 | 无视觉 chrome；`IsVisible` 同时提供静态属性与 `IsVisibleProperty` 附加属性，XAML 中 `shell:SystemTray.IsVisible` 可用。 |
 | `PhoneApplicationService` | 状态实现 | `State`、生命周期事件、idle 检测模式；不复刻 tombstoning。 |
 | `ThemeManager` | 实现（移植新增） | `AvailableApplicationThemes`、`AvailableAccentColors`、`ActualTheme`、`ActualAccentColor`、`ThemeChanged`；扩展属性 `RequestedTheme`、`AccentColor`、`CustomAccentColor`、方法 `InitializeTheme()`；`ResolveDictionary`、`GetSystemAccentColor`。 |
 | `ThemePalette` | 实现（移植新增） | 24 个 `Phone*Color` 属性、`IsDark` 相关的 Visibility/Opacity 值、`PivotUnselectedItemOpacity`、`WithAccent`、`Dark`/`Light` 静态调色板、`ResourceKeys`。 |
@@ -84,7 +84,7 @@
 
 | 控件 | 状态 | 级别 | 保留内容 | 差异 |
 |---|---|---|---|---|
-| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`RegionOfInterest` | 继承 WPF 菜单类型；右键打开；部分 WP zoom/fade 视觉未复刻。 |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`VerticalOffset`、`IsOpen`、`RegionOfInterest`、`Opened`/`Closed`、`ItemContainerStyle`；原版模板部件 `OuterPanel`/`InnerGrid` 与 `Open`/`OpenReversed`/`OpenLandscape`/`OpenLandscapeReversed`/`Closed` 视觉状态 | 自绘 `Popup`（不继承 WPF `ContextMenu`）；WPF 无 `Hold` 手势，改为**右键**（移植新增）与**左键长按 800 ms** 打开；打开时页面快照改用 `RenderTargetBitmap` |
 | `CustomMessageBox` | 已实现 | B | `Show`、`Dismiss`、`Dismissing`、`Dismissed`、`LeftButtonContent`、`RightButtonContent`、`IsLeftButtonEnabled`/`IsRightButtonEnabled`、`Title`（继承）、`Caption`、`Message`、`IsFullScreen`、`IsCenterScreen`、`CustomMessageBoxResult` | 由 WPF `Window` 承载；弹入/关闭播放 Swivel。 |
 | `DatePicker` / `TimePicker` | 已实现 | B | `Value`、`ValueString`、`ValueStringFormat`、`ValueChanged`、`Header`、`HeaderTemplate`、`PickerPageUri` | 在模态 `Window` 中用 WPF 日期/时间 UI；picker page 未移植。 |
 | `RecurringDaysPicker` | 已实现 | A/B | 星期多选与摘要 | 继承 `ListPicker`；本地化星期名。 |

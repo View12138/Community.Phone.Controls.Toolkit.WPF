@@ -72,7 +72,8 @@ namespace Microsoft.Phone.Controls
         /// <returns>If the orientation is portrait</returns>
         public static bool IsPortrait(this PageOrientation orientation)
         {
-            return (PageOrientation.Portrait == (PageOrientation.Portrait & orientation));
+            const PageOrientation Portrait = PageOrientation.Portrait | PageOrientation.PortraitUp | PageOrientation.PortraitDown;
+            return (orientation & Portrait) != 0;
         }
 
         /// <summary>

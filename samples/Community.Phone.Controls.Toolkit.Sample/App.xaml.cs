@@ -91,6 +91,8 @@ namespace PhoneToolkitSample
             {
                 this.InitializeTheme();
                 MainWindow window = new MainWindow();
+                this.RootVisual = window.PhoneFrame;
+                RootFrame = window.PhoneFrame;
                 window.Loaded += Window_Loaded;
                 window.Show();
             }
