@@ -1,36 +1,34 @@
-# Third-party notices
+# 第三方声明
 
-[中文版](THIRD-PARTY-NOTICES_zh-CN.md)
+## Windows Phone Toolkit（MS-PL）
 
-## Windows Phone Toolkit (MS-PL)
+本项目是归档的 Windows Phone Toolkit 的兼容移植：
 
-This project is a compatibility port of the archived Windows Phone Toolkit:
+- 原始仓库：Microsoft Windows Phone Toolkit（已归档）
+- 原始许可证：Microsoft Public License (MS-PL)
+- 原始版权：Microsoft Corporation
 
-- Original repository: Microsoft Windows Phone Toolkit (archived)
-- Original license: Microsoft Public License (MS-PL)
-- Original copyright: Microsoft Corporation
+对于复制或改编的代码，移植版保留原始源文件头。完整 MS-PL 文本见 [LICENSE](LICENSE)。
 
-The port retains the original source-file headers where code was copied or adapted. The full MS-PL text is in [LICENSE](LICENSE).
+## 运行时依赖
 
-## Runtime dependencies
-
-The `Community.Phone.Controls.Toolkit` package has **no NuGet package dependencies**. It uses only the WPF/.NET framework assemblies that ship with .NET (`PresentationCore`, `PresentationFramework`, `WindowsBase`, and the base class library). It does not depend on:
+`Community.Phone.Controls.Toolkit` NuGet 包**没有 NuGet 包依赖**。它只使用随 .NET 提供的 WPF/.NET 框架程序集（`PresentationCore`、`PresentationFramework`、`WindowsBase` 及基础类库）。它不依赖：
 
 - Windows Phone SDK
 - Silverlight
 - `Microsoft.Phone` / `Microsoft.Phone.Controls.Toolkit`
 - `System.Windows.Interactivity`
 
-## Test/build-only dependencies
+## 仅测试/构建期依赖
 
-The automated test project uses xUnit and the .NET test SDK. These packages are **not** included in the NuGet package and are not required by consumers:
+自动化测试工程使用 xUnit 和 .NET Test SDK。这些包**不会**包含在 NuGet 包中，消费方也不需要安装：
 
 - `Microsoft.NET.Test.Sdk`
 - `xunit`
 - `xunit.runner.visualstudio`
 
-Their respective licenses apply to test execution only.
+它们各自许可证仅适用于测试执行。
 
-## Fonts and icons
+## 字体与图标
 
-The theme references Metro-era system fonts (`Segoe UI`, `Segoe UI Light`) that are provided by Windows. No font files or third-party icon assets are redistributed in the package.
+主题引用 Windows 提供的 Metro 时代系统字体（`Segoe UI`、`Segoe UI Light`）。包中不重新分发字体文件或第三方图标资源。

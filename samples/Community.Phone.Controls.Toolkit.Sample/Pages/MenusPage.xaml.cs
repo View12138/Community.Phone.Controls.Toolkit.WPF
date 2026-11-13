@@ -111,7 +111,7 @@ namespace PhoneToolkitSample.Pages
 
         private void OnToggleSystemTray(object sender, RoutedEventArgs e)
         {
-            SystemTray.SetIsVisible(this, !SystemTray.GetIsVisible(this));
+            SystemTray.IsVisible = !SystemTray.IsVisible;
             UpdateShellStatus();
         }
 
@@ -149,7 +149,7 @@ namespace PhoneToolkitSample.Pages
                 PageBar.MenuItems.Count,
                 _isMenuOpen,
                 Environment.NewLine,
-                SystemTray.GetIsVisible(this),
+                SystemTray.IsVisible,
                 SystemTray.Opacity,
                 _lastAction);
         }

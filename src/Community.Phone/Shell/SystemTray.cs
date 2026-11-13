@@ -20,14 +20,13 @@ namespace Microsoft.Phone.Shell
     public static class SystemTray
     {
         /// <summary>
-        /// Identifies the IsVisible attached property.
+        /// Gets or sets the visibility of the system tray.
         /// </summary>
-        public static readonly DependencyProperty IsVisibleProperty =
-            DependencyProperty.RegisterAttached(
-                "IsVisible",
-                typeof(bool),
-                typeof(SystemTray),
-                new PropertyMetadata(false, OnIsVisibleChanged));
+        public static bool IsVisible
+        {
+            get { return SystemTrayState.Current.IsVisible; }
+            set { SystemTrayState.Current.IsVisible = value; }
+        }
 
         /// <summary>
         /// Gets or sets the opacity of the system tray.
@@ -63,40 +62,6 @@ namespace Microsoft.Phone.Shell
         {
             get { return SystemTrayState.Current.ProgressIndicator; }
             set { SystemTrayState.Current.ProgressIndicator = value; }
-        }
-
-        /// <summary>
-        /// Gets the IsVisible attached property.
-        /// </summary>
-        public static bool GetIsVisible(DependencyObject element)
-        {
-            if (element == null)
-            {
-                throw new ArgumentNullException("element");
-            }
-
-            return (bool)element.GetValue(IsVisibleProperty);
-        }
-
-        /// <summary>
-        /// Sets the IsVisible attached property.
-        /// </summary>
-        public static void SetIsVisible(DependencyObject element, bool value)
-        {
-            if (element == null)
-            {
-                throw new ArgumentNullException("element");
-            }
-
-            element.SetValue(IsVisibleProperty, value);
-        }
-
-        private static void OnIsVisibleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            if (d is PhoneApplicationPage || d is PhoneApplicationFrame || d is Window)
-            {
-                SystemTrayState.Current.IsVisible = (bool)e.NewValue;
-            }
         }
     }
 

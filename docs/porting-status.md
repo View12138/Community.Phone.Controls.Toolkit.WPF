@@ -1,123 +1,123 @@
-# Porting status — Community.Phone.Controls.Toolkit
+# 移植状态 — Community.Phone.Controls.Toolkit
 
-English · [中文](zh-CN/porting-status.md)
+[English](../porting-status.md) · 中文
 
-**What this document is.** The authoritative, current implementation/verification status per module. It is derived from the source tree, the test suite, and measured runs — not from the original plan. The Phase 0 audit (`docs/*/porting-inventory.md`) records what the original toolkit contains; it does not describe what this port currently does.
+**本文档是什么。** 按模块记录的**当前**实现/验证状态，是本项目的权威状态表。内容来自源码树、测试套件和实测运行，而不是原始计划。Phase 0 审计（`docs/*/porting-inventory.md`）记录的是原版工具包**有什么**，不代表本移植版**现在能做什么**。
 
-**Status vocabulary**
+**状态定义**
 
-| Status | Meaning |
+| 状态 | 含义 |
 |---|---|
-| ✅ **Verified** | Implemented and covered by an automated test or a measured run (numbers are cited). |
-| 🟡 **Implemented / unverified** | Implemented and reachable from the sample or tests, but at least one aspect (usually pixel fidelity or timing) has no evidence. |
-| ⛔ **Not implemented** | No compatible implementation. Never claim otherwise. |
+| ✅ **已验证** | 已实现，且有自动化测试或实测数据（会引用具体数字）。 |
+| 🟡 **已实现、未验证** | 已实现且示例或测试可达，但至少有一个方面（通常是像素保真度或时序）没有证据。 |
+| ⛔ **未实现** | 没有兼容实现，不得声称可用。 |
 
-**Evidence snapshot (2026-11-09):** Release build 0 errors, 2 unique warnings (the intentional public `ViewportControl` events; the `WindowHelper` unreachable-code warnings were removed when the compatibility layer was split out) · **142/144 tests pass** in Release (about 40 s; the waits are condition-based instead of fixed sleeps and no test needs a real desktop pointer). The two failures are the pre-existing ListPicker style assertions `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` and `ListPicker_HighlightedVisualStateUsesBrushResources`; they fail identically at the baseline commit · the project is split into `Community.Phone` (the `Microsoft.Phone.dll` compatibility layer: navigation/page/shell types) and `Community.Phone.Controls.Toolkit` (toolkit controls/transitions), both shipped in the single `Community.Phone.Controls.Toolkit` package · `TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` is the new regression test for cross-thread cleanup · sample smoke run: the app starts, navigation and the `LongListSelector` sample render, and no startup error is raised. `WINDOWS_PHONE;WP8` is defined in every configuration, which is what makes the Release compilation of the ported sources work at all.
-
----
-
-## 1. Projection
-
-| Item | Status | Evidence / notes |
-|---|---|---|
-| `Projection` base type | ✅ Verified | `PlaneProjection_HasSilverlightDefaults`, `…_DependencyPropertiesRoundTrip`; `Animatable`, `IsIdentity`, `ProjectionChanged` |
-| `PlaneProjection` matrix | ✅ Verified | `…_IdentityMatrixLeavesCenterAndCornersUnchanged`, `…_RotationXAndZRespectTheCoordinateSystem`, `…_CenterOfRotationMovesThePivot`, `…_LocalOffsetIsRotatedButGlobalOffsetIsNot`, `…_UsesElementSizeForCentersAndScales`, `…_RotationYMatchesTheXamlDepthDirection` |
-| Perspective model (999 DIP depth, width-based FOV) | ✅ Verified | `ProjectionHost_AppliesTheXamlPerspectiveDepth` (hinge 800 px, free edge x≈134 / 543 px at −80°), `ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot` (200×400 slot renders 199–200 px wide, not 60%) |
-| 2D↔3D switching, `Prefer3D` | ✅ Verified | `ProjectionHost_RendersContentInTwoAndThreeDimensions`, `ProjectionHost_Enters3DWhenIdentityProjectionIsAnimated`, `TransitionFrame_PlaysTurnstileTransition` (asserts `Prefer3D`/`IsRenderingIn3D` on the first frame and after completion) |
-| Hit testing, focus, texture orientation | ✅ Verified | `ProjectionHost_ForwardsHitTestingToProjectedContent`, `…_KeepsProjectedContentFocusable`, `…_PreservesTextureOrientation` |
-| Multiple hosts / high DPI | ✅ Verified | `…_RendersIndependentProjectionsForMultipleHosts`, `…_RendersAtHighDpiWithoutChangingLayoutUnits` |
-| Storyboard targeting (`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` path) | ✅ Verified | `Storyboard_AnimatesProjectionTarget`, `ProjectionHost_UpdatesTheSceneWhenTheProjectionIsAnimated`, and the `TransitionStoryboardTests` families, which load the prefixed paths from the original storyboard resources |
-| `ProjectionService` on-demand wrapping | ✅ Verified | `ProjectionService_WrapsAnElementThatReceivesAProjection`, `ProjectionService_WrapsAContentPresenterDeclaredInAPanel`, `ProjectionService_KeepsTemplateBindingsWhenWrappingATemplatedContentPresenter`, `ProjectionService_WrapsAnItemContainerOutsideAnItemsControl`; item containers inside an items panel are refused without throwing (`ProjectionService_DoesNotWrapItemContainersInAnItemsPanel`) because WPF owns that panel's children |
-| `Matrix3DProjection` | 🟡 Implemented / unverified | `Matrix3DProjection_TranslatesInNormalizedCoordinates` covers translation only; other matrix conventions and visual parity are untested; the sample has no demo |
-| Pixel-exact identity mapping | ✅ Verified | Measured 2026-10-19: 1 px feature lines at 100.00 (2D) vs 100.01 (3D) px; no shift, no scale change. Residual difference is ClearType→grayscale AA |
-
-## 2. Navigation
-
-| Item | Status | Evidence / notes |
-|---|---|---|
-| `PhoneApplicationFrame` (WPF `Frame` based), journal, `Navigate(page, parameters)` | ✅ Verified | `Frame_NavigatesAndRaisesPageLifecycle`, `Frame_NavigationContextCarriesParameters`, `Frame_RapidNavigationKeepsTheLatestPage`; sample navigation |
-| `PhoneApplicationPage`, lifecycle (`OnNavigatedTo/From`, `OnBackKeyPress`), `State` | ✅ Verified | `Frame_NavigatesAndRaisesPageLifecycle`, `Frame_StateSurvivesBackNavigation`, `Frame_BackKeyPressCanCancelBackNavigation`, `Frame_BackNavigationReturnsTheExistingPageInstance` |
-| Orientation detection | ✅ Verified | `Frame_DetectsOrientationFromSize` |
-| Tombstoning / real WP lifecycle | ⛔ Not implemented | `State` is an in-memory dictionary; see `known-limitations.md` §2 |
-| `PhoneApplicationService` state API | ✅ Verified | `SystemTrayAndApplicationServiceExposeState`; idle/deactivation policy is not implemented |
-| `SystemTray` (state API) | ✅ Verified | `SystemTrayStatePublishesPropertyChanges`; **visual chrome is not drawn** |
-| `ApplicationBar` (API, chrome and menu) | ✅ Verified | `ApplicationBarItemsRaiseClicksThroughTheirViews`, `…DisabledItemsDoNotRaiseEvents`, `…EnforcesItemLimitsAndValidation`, `…MenuAcceptsTheMaximumNumberOfItems`, `…ReservedHeightFollowsTheOriginalRule`, `ApplicationBarPresenterOpensAndClosesTheMenu`, `ApplicationBarIconButtonDrawsThePhoneCircle`, `PhoneApplicationFrameHostsThePageApplicationBar`, `…HidesTheBarWhenThePageHasNone`, `…RejectsForeignApplicationBarImplementations`; the bar is drawn by `ApplicationBarPresenter` in the frame template (96×72 slots, 48 DIP circle with a 32 DIP glyph, 12 px label) and the sample uses it (`MenusPage`) |
-| `NavigationContext` query/extra data | ✅ Verified | `Frame_NavigationContextCarriesParameters` |
-
-## 3. Transitions
-
-| Family | Status | Evidence / notes |
-|---|---|---|
-| `TransitionFrame` (sequential exit→entry, presenter flip, interactivity restore) | ✅ Verified | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`, `…_HostsInitialContentInTheOutgoingPresenter`, `…_RapidNavigationDoesNotLeaveTransitionsActive`, `…_PlaysTurnstileTransition`, `…_UsesAnOutTransitionSetJustBeforeNavigating` (the sample sets the family at navigation time), `…_CompletesAFeatheredExitWithoutTargets` (an empty transition must not freeze the incoming page). The presenters get `Prefer3D`/hit-test preparation but no `BitmapCache` (the 3D path already rasterizes the page). WPF reports `IsNavigationInitiator == false` for every `Frame.Navigate`, so the original guard against shell-initiated navigation is not ported. |
-| `TurnstileTransition` (4 modes) | ✅ Verified | Original `Turnstile*` XAML resources; `TurnstileTransition_AnimatesRotationYOverTheOriginalRange` + `TransitionFrame_PlaysTurnstileTransition`; entry `−80°→0°` measured at 420 ms and exit `0→50°` at ≈300 ms (0.35 s / 0.25 s scaled by `TurnstileDurationScale = 1.2`), and a mid-transition screen capture shows the page as a perspective trapezoid. Geometry measured against the analytic 999-DIP model. WP-parity tuning: `TurnstileCenterOfRotationX = -0.05` and `TurnstileDurationScale = 1.2` (single constants in `Transitions.cs`; `0` / `1` restore the original toolkit values). |
-| `TurnstileFeatherTransition` | ✅ Verified | `TurnstileFeatherEffect_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget`, `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` cover animation, target collection on first layout and cleanup; a transition without animations (for example feathering on a page without feathered elements) completes instead of freezing the frame (`TransitionFrame_CompletesAFeatheredExitWithoutTargets`). Verified live in the sample: the entry transition feathers `FeatherPage` in order and the page renders normally afterwards (screen capture after the transition). The original's page-centered perspective origin is **not** reproduced (documented deviation). Frame pacing measured (6 items ≈ 64–68 fps). Note: the outgoing transition belongs to the page being left — a feathered exit requires the source page to declare or set it (the sample does this in `SampleNavigator`, and falls back to a turnstile exit when the page has no feathered elements). |
-| `SlideTransition` (8 modes) | ✅ Verified | Original `Slide*Fade*` XAML resources; `SlideTransition_AnimatesTheRenderTransformOverTheOriginalRange` observes the animated `TranslateTransform.X` (200 → 0) and opacity at runtime |
-| `RotateTransition` (8 modes) | ✅ Verified | Original `Rotate*` XAML resources; `RotateTransition_AnimatesRotationZOverTheOriginalRange` observes the animated `RotationZ` (90 → 0) at runtime; flow-direction adjustment covered by the factory |
-| `SwivelTransition` (6 modes) | ✅ Verified | Original `Swivel*` XAML resources; `SwivelTransition_AnimatesRotationXOverTheOriginalRange` observes the animated `RotationX` (−45 → 0) at runtime |
-| `RollTransition` (1) | ✅ Verified | Original `Roll` XAML resource; `RollTransition_AnimatesRotationZOverTheOriginalRange` observes the animated `RotationZ` (0 → 45 → 90) at runtime |
-| `Storyboard` value parity | ✅ Verified | `TransitionStoryboardTests` assert the animated property and range of every family at runtime, so an edit to a storyboard resource (or to a factory) fails the suite |
-
-## 4. Effects
-
-| Item | Status | Evidence / notes |
-|---|---|---|
-| `TiltEffect` | ✅ Verified | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`, `TiltEffect_DoesNotTiltThePageThatHostsTheElement`, `TiltEffect_DoesNotWrapWhenSuppressed`; press direction cross-checked analytically against XAML conventions |
-| `TurnstileFeatherEffect` | ✅ Verified | Same tests as the feather transition (`…_AnimatesFeatheredElements`, `…_FeathersElementsInOrderAndCleansUp`, `…_RejectsPageAsATarget`) plus `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`; targets are collected from the page's visual tree, the host wrap is deferred to the dispatcher and the wrapper is released when the element unloads. Per-item hosts and page-level projection work; the sample's `FeatherPage` feathers in order and repaints correctly after the transition. Perspective origin differs from the original |
-| `SlideInEffect` | ⛔ Not implemented | The effect animates pivot items when the selection changes; `Pivot` now exists, the effect itself is still not ported |
-
-## 5. Controls
-
-| Control | Status | Evidence / notes |
-|---|---|---|
-| `WrapPanel` | ✅ Verified | `WrapPanel_WrapsChildrenAndHonorsItemSize` |
-| `ToggleSwitch` + `ToggleSwitchButton` | ✅ Verified | `ToggleSwitch_HasTemplateAndDependencyProperties`, `…_AnimatesThumbTranslation`, `…_SwitchButtonDrivesEvents` |
-| `Rating` | ✅ Verified | `Rating_CreatesConfiguredNumberOfItems`, `…_MouseClickChangesValue`, `…_ValueChangesRaiseEventAndUpdateItems`, `…_HalfItemIncrementKeepsValueInItemUnits`. Half increments now store the value in item units (documented deviation: the toolkit filled twice as many items as the pointer indicated) |
-| `PhoneTextBox` | ✅ Verified (behaviour) | `PhoneTextBox_ShowsHintWhenEmpty`, `…_TemplatePartsAndTwoWayText`, `…_InnerEditorIsVisibleAndReceivesFocus`. The hint now starts where the caret does (measured: 12 px) and is hidden while focused or during an IME composition; hint animation visuals unverified |
-| `ListPicker` / `ListPickerItem` | ✅ Verified (behaviour) | `ListPicker_SelectionRoundTrips`, `…_ExpandedModeSelectsItemAndCollapses`, `…_OpenWithoutItemsExpands`, `…_FullModeWithoutFrameStaysUsable`, `…_FullModeNavigatesToPickerPageAndCommitsSelection`, `…_PageWithPickersLoadsWithoutAnimationErrors`, `…_HighlightedVisualStateUsesBrushResources`, `…_FullModePageUsesTheApplicationBarForSingleSelection`, `…_FullModePageCommitsFromTheApplicationBarDoneButton` (the page's original app bar, its localized texts, its library icons and the done→commit flow), `…_FullModePageAnimatesEveryItemInView` (every item has a `ProjectionHost`, starts edge-on and ends flat), `…_FullModeSingleSelectionUsesThePhoneItemStyle` (no desktop selection fill, accent foreground, 98 px rows instead of the desktop 118), `…_MultipleSelectionCheckBoxUsesThePhoneStyle` (transparent fill, white border), `…_ReturnsFromFullModeShowsTheSelectedItem` (the presenter translate offset moves to the chosen row), `…_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt` (120 virtualized items: no `NullReferenceException`, the selection is scrolled into view and animated, no container left edge-on). The full-mode page's chrome and spacing were compared with WP 8.1 screenshots |
-| `ExpanderView` | 🟡 Implemented / unverified | `ExpanderView_TogglesAndRaisesEvents` covers behaviour; height animation and the header rule's spacing are visual-only |
-| `HubTile` / `HubTileService` | ✅ Verified | `HubTile_PropertiesAndGroupFreeze`, `HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel`; the template is the WP8 original (sliding surface + `RotationX` flip): Expanded/Semiexpanded slide the surface to `-H`/`-0.4566H`, the flip rotates `0→180` and renders the back panel because the projected quad is double-sided, and the `Source` image is verified from rendered pixels at 96 DPI |
-| `CustomMessageBox` | ✅ Verified | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`; the dialog swivels in (`BackwardIn`) and out (`BackwardOut`) with the real projection pipeline (probe: `RotationX −45°→0°` on show, `0°→42°` on dismiss before the window closes). `Show()` also works in a host without an `Application` (it falls back to the theme colours and a default size), which is how the test drives it |
-| `ContextMenu` / `ContextMenuService` | ✅ Verified | `ContextMenuService_AttachesMenu`, `ContextMenu_OpensAndCloses` |
-| `HyperlinkButton` | ✅ Verified (behaviour) | `HyperlinkButton_NavigatesApplicationUriInTheNearestFrame`, `…_OpensExternalUrisThroughTheShell`, `…_RetainsTargetNameAndExposesAHyperlinkPeer`, `NavigationContext_ParsesQueryFromARelativeUri`. Relative/pack URIs navigate the nearest frame; external URIs use the shell; `TargetName` is retained but named targets are unsupported. The sample index navigates to every sample page through this control (UI Automation: invoked the LLS entry, the page loaded with its group headers/items, and `Toggle grid` switched it to grid mode) |
-| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ Verified (behaviour) | `DateTimePickers_HaveExpectedDefaultsAndFormatting`, `DateTimePickers_FormatValuesAndRaiseValueChanged`, `RecurringDaysPicker_SummarizesWeekdays`. Picker *pages* and `LoopingSelector` are not ported (WPF dialogs are used) |
-| `PerformanceProgressBar` | 🟡 Implemented / unverified | Styled in `Generic.xaml`, shown in the sample; no dedicated test, relative animation rewriting not ported |
-| `RelativeAnimatingContentControl` | 🟡 Implemented / unverified | Styled and shown in the sample; no dedicated test |
-| `ClipToBounds` | 🟡 Implemented / unverified | Exists in `Controls/ClipToBounds.cs`; no dedicated test |
-| Converters (`OffOnConverter`, tile-size converters, `RelativeTimeConverter`) | ✅ Verified | `OffOnConverterUsesLocalizedStrings`, `TileSizeConvertersReturnExpectedDimensions`, `RelativeTimeConverterFormatsMinutesAndHours` |
-| Helpers (`CultureInfoExtensions`, `RoutedPropertyChangingEventArgs`, `WeakReferenceHelper`) | 🟡 Implemented / unverified | Used by the ported controls; no dedicated tests |
-| `LongListSelector` (WP8.1) | ✅ Verified (behaviour) | `LongListSelector_RendersListPartsAndVirtualizedItems`, `…_GroupingBuildsGroupPartsAndHidesEmptyGroups`, `…_GridLayoutArrangesItemsInFixedCells`, `…_SelectionAndKeyboardNavigationUseItemData`, `…_ScrollToBringsAFarItemIntoView`, `…_CollectionChangesRebuildItemsAndRaiseUnrealized`, `…_JumpListOpensAndScrollsToTheChosenGroup`. List mode virtualizes with `VirtualizingStackPanel`; grid mode is a fixed-cell non-virtualizing panel; the jump list is a WPF `Popup`; pixel/touch fidelity is unverified |
-| `AutoCompleteBox` | ⛔ Not implemented | No source file exists |
-| `LongListMultiSelector` (WP8) | ⛔ Not implemented | No source file exists |
-| `MultiselectList` | ⛔ Not implemented | No source file exists |
-| Maps (`MapChild`, `MapItemsControl`, `Pushpin`, …) | ⛔ Not implemented | Requires a map provider |
-| `SpeechTextBox` | ⛔ Not implemented | Requires WP speech APIs |
-| `TransferControl` | ⛔ Not implemented | Requires the WP background-transfer service |
-| `GestureListener` / `GestureService` | ⛔ Not implemented | WPF manipulation events are used instead |
-| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | ✅ Verified (behaviour) / 🟡 (pointer drag) | `Pivot_ShowsTheFirstItemAndBuildsTheHeaderStrip`, `…_SelectedIndexSlidesTheIncomingItemAndCompletes`, `…_BackwardSelectionEntersFromTheLeft`, `…_ClickingAHeaderSelectsItsItem`, `…_HeaderRunWrapsAroundAfterTheLastHeader`, `…_KeyboardNavigatesAndWrapsAround`, `…_IsLockedRefusesProgrammaticNavigationAndFadesHeaders`, `…_RaisesTheItemLifecycleEventsInOrder`, `…_ItemsAddedAfterTheTemplateAppears`, `…_OutOfRangeSelectionIsRejected`, `…_RendersTheTitleHeadersAndContent` (96 DPI render: title, header and content pixels in the expected bands). The pointer-drag path (capture, 600 px/s tracking, half-viewport threshold) has no automated test and could not be exercised interactively here (no pointer reaches the window); it is implemented but unverified. Input is a mouse drag plus arrow keys instead of DirectManipulation; the header run is circular like the original but drawn once (`docs/*/known-limitations.md`) |
-| `LockablePivot` | ⛔ Not implemented | The toolkit's WP7 helper is superseded by `Pivot.IsLocked`, which the port implements on `Pivot` itself |
-
-## 6. Theme, localization, packaging
-
-| Item | Status | Evidence / notes |
-|---|---|---|
-| Metro theme + WP base-control styles | ✅ Verified (presence) / 🟡 (fidelity) | `Theme_ContainsMetroResources`; `Generic.xaml` styles `Button`, `TextBox`, `ComboBox`, `CheckBox`, `RadioButton`, `ListBox`, `ScrollBar`, `ContextMenu`, `ProgressBar`, `ToolTip` and the toolkit controls. Pixel parity with WP was never compared side by side |
-| Localization resources | ✅ Verified | 50 cultures + neutral, satellites in the package; `OffOnConverterUsesLocalizedStrings` |
-| `Community.Phone` compatibility layer | ✅ Verified | `NavigationTests`, `ShellTests`, `ControlTests` and the package-consumer smoke test exercise `PhoneApplicationFrame`/`PhoneApplicationPage`/`ApplicationBar` from the separate assembly and its own `Themes/Generic.xaml` |
-| NuGet package | ✅ Verified | `build\verify-package.ps1`: `Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` + `.snupkg`, containing both assemblies; fresh consumer builds and runs |
-| Sample application | ✅ Verified (runs) | Mirrors the original `PhoneToolkitSample8` layout: `MainPage` lists samples and each sample is its own page (`ControlsPage`, `ProjectionPage`, `TransitionsPage`, `TransitionTargetPage`, `FeatherPage`, `MenusPage`, `ListPickerSample`, `CustomMessageBoxSample`, `PivotSample`, `HubTileSample`, `LongListSelectorSample`; the index itself is a `LongListSelector`). UI-automation smoke 2026-10-27: the Pivot sample opens (active `PivotItem`, headers, status text), `IsLocked` toggles and the back button returns to the index; `HubTileSample` (a three-item `Pivot` with the original HubTiles and images) renders its text and images. Both configurations were rebuilt first: adding `Resource` images to the sample project needs a rebuild, otherwise the `.g.resources` keeps the previous file list and the pack URIs fail |
+**证据快照（2026-11-09）：** Release 构建 0 错误、2 个唯一警告（`ViewportControl` 中刻意保留的公共事件；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告）· Release 下 **142/144 测试通过**（约 40 秒；等待改为条件轮询而非固定 sleep，且没有任何测试依赖真实桌面指针）。两个失败是既有的 ListPicker 样式断言 `ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle` 与 `ListPicker_HighlightedVisualStateUsesBrushResources`，在基线上同样失败 · 项目已拆分为 `Community.Phone`（`Microsoft.Phone.dll` 兼容层：导航/页面/Shell 类型）与 `Community.Phone.Controls.Toolkit`（toolkit 控件/转场），两者一起放进单一 `Community.Phone.Controls.Toolkit` 包 · 新增回归测试 `TiltEffect_StaleStateFromAnotherThreadDoesNotThrow` 覆盖跨线程清理 · 示例冒烟运行：应用可启动，导航与 `LongListSelector` 示例正常渲染，没有启动错误。`WINDOWS_PHONE;WP8` 在所有配置下都定义，这本身就是移植源码能在 Release 下编译的前提。
 
 ---
 
-## 7. Re-verification commands
+## 1. 投影
+
+| 项目 | 状态 | 证据 / 说明 |
+|---|---|---|
+| `Projection` 基类 | ✅ 已验证 | `PlaneProjection_HasSilverlightDefaults`、`…_DependencyPropertiesRoundTrip`；`Animatable`、`IsIdentity`、`ProjectionChanged` |
+| `PlaneProjection` 矩阵 | ✅ 已验证 | `…_IdentityMatrixLeavesCenterAndCornersUnchanged`、`…_RotationXAndZRespectTheCoordinateSystem`、`…_CenterOfRotationMovesThePivot`、`…_LocalOffsetIsRotatedButGlobalOffsetIsNot`、`…_UsesElementSizeForCentersAndScales`、`…_RotationYMatchesTheXamlDepthDirection` |
+| 透视模型（999 DIP 深度、按宽度推导 FOV） | ✅ 已验证 | `ProjectionHost_AppliesTheXamlPerspectiveDepth`（−80° 时铰链边 800 px、自由边 x≈134 / 543 px）、`ProjectionHost_KeepsTheProjectedPlaneOneToOneWithTheLayoutSlot`（200×400 槽位渲染出 199–200 px 宽，而不是 60%） |
+| 2D↔3D 切换与 `Prefer3D` | ✅ 已验证 | `ProjectionHost_RendersContentInTwoAndThreeDimensions`、`ProjectionHost_Enters3DWhenIdentityProjectionIsAnimated`、`TransitionFrame_PlaysTurnstileTransition`（断言首帧与结束后的 `Prefer3D`/`IsRenderingIn3D`） |
+| 命中测试、焦点、纹理方向 | ✅ 已验证 | `ProjectionHost_ForwardsHitTestingToProjectedContent`、`…_KeepsProjectedContentFocusable`、`…_PreservesTextureOrientation` |
+| 多宿主 / 高 DPI | ✅ 已验证 | `…_RendersIndependentProjectionsForMultipleHosts`、`…_RendersAtHighDpiWithoutChangingLayoutUnits` |
+| storyboard 定位（`(phone:ProjectionService.Projection).(phone:PlaneProjection.X)` 路径） | ✅ 已验证 | `Storyboard_AnimatesProjectionTarget`、`ProjectionHost_UpdatesTheSceneWhenTheProjectionIsAnimated`，以及从原版 storyboard 资源加载带前缀路径的 `TransitionStoryboardTests` 各族 |
+| `ProjectionService` 按需包装 | ✅ 已验证 | `ProjectionService_WrapsAnElementThatReceivesAProjection`、`ProjectionService_WrapsAContentPresenterDeclaredInAPanel`、`ProjectionService_KeepsTemplateBindingsWhenWrappingATemplatedContentPresenter`、`ProjectionService_WrapsAnItemContainerOutsideAnItemsControl`；items panel 内的 item 容器会被拒绝包装且不抛异常（`ProjectionService_DoesNotWrapItemContainersInAnItemsPanel`），因为该 Panel 的子元素由 WPF 管理 |
+| `Matrix3DProjection` | 🟡 已实现、未验证 | `Matrix3DProjection_TranslatesInNormalizedCoordinates` 只覆盖平移；其他矩阵约定与视觉一致性未测；示例无演示 |
+| identity 像素级一致 | ✅ 已验证 | 2026-10-19 实测：1 px 特征线在 2D 为 100.00、3D 为 100.01 px；无位移、无缩放。剩余差异是 ClearType→灰度抗锯齿 |
+
+## 2. 导航
+
+| 项目 | 状态 | 证据 / 说明 |
+|---|---|---|
+| `PhoneApplicationFrame`（基于 WPF `Frame`）、journal、`Navigate(page, parameters)` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_NavigationContextCarriesParameters`、`Frame_RapidNavigationKeepsTheLatestPage`；示例导航 |
+| `PhoneApplicationPage`、生命周期（`OnNavigatedTo/From`、`OnBackKeyPress`）、`State` | ✅ 已验证 | `Frame_NavigatesAndRaisesPageLifecycle`、`Frame_StateSurvivesBackNavigation`、`Frame_BackKeyPressCanCancelBackNavigation`、`Frame_BackNavigationReturnsTheExistingPageInstance` |
+| 方向检测 | ✅ 已验证 | `Frame_DetectsOrientationFromSize` |
+| Tombstone / 真实 WP 生命周期 | ⛔ 未实现 | `State` 是内存字典；见 `known-limitations.md` §2 |
+| `PhoneApplicationService` 状态 API | ✅ 已验证 | `SystemTrayAndApplicationServiceExposeState`；idle/deactivation 策略未实现 |
+| `SystemTray`（状态 API） | ✅ 已验证 | `SystemTrayStatePublishesPropertyChanges`；**不绘制视觉 chrome** |
+| `ApplicationBar`（API、chrome 与菜单） | ✅ 已验证 | `ApplicationBarItemsRaiseClicksThroughTheirViews`、`…DisabledItemsDoNotRaiseEvents`、`…EnforcesItemLimitsAndValidation`、`…MenuAcceptsTheMaximumNumberOfItems`、`…ReservedHeightFollowsTheOriginalRule`、`ApplicationBarPresenterOpensAndClosesTheMenu`、`ApplicationBarIconButtonDrawsThePhoneCircle`、`PhoneApplicationFrameHostsThePageApplicationBar`、`…HidesTheBarWhenThePageHasNone`、`…RejectsForeignApplicationBarImplementations`；应用栏由 Frame 模板中的 `ApplicationBarPresenter` 绘制（96×72 槽位、48 DIP 圆环内嵌 32 DIP 图标、12 px 标签），示例 `MenusPage` 已使用 |
+| `NavigationContext` 查询参数/附加数据 | ✅ 已验证 | `Frame_NavigationContextCarriesParameters` |
+
+## 3. 转场
+
+| 族 | 状态 | 证据 / 说明 |
+|---|---|---|
+| `TransitionFrame`（退场→入场串行、presenter 翻转、交互恢复） | ✅ 已验证 | `TransitionFrame_PlaysExitAndEntryTransitionsAndRestoresInteractivity`、`…_HostsInitialContentInTheOutgoingPresenter`、`…_RapidNavigationDoesNotLeaveTransitionsActive`、`…_PlaysTurnstileTransition`、`…_UsesAnOutTransitionSetJustBeforeNavigating`（示例在导航前设置转场族）、`…_CompletesAFeatheredExitWithoutTargets`（空转场不得冻结新页面）。presenter 会做 `Prefer3D`/命中测试准备，但不加 `BitmapCache`（3D 路径本身已栅格化页面）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，因此原版针对 shell 导航的保护未移植。 |
+| `TurnstileTransition`（4 模式） | ✅ 已验证 | 使用原版 `Turnstile*` XAML 资源；`TurnstileTransition_AnimatesRotationYOverTheOriginalRange` + `TransitionFrame_PlaysTurnstileTransition`；实测入场 `−80°→0°` 为 420 ms、退场 `0→50°` 约 300 ms（0.35 s / 0.25 s 乘以 `TurnstileDurationScale = 1.2`），转场中间帧截图中页面呈透视梯形。几何按 999 DIP 解析模型实测。WP 对齐调优：`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2`（`Transitions.cs` 中的单个常量；设为 `0` / `1` 即还原原工具包值）。 |
+| `TurnstileFeatherTransition` | ✅ 已验证 | `TurnstileFeatherEffect_AnimatesFeatheredElements`、`…_FeathersElementsInOrderAndCleansUp`、`…_RejectsPageAsATarget`、`TransitionFrame_AnimatesFeatheredEntryOnFirstLayout` 覆盖动画、首次布局时的目标收集与清理；没有动画的转场（例如页面没有可羽化元素时的羽化）会正常完成而不冻结（`TransitionFrame_CompletesAFeatheredExitWithoutTargets`）。示例中实测：入场转场按序羽化 `FeatherPage`，转场结束后页面正常重绘（转场后截屏）。原版“页面中心透视原点”**未**复刻（已文档化）。已实测帧率（6 个元素约 64–68 fps）。注意：出站转场属于被离开的页面——想要羽化退场必须由源页声明或动态设置（示例在 `SampleNavigator` 中完成，源页没有可羽化元素时回退为 turnstile 退场）。 |
+| `SlideTransition`（8 模式） | ✅ 已验证 | 原版 `Slide*Fade*` XAML 资源；`SlideTransition_AnimatesTheRenderTransformOverTheOriginalRange` 在运行时观察 `TranslateTransform.X`（200 → 0）和透明度 |
+| `RotateTransition`（8 模式） | ✅ 已验证 | 原版 `Rotate*` XAML 资源；`RotateTransition_AnimatesRotationZOverTheOriginalRange` 在运行时观察 `RotationZ`（90 → 0）；流方向适配由工厂覆盖 |
+| `SwivelTransition`（6 模式） | ✅ 已验证 | 原版 `Swivel*` XAML 资源；`SwivelTransition_AnimatesRotationXOverTheOriginalRange` 在运行时观察 `RotationX`（−45 → 0） |
+| `RollTransition`（1 模式） | ✅ 已验证 | 原版 `Roll` XAML 资源；`RollTransition_AnimatesRotationZOverTheOriginalRange` 在运行时观察 `RotationZ`（0 → 45 → 90） |
+| storyboard 数值一致性 | ✅ 已验证 | `TransitionStoryboardTests` 在运行时断言每个族的动画属性与取值范围，因此改动 storyboard 资源或工厂都会让测试失败 |
+
+## 4. 效果
+
+| 项目 | 状态 | 证据 / 说明 |
+|---|---|---|
+| `TiltEffect` | ✅ 已验证 | `TiltEffect_WrapsAChildButtonAndAnimatesARealProjection`、`TiltEffect_DoesNotTiltThePageThatHostsTheElement`、`TiltEffect_DoesNotWrapWhenSuppressed`；按压方向已按 XAML 约定做解析验证 |
+| `TurnstileFeatherEffect` | ✅ 已验证 | 同羽化转场的测试，另加 `TransitionFrame_AnimatesFeatheredEntryOnFirstLayout`；目标从页面可视树收集，宿主包装延迟到 dispatcher，元素卸载时释放包装。逐元素宿主与页面级投影可用，示例 `FeatherPage` 按序羽化且转场后正确重绘，但透视原点与原版不同 |
+| `SlideInEffect` | ⛔ 未实现 | 该效果在 Pivot 选中项变化时播放逐项动画；`Pivot` 已实现，但效果本身尚未移植 |
+
+## 5. 控件
+
+| 控件 | 状态 | 证据 / 说明 |
+|---|---|---|
+| `WrapPanel` | ✅ 已验证 | `WrapPanel_WrapsChildrenAndHonorsItemSize` |
+| `ToggleSwitch` + `ToggleSwitchButton` | ✅ 已验证 | `ToggleSwitch_HasTemplateAndDependencyProperties`、`…_AnimatesThumbTranslation`、`…_SwitchButtonDrivesEvents` |
+| `Rating` | ✅ 已验证 | `Rating_CreatesConfiguredNumberOfItems`、`…_MouseClickChangesValue`、`…_ValueChangesRaiseEventAndUpdateItems`、`…_HalfItemIncrementKeepsValueInItemUnits`；半星模式现在以“星”为单位存值（已文档化的偏离：原版会填出两倍于指针位置的数量） |
+| `PhoneTextBox` | ✅ 已验证（行为） | `PhoneTextBox_ShowsHintWhenEmpty`、`…_TemplatePartsAndTwoWayText`、`…_InnerEditorIsVisibleAndReceivesFocus`；占位符起点现在与光标一致（实测 12 px），聚焦或输入法合成期间隐藏；水印动画视觉未验证 |
+| `ListPicker` / `ListPickerItem` | ✅ 已验证（行为） | `ListPicker_SelectionRoundTrips`、`…_ExpandedModeSelectsItemAndCollapses`、`…_OpenWithoutItemsExpands`、`…_FullModeWithoutFrameStaysUsable`、`…_FullModeNavigatesToPickerPageAndCommitsSelection`、`…_PageWithPickersLoadsWithoutAnimationErrors`、`…_HighlightedVisualStateUsesBrushResources`、`…_FullModePageUsesTheApplicationBarForSingleSelection`、`…_FullModePageCommitsFromTheApplicationBarDoneButton`（页面的原版应用栏、本地化文本、库内图标以及"完成→提交"链路）、`…_FullModePageAnimatesEveryItemInView`（每个 item 都有 `ProjectionHost`，从侧立开始、最终归零）、`…_FullModeSingleSelectionUsesThePhoneItemStyle`（没有桌面选中底色、选中文字为 accent 色、行高 98 px 而非桌面的 118）、`…_MultipleSelectionCheckBoxUsesThePhoneStyle`（透明填充、白色边框）、`…_ReturnsFromFullModeShowsTheSelectedItem`（presenter 位移到选中行）、`…_FullModePageWithManyItemsScrollsToTheSelectionAndAnimatesIt`（120 个虚拟化项目：不再抛 `NullReferenceException`，选中项滚入视口并参与动画，没有容器停留在侧立状态）。完整模式页面的 chrome 与间距已与 WP 8.1 截图对比 |
+| `ExpanderView` | 🟡 已实现、未验证 | `ExpanderView_TogglesAndRaisesEvents` 覆盖行为；高度动画与标题竖线间距属于纯视觉 |
+| `HubTile` / `HubTileService` | ✅ 已验证 | `HubTile_PropertiesAndGroupFreeze`、`HubTile_ShowsTheSourceImageAndFlipsToTheBackPanel`；模板即 WP8 原版（滑动表面 + `RotationX` 翻转）：Expanded/Semiexpanded 把表面滑到 `-H`/`-0.4566H`，翻转从 `0` 转到 `180` 并渲染背面（投影四边形为双面），`Source` 图片则用 96 DPI 渲染像素验证 |
+| `CustomMessageBox` | ✅ 已验证 | `CustomMessageBox_ShowDismissRaisesLifecycleEvents`；弹出/关闭分别播放 `BackwardIn`/`BackwardOut` Swivel（探针：弹出 `RotationX −45°→0°`，关闭 `0°→42°` 后窗口才关闭）。`Show()` 在没有 `Application` 的宿主中同样可用（主题色回退到固定值、窗口尺寸取默认值），测试正是这样驱动它的 |
+| `ContextMenu` / `ContextMenuService` | ✅ 已验证 | `ContextMenuService_AttachesMenu`、`ContextMenu_OpensAndCloses` |
+| `HyperlinkButton` | ✅ 已验证（行为） | `HyperlinkButton_NavigatesApplicationUriInTheNearestFrame`、`…_OpensExternalUrisThroughTheShell`、`…_RetainsTargetNameAndExposesAHyperlinkPeer`、`NavigationContext_ParsesQueryFromARelativeUri`。相对/pack URI 导航最近帧；外部 URI 使用系统处理程序；`TargetName` 保留但命名目标不受支持。示例索引页通过该控件进入每个示例页（UI 自动化：调用 LLS 条目后页面加载出组页眉/项目，`Toggle grid` 可切换到网格模式） |
+| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | ✅ 已验证（行为） | `DateTimePickers_HaveExpectedDefaultsAndFormatting`、`DateTimePickers_FormatValuesAndRaiseValueChanged`、`RecurringDaysPicker_SummarizesWeekdays`；picker **页面**与 `LoopingSelector` 未移植（改用 WPF 对话框） |
+| `PerformanceProgressBar` | 🟡 已实现、未验证 | 在 `Generic.xaml` 中有样式、示例中有展示；无专门测试，相对动画重写未移植 |
+| `RelativeAnimatingContentControl` | 🟡 已实现、未验证 | 有样式、示例中有展示；无专门测试 |
+| `ClipToBounds` | 🟡 已实现、未验证 | 位于 `Controls/ClipToBounds.cs`；无专门测试 |
+| 转换器（`OffOnConverter`、tile-size、`RelativeTimeConverter`） | ✅ 已验证 | `OffOnConverterUsesLocalizedStrings`、`TileSizeConvertersReturnExpectedDimensions`、`RelativeTimeConverterFormatsMinutesAndHours` |
+| 辅助类（`CultureInfoExtensions`、`RoutedPropertyChangingEventArgs`、`WeakReferenceHelper`） | 🟡 已实现、未验证 | 被已移植控件使用；无专门测试 |
+| `AutoCompleteBox` | ⛔ 未实现 | 源码中不存在 |
+| `LongListSelector`（WP8.1） | ✅ 已验证（行为） | `LongListSelector_RendersListPartsAndVirtualizedItems`、`…_GroupingBuildsGroupPartsAndHidesEmptyGroups`、`…_GridLayoutArrangesItemsInFixedCells`、`…_SelectionAndKeyboardNavigationUseItemData`、`…_ScrollToBringsAFarItemIntoView`、`…_CollectionChangesRebuildItemsAndRaiseUnrealized`、`…_JumpListOpensAndScrollsToTheChosenGroup`。列表模式使用 `VirtualizingStackPanel` 虚拟化；网格模式为固定单元格非虚拟化面板；跳转列表为 WPF `Popup`；像素/触摸保真度未验证 |
+| `LongListMultiSelector`（WP8） | ⛔ 未实现 | 源码中不存在 |
+| `MultiselectList` | ⛔ 未实现 | 源码中不存在 |
+| 地图（`MapChild`、`MapItemsControl`、`Pushpin` 等） | ⛔ 未实现 | 需要地图提供方 |
+| `SpeechTextBox` | ⛔ 未实现 | 需要 WP 语音 API |
+| `TransferControl` | ⛔ 未实现 | 需要 WP 后台传输服务 |
+| `GestureListener` / `GestureService` | ⛔ 未实现 | 改用 WPF manipulation 事件 |
+| `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | ✅ 已验证（行为）/ 🟡（指针拖拽） | `Pivot_ShowsTheFirstItemAndBuildsTheHeaderStrip`、`…_SelectedIndexSlidesTheIncomingItemAndCompletes`、`…_BackwardSelectionEntersFromTheLeft`、`…_ClickingAHeaderSelectsItsItem`、`…_HeaderRunWrapsAroundAfterTheLastHeader`、`…_KeyboardNavigatesAndWrapsAround`、`…_IsLockedRefusesProgrammaticNavigationAndFadesHeaders`、`…_RaisesTheItemLifecycleEventsInOrder`、`…_ItemsAddedAfterTheTemplateAppears`、`…_OutOfRangeSelectionIsRejected`、`…_RendersTheTitleHeadersAndContent`（96 DPI 离屏渲染：标题、页眉与内容像素落在预期区域）。指针拖拽路径（捕获、600 px/s 跟踪、半视口阈值）没有自动化测试，且本环境无法用真实指针验证；功能已实现但未验证。输入使用鼠标拖拽加方向键，而不是 DirectManipulation；页眉条与原版一样循环排布，但只绘制一圈（见 `docs/*/known-limitations.md`） |
+| `LockablePivot` | ⛔ 未实现 | toolkit 的 WP7 辅助控件已被 `Pivot.IsLocked` 取代，移植版直接在 `Pivot` 上实现 |
+
+## 6. 主题、本地化、打包
+
+| 项目 | 状态 | 证据 / 说明 |
+|---|---|---|
+| Metro 主题 + WPF 基础控件 WP 样式 | ✅ 存在性已验证 / 🟡（保真度） | `Theme_ContainsMetroResources`；`Generic.xaml` 覆盖 `Button`、`TextBox`、`ComboBox`、`CheckBox`、`RadioButton`、`ListBox`、`ScrollBar`、`ContextMenu`、`ProgressBar`、`ToolTip` 及工具包控件。从未与 WP 做并排像素对比 |
+| 本地化资源 | ✅ 已验证 | 50 种文化 + 中性资源，包内包含卫星程序集；`OffOnConverterUsesLocalizedStrings` |
+| `Community.Phone` 兼容层 | ✅ 已验证 | `NavigationTests`、`ShellTests`、`ControlTests` 与包消费冒烟测试从独立程序集及它自己的 `Themes/Generic.xaml` 加载 `PhoneApplicationFrame`/`PhoneApplicationPage`/`ApplicationBar` |
+| NuGet 包 | ✅ 已验证 | `build\verify-package.ps1`：`Community.Phone.Controls.Toolkit.0.1.0-preview.1.nupkg` + `.snupkg` 同时包含两个程序集，全新消费工程可构建运行 |
+| 示例应用 | ✅ 已验证（可运行） | 结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页（`ControlsPage`、`ProjectionPage`、`TransitionsPage`、`TransitionTargetPage`、`FeatherPage`、`MenusPage`、`ListPickerSample`、`CustomMessageBoxSample`、`PivotSample`、`HubTileSample`、`LongListSelectorSample`；索引页本身就是一个 `LongListSelector`）。2026-10-27 UI 自动化冒烟：Pivot 示例可打开（活动 `PivotItem`、页眉、状态文本），`IsLocked` 可切换，返回按钮回到索引页；`HubTileSample`（三项 `Pivot` + 原版 HubTile 与图片）能渲染文本和图片。两个配置都先做了重新构建：往示例工程里新增 `Resource` 图片后必须重建，否则 `.g.resources` 仍是旧文件列表，pack URI 会找不到资源 |
+
+---
+
+## 7. 重新验证命令
 
 ```powershell
 dotnet build Community.Phone.Controls.Toolkit.slnx -c Release
 dotnet test  Community.Phone.Controls.Toolkit.slnx -c Release
 powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
-# sample (stop it before rebuilding)
+# 示例（重建前先结束进程）
 .\src\Community.Phone.Controls.Toolkit.Sample\bin\Debug\net10.0-windows\Community.Phone.Controls.Toolkit.Sample.exe
 ```
 
-## 8. Maintenance rule
+## 8. 维护规则
 
-Update this file in the same change that alters behaviour or adds/removes evidence. When a 🟡 item gets automated or measured evidence, move it to ✅ and cite the test/measurement; when something regresses, move it back. Never upgrade a row based on intent.
+行为变化或证据增减时，必须在同一次改动中更新本文件。某个 🟡 项获得自动化或实测证据后改为 ✅ 并引用测试/测量；出现回归则改回。**不得**基于“打算做”把某行升级。

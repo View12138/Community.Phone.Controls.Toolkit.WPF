@@ -1,39 +1,39 @@
 # Community.Phone.Controls.Toolkit
 
-A WPF compatibility port of the archived **Windows Phone Toolkit**, delivered as one NuGet package. The port preserves the original `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` namespaces and API shapes where WPF allows it, and implements real 3D projection, navigation transitions, and Metro-styled controls with WPF primitives.
+这是归档的 **Windows Phone Toolkit** 的 WPF 兼容移植版，以一个 NuGet 包交付。该移植在 WPF 允许的范围内保留原有的 `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` 命名空间和 API 形态，并使用 WPF 原生能力实现真实的 3D 投影、导航转场和 Metro 风格控件。
 
-[中文文档：README_zh-CN.md](README_zh-CN.md)
+[English README](README.md)
 
-> **Status: preview (0.1.0-preview.1).** The implemented feature set is verified by build, automated tests, a runnable sample, and a fresh NuGet consumer test. Unsupported modules are listed explicitly in [docs/en/known-limitations.md](docs/en/known-limitations.md); they are not stubbed as if they worked.
+> **状态：preview（0.1.0-preview.1）。** 已实现的功能通过构建、自动化测试、可运行示例和全新 NuGet 消费工程验证。未实现模块在 [known-limitations.md](docs/zh-CN/known-limitations.md) 中明确列出，没有用“看似可用”的空实现冒充兼容。
 
-## Features
+## 已实现功能
 
-- **Projection** — `Projection`, `PlaneProjection`, `Matrix3DProjection`, `ProjectionHost`, `ProjectionService`. Real `Viewport3D` + `Viewport2DVisual3D` rendering, hit testing, keyboard focus, and animation.
-- **Navigation** — `PhoneApplicationFrame`, `PhoneApplicationPage`, `NavigationContext`, page state, orientation, back-key handling, and page lifecycle dispatch.
-- **Transitions** — `TransitionFrame`, `ITransition`, `NavigationInTransition`/`NavigationOutTransition`, and Roll, Rotate, Slide, Swivel, Turnstile, and TurnstileFeather families (19 original storyboards).
-- **Effects** — `TiltEffect` and `TurnstileFeatherEffect` backed by the real projection pipeline.
-- **Controls** — `WrapPanel`, `ToggleSwitch`, `Rating`, `PhoneTextBox`, `ExpanderView`, `ListPicker`, `Pivot` (+ `PivotItem` and the header primitives), `LongListSelector` (grouping, jump list, list/grid mode and recycling virtualization), `HyperlinkButton` (in-app/external navigation and hyperlink automation), `HubTile`, `ContextMenu`, `CustomMessageBox`, `DatePicker`, `TimePicker`, `RecurringDaysPicker`, `PerformanceProgressBar`, and related converters/helpers.
-- **Shell** — `Microsoft.Phone.Shell.ApplicationBar` with the original API (`IApplicationBar`, icon buttons, menu items, `Mode`, `StateChanged`, the 4/50 limits and item validation) rendered by the frame's `ApplicationBarPresenter`; `SystemTray` remains an API/state model. `ListPicker`'s full-mode page uses the real `ApplicationBar` for its Done/Cancel actions.
-- **Localization** — 50 real cultures plus the neutral resource, generated from the original designer/resources.
-- **Theme** — Metro palette, fonts, text styles, frame templates, and control templates in `Themes/Generic.xaml`. The theme also supplies implicit WP styles for common WPF controls (`Button`, `TextBox`, `ListBox`/`ListBoxItem`, `ComboBox`/`ComboBoxItem`, `CheckBox`, `RadioButton`, `ScrollBar`, `ContextMenu`/`MenuItem`, `ProgressBar`, and `ToolTip`).
+- **投影**：`Projection`、`PlaneProjection`、`Matrix3DProjection`、`ProjectionHost`、`ProjectionService`。使用真实的 `Viewport3D` + `Viewport2DVisual3D` 渲染，支持命中测试、键盘焦点和动画。
+- **导航**：`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext`、页面状态、方向、返回键和页面生命周期分发。
+- **转场**：`TransitionFrame`、`ITransition`、`NavigationInTransition` / `NavigationOutTransition`，以及 Roll、Rotate、Slide、Swivel、Turnstile、TurnstileFeather 系列（原 19 个 storyboard）。
+- **效果**：`TiltEffect`、`TurnstileFeatherEffect`，基于真实投影管线。
+- **控件**：`WrapPanel`、`ToggleSwitch`、`Rating`、`PhoneTextBox`、`ExpanderView`、`ListPicker`、`Pivot`（含 `PivotItem` 与页眉基础类型）、`LongListSelector`（分组、跳转列表、列表/网格模式与回收虚拟化）、`HyperlinkButton`（应用内/外部导航与超链接自动化）、`HubTile`、`ContextMenu`、`CustomMessageBox`、`DatePicker`、`TimePicker`、`RecurringDaysPicker`、`PerformanceProgressBar`，以及相关转换器和辅助类。
+- **Shell**：`Microsoft.Phone.Shell.ApplicationBar` 移植了原版 API（`IApplicationBar`、图标按钮、菜单项、`Mode`、`StateChanged`、4/50 上限与 item 校验），由 frame 的 `ApplicationBarPresenter` 绘制；`SystemTray` 仍是 API/状态模型。`ListPicker` 完整模式页面的「完成/取消」使用真实 `ApplicationBar`。
+- **本地化**：50 个真实文化加中性资源，由原始 designer/资源生成。
+- **主题**：Metro 调色板、字体、文本样式、Frame 模板和控件模板位于 `Themes/Generic.xaml`。主题还为常用 WPF 控件提供隐式 WP 样式（`Button`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`ContextMenu`/`MenuItem`、`ProgressBar` 和 `ToolTip`）。
 
-## Requirements
+## 环境要求
 
 - Windows
-- .NET SDK 10.0 or later
-- A WPF project targeting `net10.0-windows` (or a compatible Windows TFM)
+- .NET SDK 10.0 或更高版本
+- 目标框架为 `net10.0-windows`（或兼容的 Windows TFM）的 WPF 工程
 
-## Install
+## 安装
 
 ```powershell
 dotnet add package Community.Phone.Controls.Toolkit
 ```
 
-The package ID is `Community.Phone.Controls.Toolkit`. It contains two assemblies: the toolkit assembly `Community.Phone.Controls.Toolkit` and the Windows Phone compatibility layer `Community.Phone`, which re-implements the `Microsoft.Phone.dll` types that WPF does not provide (`PhoneApplicationFrame`, `PhoneApplicationPage`, `NavigationContext`, and `Microsoft.Phone.Shell`). Both use the original `Microsoft.Phone.*` namespaces, and there is no separate compatibility package to install.
+包 ID 为 `Community.Phone.Controls.Toolkit`，包内包含两个程序集：toolkit 程序集 `Community.Phone.Controls.Toolkit` 和 Windows Phone 兼容层 `Community.Phone`。后者重新实现 WPF 不提供的 `Microsoft.Phone.dll` 类型（`PhoneApplicationFrame`、`PhoneApplicationPage`、`NavigationContext` 以及 `Microsoft.Phone.Shell`）。两者都使用原始的 `Microsoft.Phone.*` 命名空间，使用方不需要额外安装兼容层包。
 
-## Quick start
+## 快速开始
 
-Merge the toolkit theme so named Metro resources are available to your application XAML:
+合并 toolkit 主题，使应用 XAML 可以使用 Metro 命名资源：
 
 ```xml
 <Application x:Class="MyApp.App"
@@ -51,7 +51,7 @@ Merge the toolkit theme so named Metro resources are available to your applicati
 </Application>
 ```
 
-Host pages in a `TransitionFrame` and derive pages from `PhoneApplicationPage`:
+用 `TransitionFrame` 承载页面，并让页面继承 `PhoneApplicationPage`：
 
 ```xml
 <Window x:Class="MyApp.MainWindow"
@@ -72,11 +72,11 @@ public MainWindow()
 }
 ```
 
-`TransitionFrame` is a toolkit type (`phone:`). The page and frame base types (`PhoneApplicationPage`, `PhoneApplicationFrame`) live in the `Community.Phone` compatibility layer, so derive pages from `platform:PhoneApplicationPage` and use `shell:` for the application bar and system tray. Toolkit controls such as `Pivot`, `Rating`, and `ToggleSwitch` stay under `phone:`.
+`TransitionFrame` 是 toolkit 类型（`phone:`）。页面和框架基类（`PhoneApplicationPage`、`PhoneApplicationFrame`）位于 `Community.Phone` 兼容层，因此页面应继承 `platform:PhoneApplicationPage`，应用栏和系统栏使用 `shell:`；`Pivot`、`Rating`、`ToggleSwitch` 等 toolkit 控件仍使用 `phone:`。
 
-## Projection
+## 投影
 
-WPF has no `UIElement.Projection` property. Use a `ProjectionHost`; the content stays live and interactive:
+WPF 没有 `UIElement.Projection` 属性。请使用 `ProjectionHost`，其中内容仍然是可交互的实时视觉树：
 
 ```xml
 <phone:ProjectionHost Width="320" Height="200">
@@ -89,7 +89,7 @@ WPF has no `UIElement.Projection` property. Use a `ProjectionHost`; the content 
 </phone:ProjectionHost>
 ```
 
-`PlaneProjection` is an `Animatable`; animate it directly:
+`PlaneProjection` 继承自 `Animatable`，可以直接创建动画：
 
 ```csharp
 projection.BeginAnimation(
@@ -104,7 +104,7 @@ projection.BeginAnimation(
     });
 ```
 
-## Navigation parameters and state
+## 导航参数与状态
 
 ```csharp
 Frame.Navigate(
@@ -120,9 +120,9 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 }
 ```
 
-`PhoneApplicationPage.State` is retained by the frame for the page instance and survives back navigation to that page.
+`PhoneApplicationPage.State` 由 Frame 按页面实例保存；返回到同一个页面实例时状态仍然存在。
 
-## Transitions
+## 转场
 
 ```xml
 <phone:TransitionService.NavigationInTransition>
@@ -134,9 +134,9 @@ protected override void OnNavigatedTo(NavigationEventArgs e)
 </phone:TransitionService.NavigationInTransition>
 ```
 
-Use `TransitionFrame`, not the plain `PhoneApplicationFrame`, for automatic entry/exit transitions. Each transition plays the original toolkit storyboard (`Transitions/Storyboards/*.xaml`, embedded as resources), so angles, timings and easing are the original ones.
+需要自动进入/退出转场时使用 `TransitionFrame`，而不是普通 `PhoneApplicationFrame`。每个转场播放的都是原版工具箱的 storyboard（`Transitions/Storyboards/*.xaml`，以资源形式内嵌），角度、时长和缓动与原版一致。
 
-## Build, test, pack
+## 构建、测试与打包
 
 ```powershell
 dotnet restore
@@ -145,50 +145,50 @@ dotnet test Community.Phone.Controls.Toolkit.slnx -c Release
 dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release
 ```
 
-The package is written to `artifacts/packages`.
+包输出到 `artifacts/packages`。
 
-### Package consumption test
+### 包消费验证
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File build\verify-package.ps1
 ```
 
-This packs the library, restores a fresh WPF consumer from an isolated local feed and cache, builds it with zero warnings, runs it, and verifies that the package theme resources and controls load.
+该脚本会打包库，使用隔离的本地源和缓存还原一个全新 WPF 消费工程，构建（零警告）并运行，确认包内主题资源和控件可以加载。
 
-## Verification status
+## 验证状态
 
-- Release build: 0 errors. 2 unique warnings remain (the intentional public `ViewportControl` events); the `WindowHelper` unreachable-code warnings were removed when the compatibility layer was split out. The `WINDOWS_PHONE;WP8` constants are defined in every configuration, because the ported sources use them to select the compatible namespaces and the localized resources.
-- Automated tests: 142/144 pass in Release (about 40 s; projection, controls, converters, effects, navigation/transitions, pivot, long list, hyperlinks, and shell APIs). The two failing assertions (`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`, `ListPicker_HighlightedVisualStateUsesBrushResources`) fail identically at the baseline commit. Interaction tests cover the 2D→3D projection switch during animation, XAML-faithful perspective geometry (999 DIP depth, 1:1 identity mapping, `RotationY` direction), entry/exit Turnstile storyboards, feathered transitions, TiltEffect staying on its own control, ToggleSwitch thumb animation, Rating pointer input, PhoneTextBox focus/editing, the `ApplicationBar` chrome (reserved height, slots, menu, `StateChanged`), the `ListPicker` full-mode page's app bar, `LongListSelector` grouping/headers/grid/scroll/jump-list behaviour, `HyperlinkButton` navigation/automation, and the `Pivot` slide/header/lock behaviour including a 96 DPI render check.
-- Package consumer: fresh project restored from an isolated local feed/cache, built with 0 warnings, and ran successfully with package controls, the `Community.Phone` compatibility layer, and theme resources.
-- Sample: launched successfully; UI automation opened the samples (Controls, Projection, Transitions → target page → back, Feathering, Menus, Pivot) and returned to the sample index each time, with no startup error.
-- Per-module status and evidence: [docs/porting-status.md](docs/porting-status.md). Latest handoff: [docs/handoff.md](docs/handoff.md).
+- Release 构建：0 errors。仍有 2 个唯一警告（`ViewportControl` 中刻意保留的公共事件）；拆分兼容层时已删除 `WindowHelper` 的不可达代码警告。`WINDOWS_PHONE;WP8` 常量在所有配置下都定义，因为移植源码用它们选择兼容命名空间和本地化资源。
+- 自动化测试：Release 下 142/144 通过（约 40 秒；覆盖投影、控件、转换器、效果、导航/转场、Pivot、LongListSelector、HyperlinkButton 和 Shell API）。两个失败断言（`ListPicker_FullModeSingleSelectionUsesThePhoneItemStyle`、`ListPicker_HighlightedVisualStateUsesBrushResources`）在基线上同样失败。交互测试覆盖投影动画时的 2D→3D 切换、忠实 XAML 的透视几何（999 DIP 深度、identity 1:1 映射、`RotationY` 方向）、Turnstile 进入/退出 storyboard、feather 转场、TiltEffect 只作用于自身控件、ToggleSwitch 滑块动画、Rating 指针输入、PhoneTextBox 焦点与编辑、`ApplicationBar` chrome（预留高度、槽位、菜单、`StateChanged`）、`ListPicker` 完整模式页面的应用栏、`LongListSelector` 的分组/页眉/网格/滚动/跳转列表行为、`HyperlinkButton` 导航/自动化，以及 `Pivot` 的滑动/页眉/锁定行为（含 96 DPI 渲染检查）。
+- 包消费：全新工程从隔离本地源/缓存还原、零警告构建并运行成功，并验证 `Community.Phone` 兼容层及主题资源能从包中加载。
+- 示例：启动成功；UI 自动化逐个打开示例（Controls、Projection、Transitions → 目标页 → 返回、Feathering、Menus、Pivot）并每次返回示例索引，未产生启动错误。
+- 逐模块状态与证据见 [docs/zh-CN/porting-status.md](docs/zh-CN/porting-status.md)，最近一次交接见 [docs/zh-CN/handoff.md](docs/zh-CN/handoff.md)。
 
-## Run the sample
+## 运行示例
 
 ```powershell
 dotnet run --project src\Community.Phone.Controls.Toolkit.Sample
 ```
 
-The sample mirrors the original `PhoneToolkitSample8` structure: a `MainPage` lists the samples and each one is its own page — `ControlsPage` (WPF base controls with WP styles plus all implemented toolkit controls), `ProjectionPage`, `TransitionsPage` (pick any transition family, including feathering, and navigate with it), `FeatherPage`, `MenusPage` (ContextMenu, CustomMessageBox, ApplicationBar/SystemTray state), `PivotSample` (drag, flick, click a header, arrow keys, `IsLocked`), `HubTileSample` (a three-item `Pivot` with the original hub tiles and photos), `LongListSelectorSample` (grouped list, jump list and grid mode) and the ListPicker/message-box samples. Startup failures are written to `%TEMP%\community-phone-toolkit-sample-error.txt`. When you add images to the sample project, rebuild it (`dotnet build -t:Rebuild`): an incremental build can keep the previous `.g.resources` file list and the pack URIs then fail with "Cannot locate resource".
+示例结构与原版 `PhoneToolkitSample8` 对齐：`MainPage` 列出示例，每个示例独立成页 —— `ControlsPage`（带 WP 样式的 WPF 基础控件 + 全部已实现工具包控件）、`ProjectionPage`、`TransitionsPage`（可选任意转场族，包括羽化，并用它导航）、`FeatherPage`、`MenusPage`（ContextMenu、CustomMessageBox、ApplicationBar/SystemTray 状态）、`PivotSample`（拖拽、快速滑动、点击页眉、方向键、`IsLocked`）、`HubTileSample`（三项 `Pivot` + 原版 hub tile 与照片）、`LongListSelectorSample`（分组列表、跳转列表和网格模式），以及 ListPicker 和消息框示例。启动失败信息写入 `%TEMP%\community-phone-toolkit-sample-error.txt`。往示例工程新增图片后请重建（`dotnet build -t:Rebuild`）：增量构建可能保留旧的 `.g.resources` 文件列表，pack URI 会报「找不到资源」。
 
-## Documentation
+## 文档
 
-English documentation lives under `docs/en/`; Chinese documentation lives under `docs/zh-CN/`.
+英文文档位于 `docs/en/`，中文文档位于 `docs/zh-CN/`。
 
-- [Handoff — start here in a new session](docs/handoff.md) (latest verified state, uncommitted work, next steps)
-- [Porting status](docs/porting-status.md) (verified / implemented-unverified / not implemented, per module)
-- [Original feature audit](docs/en/porting-inventory.md)
-- [Architecture](docs/en/architecture.md)
-- [API compatibility matrix](docs/en/api-compatibility.md)
-- [Migration guide](docs/en/migration-guide.md)
-- [Known limitations](docs/en/known-limitations.md)
-- [Third-party notices](THIRD-PARTY-NOTICES.md)
-- [中文文档索引](docs/zh-CN/README.md) / [中文 README](README_zh-CN.md)
+- [交接文档 —— 新会话从这里开始](docs/zh-CN/handoff.md)（最新已验证状态、未提交修改、下一步）
+- [移植状态](docs/zh-CN/porting-status.md)（按模块：已验证 / 已实现未验证 / 未实现）
+- [原始功能审计](docs/zh-CN/porting-inventory.md)
+- [架构设计](docs/zh-CN/architecture.md)
+- [API 兼容矩阵](docs/zh-CN/api-compatibility.md)
+- [迁移指南](docs/zh-CN/migration-guide.md)
+- [已知限制](docs/zh-CN/known-limitations.md)
+- [第三方声明](THIRD-PARTY-NOTICES_zh-CN.md)
+- [中文文档索引](docs/zh-CN/README.md)
 
-## Unsupported modules
+## 未实现模块
 
-The preview does **not** implement `AutoCompleteBox`, `LongListMultiSelector`, `MultiselectList`, map extensions, `TransferControl`, `SpeechTextBox`, `LockablePivot` (superseded by `Pivot.IsLocked`), `SlideInEffect`, `GestureListener`/`GestureService`, or looping-selector/picker pages. See [known limitations](docs/en/known-limitations.md) for rationale and alternatives. These are not claimed as compatible.
+当前 preview **不实现** `AutoCompleteBox`、`LongListMultiSelector`、`MultiselectList`、地图扩展、`TransferControl`、`SpeechTextBox`、`LockablePivot`（已被 `Pivot.IsLocked` 取代）、`SlideInEffect`、`GestureListener`/`GestureService` 或 looping-selector/picker pages。原因和替代方案见 [已知限制](docs/zh-CN/known-limitations.md)。这些内容不会被宣称为兼容。
 
-## License and attribution
+## 许可证与归属
 
-The port is distributed under the **Microsoft Public License (MS-PL)**. See [LICENSE](LICENSE). Original toolkit source copyright Microsoft Corporation; port changes copyright their contributors. The package has no Windows Phone SDK, Silverlight, `Microsoft.Phone`, or `System.Windows.Interactivity` dependency.
+本项目以 **Microsoft Public License (MS-PL)** 分发，见 [LICENSE](LICENSE)。原始 toolkit 源码版权归 Microsoft Corporation；移植修改版权归各贡献者。包不依赖 Windows Phone SDK、Silverlight、`Microsoft.Phone` 或 `System.Windows.Interactivity`。
