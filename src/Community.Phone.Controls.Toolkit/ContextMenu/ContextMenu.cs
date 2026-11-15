@@ -1262,13 +1262,13 @@ namespace Microsoft.Phone.Controls
                 }
 
                 // Create a layer for the page content
-                var dpi = VisualTreeHelper.GetDpi(this);
+                var dpi = VisualTreeHelper.GetDpi(_rootVisual);
                 RenderTargetBitmap pageBitmap = new RenderTargetBitmap(
-                    (int)Math.Max(1, width),
-                    (int)Math.Max(1, height),
-                    dpi.PixelsPerInchX,
-                    dpi.PixelsPerInchY,
-                    PixelFormats.Default);
+                    (int)Math.Ceiling(width * dpi.DpiScaleX),
+                    (int)Math.Ceiling(height * dpi.DpiScaleY),
+                    96 * dpi.DpiScaleX,
+                    96 * dpi.DpiScaleY,
+                    PixelFormats.Pbgra32);
                 pageBitmap.Render(_rootVisual);
                 pageBitmap.Freeze();
                 Transform scaleTransform = new ScaleTransform
@@ -1322,37 +1322,30 @@ namespace Microsoft.Phone.Controls
                     _overlay.Children.Insert(3, elementBackground);
 
                     // Create a layer for the element
-                    RenderTargetBitmap ownerBitmap = new RenderTargetBitmap(
-                        (int)Math.Max(1, ownerElement.ActualWidth),
-                        (int)Math.Max(1, ownerElement.ActualHeight),
-                        dpi.PixelsPerInchX,
-                        dpi.PixelsPerInchY,
-                        PixelFormats.Default);
-                    ownerBitmap.Render(ownerElement);
-                    ownerBitmap.Freeze();
-                    UIElement element = new Image { Source = ownerBitmap };
+                    UIElement element = new Image { Source = RenderBitmap.Render(ownerElement) };
                     Canvas.SetLeft(element, point.X);
                     Canvas.SetTop(element, point.Y);
                     _overlay.Children.Insert(4, element);
+                    _overlay.UpdateLayout();
                 }
 
                 // Prepare for scale animation
                 double from = 1;
                 double to = 0.94;
                 TimeSpan timespan = TimeSpan.FromSeconds(0.42);
-                IEasingFunction easingFunction = new ExponentialEase { EasingMode = EasingMode.EaseInOut };
+                IEasingFunction easingFunction = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
                 _backgroundResizeStoryboard = new Storyboard();
 
                 // Create an animation for the X scale
                 DoubleAnimation animationX = new DoubleAnimation { From = from, To = to, Duration = timespan, EasingFunction = easingFunction };
-                Storyboard.SetTarget(animationX, scaleTransform);
-                Storyboard.SetTargetProperty(animationX, new PropertyPath(ScaleTransform.ScaleXProperty));
+                Storyboard.SetTarget(animationX, contentLayer);
+                Storyboard.SetTargetProperty(animationX, new PropertyPath("(0).(1)", UIElement.RenderTransformProperty, ScaleTransform.ScaleXProperty));
                 _backgroundResizeStoryboard.Children.Add(animationX);
 
                 // Create an animation for the Y scale
                 DoubleAnimation animationY = new DoubleAnimation { From = from, To = to, Duration = timespan, EasingFunction = easingFunction };
-                Storyboard.SetTarget(animationY, scaleTransform);
-                Storyboard.SetTargetProperty(animationY, new PropertyPath(ScaleTransform.ScaleYProperty));
+                Storyboard.SetTarget(animationY, contentLayer);
+                Storyboard.SetTargetProperty(animationY, new PropertyPath("(0).(1)", UIElement.RenderTransformProperty, ScaleTransform.ScaleYProperty));
                 _backgroundResizeStoryboard.Children.Add(animationY);
 
                 if (IsFadeEnabled)

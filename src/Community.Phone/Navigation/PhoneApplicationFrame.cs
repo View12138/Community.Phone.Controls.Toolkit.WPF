@@ -236,14 +236,14 @@ namespace Microsoft.Phone.Controls
 
         private void OnFrameSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            PageOrientation orientation = e.NewSize.Width > e.NewSize.Height
-                ? PageOrientation.LandscapeLeft
-                : PageOrientation.PortraitUp;
+            //PageOrientation orientation = e.NewSize.Width > e.NewSize.Height
+            //    ? PageOrientation.LandscapeLeft
+            //    : PageOrientation.PortraitUp;
 
-            if (orientation != Orientation)
-            {
-                Orientation = orientation;
-            }
+            //if (orientation != Orientation)
+            //{
+            //    Orientation = orientation;
+            //}
         }
 
         private void OnFrameNavigated(object sender, NavigationEventArgs e)
