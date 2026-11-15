@@ -1391,6 +1391,8 @@ namespace Microsoft.Phone.Controls
 
             _overlay.Children.Add(this);
 
+            UpdateContextMenuPlacement();
+
             // Silverlight opens a Popup at the origin of the root visual; WPF needs
             // an explicit relative placement target to align the overlay the same way.
             _popup = new Popup
@@ -1454,7 +1456,7 @@ namespace Microsoft.Phone.Controls
                     if (null != popup)
                     {
                         popup.IsOpen = false;
-                        popup.Child = null;
+                        popup = null;
                     }
                     if (null != overlay)
                     {
