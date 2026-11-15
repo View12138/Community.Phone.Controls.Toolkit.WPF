@@ -81,7 +81,7 @@
 | `ListPicker` / `ListPickerItem` / `ListPickerPage` | 部分实现 | 普通/完整模式、原版应用栏、逐个翻转 |
 | `ExpanderView` | 已实现 | 高度动画简化 |
 | `HubTile` / `HubTileService` | 已实现 | 两倍高表面滑动 + 真实 `RotationX` 翻转；组冻结 |
-| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | 原版 `Popup` 实现与模板；右键 + 左键长按打开（示例页 `Samples/ContextMenuSample.xaml` 手工验证：打开、关闭、再次打开） |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | 原版 `Popup` 实现与模板；右键 + 左键长按打开；页面缩放/淡入遮罩生效；无方向分支（示例页 `Samples/ContextMenuSample.xaml` 手工验证：4 个按钮各自连续打开两次、遮罩绘制、`IsZoomEnabled`/`IsFadeEnabled` 开关） |
 | `CustomMessageBox` | 已实现 | WPF `Window` 承载；Swivel 弹入/关闭；不依赖 `Application` |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 部分实现 | 值/格式/事件完整；使用模态窗口，picker 页面未移植 |
 | `PerformanceProgressBar`、`RelativeAnimatingContentControl` | 已实现 | 不确定进度与透明动画 |

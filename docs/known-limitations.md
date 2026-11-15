@@ -69,7 +69,7 @@
 6. **`HubTile`**：滑动偏移由代码施加（WPF 不会应用绑定模板父级的 storyboard 值）；`TranslateTransform` 由代码创建（模板中声明的 `Freezable` 会被冻结）；视口外套一层普通面板（`ProjectionService` 只包装父级是面板的元素）；`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面的同一条线）。
 7. **`PhoneTextBox`**：WP 内置文本选择与输入作用域边界在 WPF 中可能不同；水印动画的视觉细节未验证。
 8. **`Rating`**：偏离原版——原工具包在 `AllowHalfItemIncrement` 时把翻倍后的位置数写入 `Value`，导致填充区域是指针位置的两倍；移植版以“星”为单位存储。自定义模板必须提供预期部件。
-9. **`ContextMenu`**：自绘 `Popup`，不使用 WPF `ContextMenu`。WPF 没有 `Hold` 手势：右键直接打开，左键长按由 800 ms 计时器模拟（按下后移动超过拖动阈值或提前抬起即取消，松手后才弹出，因此不会在长按松手时误触菜单项）。横竖屏分支沿用原版布局，依赖 `PhoneApplicationFrame.Orientation`。
+9. **`ContextMenu`**：自绘 `Popup`，不使用 WPF `ContextMenu`。WPF 没有 `Hold` 手势：右键（在菜单外单击右键也会关闭菜单）直接打开，左键长按由 800 ms 计时器模拟（按下后移动超过拖动阈值或提前抬起即取消，松手后才弹出，因此不会在长按松手时误触菜单项）。**横屏分支已移除**：WPF 没有手机的方向概念，菜单始终按竖屏布局（左对齐、全页宽、上下展开）。`IsZoomEnabled` 为 `true` 时打开瞬间拍摄页面快照并缩放到 0.94、同时按 `IsFadeEnabled` 叠加 30% 淡入黑层；两者都用 `BeginAnimation` 直接驱动变换，关闭动画结束后才关闭 `Popup`（另有 0.52 s 兜底，避免弹窗窗口残留吞掉页面输入）。
 10. **`PerformanceProgressBar` / `RelativeAnimatingContentControl`**：原版的性能 workaround 与 magic-number 相对动画重写在 WPF 中没有意义，只保留外观与基本行为。
 11. **`RecurringDaysPicker`**：基于 `ListPicker`，本地化星期名，不复刻 WP 视觉 chrome。
 12. **`Pivot`**：输入是鼠标拖拽加 Left/Right/PageUp/PageDown/Home/End，而不是 DirectManipulation（在 pivot 上启用 `IsManipulationEnabled` 会让触摸输入不再到达子控件）；没有快速滑动速度判定，拖拽超过半个视口即切换；页眉条循环排布但只绘制一圈，页眉总宽小于视口时末尾留白；`IsLocked` 是依赖属性并用 200 ms 动画淡出页眉；没有自定义自动化对等体；只有当前项可见，离开项滑动结束后折叠。

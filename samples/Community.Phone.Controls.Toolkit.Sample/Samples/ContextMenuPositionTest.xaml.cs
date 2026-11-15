@@ -62,7 +62,7 @@ namespace PhoneApp1
 
         void AnotherContextMenuTestingPage_Loaded(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
+            MessageBox.ShowCustomer(
 @"Try Tap&Hold gesture or Click on below yellow items to see the different behaviors.
 
 Click will try to place the ContextMenu aligned to the top or bottom of current element.

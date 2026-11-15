@@ -84,7 +84,7 @@
 
 | 控件 | 状态 | 级别 | 保留内容 | 差异 |
 |---|---|---|---|---|
-| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`VerticalOffset`、`IsOpen`、`RegionOfInterest`、`Opened`/`Closed`、`ItemContainerStyle`；原版模板部件 `OuterPanel`/`InnerGrid` 与 `Open`/`OpenReversed`/`OpenLandscape`/`OpenLandscapeReversed`/`Closed` 视觉状态 | 自绘 `Popup`（不继承 WPF `ContextMenu`）；WPF 无 `Hold` 手势，改为**右键**（移植新增）与**左键长按 800 ms** 打开；打开时页面快照改用 `RenderTargetBitmap` |
+| `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 已实现 | B/C | `ContextMenuService` 附加属性；`Owner`、`IsZoomEnabled`、`IsFadeEnabled`、`VerticalOffset`、`IsOpen`、`RegionOfInterest`、`Opened`/`Closed`、`ItemContainerStyle`；原版模板部件 `OuterPanel`/`InnerGrid` 与 `Open`/`OpenReversed`/`Closed` 视觉状态 | 自绘 `Popup`（不继承 WPF `ContextMenu`）；WPF 无 `Hold` 手势，改为**右键**（移植新增，也可关闭菜单）与**左键长按 800 ms** 打开；**不区分横竖屏**，始终按竖屏全宽布局；页面快照用 `RenderTargetBitmap`（按 DPI 缩放取像素），背景缩放/淡入用 `BeginAnimation` 直接驱动 |
 | `CustomMessageBox` | 已实现 | B | `Show`、`Dismiss`、`Dismissing`、`Dismissed`、`LeftButtonContent`、`RightButtonContent`、`IsLeftButtonEnabled`/`IsRightButtonEnabled`、`Title`（继承）、`Caption`、`Message`、`IsFullScreen`、`IsCenterScreen`、`CustomMessageBoxResult` | 由 WPF `Window` 承载；弹入/关闭播放 Swivel。 |
 | `DatePicker` / `TimePicker` | 已实现 | B | `Value`、`ValueString`、`ValueStringFormat`、`ValueChanged`、`Header`、`HeaderTemplate`、`PickerPageUri` | 在模态 `Window` 中用 WPF 日期/时间 UI；picker page 未移植。 |
 | `RecurringDaysPicker` | 已实现 | A/B | 星期多选与摘要 | 继承 `ListPicker`；本地化星期名。 |
