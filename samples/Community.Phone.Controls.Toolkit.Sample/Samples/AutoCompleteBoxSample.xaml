@@ -94,7 +94,6 @@
                     </DataTemplate>
                 </toolkit:AutoCompleteBox.ItemTemplate>
             </toolkit:AutoCompleteBox>
-            <TextBox/>
         </StackPanel>
     </Grid>
 </phone:PhoneApplicationPage>

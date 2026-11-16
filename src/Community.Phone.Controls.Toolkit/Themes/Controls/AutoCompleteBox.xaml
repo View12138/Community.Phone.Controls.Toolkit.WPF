@@ -38,8 +38,7 @@
                             Foreground="{TemplateBinding Foreground}"
                             InputScope="{TemplateBinding InputScope}"
                             Opacity="{TemplateBinding Opacity}"
-                            Padding="{TemplateBinding Padding}"
-                            Style="{TemplateBinding TextBoxStyle}"/>
+                            Padding="{TemplateBinding Padding}"/>
                         <Popup x:Name="Popup">
                             <ListBox
                                 x:Name="Selector"

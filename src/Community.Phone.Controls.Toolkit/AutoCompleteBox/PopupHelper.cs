@@ -124,7 +124,7 @@ namespace System.Windows.Controls
             Popup = popup;
         }
 
-#if !WINDOWS_PHONE
+#if WINDOWS_PHONE
         /// <summary>
         /// Gets the <see cref="T:MatrixTransform"/> for the control.
         /// </summary>
@@ -136,7 +136,13 @@ namespace System.Windows.Controls
             // This can happen if you first open the popup and then click on something else on the page that removes it from the live tree.
             try
             {
-                return Parent.TransformToVisual(null) as MatrixTransform;
+                GeneralTransform s = Parent.TransformToVisual(Application.Current.RootVisual);
+                var p = s.Transform(new Point(0, 0));
+                if (!double.IsNaN(p.X) && !double.IsNaN(p.Y))
+                {
+                    return new MatrixTransform(0, 0, 0, 0, p.X, p.Y);
+                }
+                return Parent.TransformToVisual(Application.Current.RootVisual) as MatrixTransform;
             }
             catch
             {
@@ -303,9 +309,7 @@ namespace System.Windows.Controls
             if (Popup == null ||
                 PopupChild == null ||
                 Application.Current == null ||
-                OutsidePopupCanvas == null ||
-                Application.Current.Host == null ||
-                Application.Current.Host.Content == null)
+                OutsidePopupCanvas == null)
             {
                 return;
             }
@@ -367,7 +371,7 @@ namespace System.Windows.Controls
         /// Arrange the popup.
         /// </summary>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "This try-catch pattern is used by other popup controls to keep the runtime up.")]
-        public void Arrange(Size? finalSize)
+        public void Arrange()
         {
             if (Popup == null
                 || PopupChild == null || Application.Current == null

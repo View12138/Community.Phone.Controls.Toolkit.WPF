@@ -19,7 +19,7 @@
 	<ItemGroup>
 		<Resource Include="Images\*.png" />
 		<Resource Include="Images\*.jpg" />
-		<Content Include="Data\LoremIpsum.txt" />
+		<Resource Include="Data\LoremIpsum.txt" />
 		<Compile Update="Resources\AppResources.Designer.cs">
 		  <DesignTime>True</DesignTime>
 		  <AutoGen>True</AutoGen>

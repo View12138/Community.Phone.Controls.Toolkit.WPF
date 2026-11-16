@@ -137,13 +137,13 @@
     </Style>
 
     <Style TargetType="controls:ToggleSwitch">
-        <Setter Property="Background" Value="{StaticResource PhoneBackgroundBrush}"/>
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyLight}"/>
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeLarge}"/>
-        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyLight}"/>
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeLarge}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}"/>
         <Setter Property="IsTabStop" Value="False"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="SwitchForeground" Value="{StaticResource PhoneAccentBrush}"/>
+        <Setter Property="SwitchForeground" Value="{DynamicResource PhoneAccentBrush}"/>
         <Setter Property="VerticalContentAlignment" Value="Top"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -172,7 +172,7 @@
                                 </VisualState>
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
-                        <Grid Margin="12,5,12,42">
+                        <Grid Margin="12,5,12,22">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -185,9 +185,9 @@
                                 x:Name="Header"
                                 Content="{TemplateBinding Header}"
                                 ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                FontFamily="{StaticResource PhoneFontFamilyNormal}"
-                                FontSize="{StaticResource PhoneFontSizeNormal}"
-                                Foreground="{StaticResource PhoneSubtleBrush}"
+                                FontFamily="{DynamicResource PhoneFontFamilyNormal}"
+                                FontSize="{DynamicResource PhoneFontSizeNormal}"
+                                Foreground="{DynamicResource PhoneSubtleBrush}"
                                 HorizontalAlignment="Left"
                                 IsTabStop="False"
                                 Margin="-1,0,0,0"

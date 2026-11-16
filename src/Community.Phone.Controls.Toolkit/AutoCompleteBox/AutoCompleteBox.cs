@@ -68,7 +68,7 @@ namespace System.Windows.Controls
         /// Specifies the name of the Popup TemplatePart.
         /// </summary>
         private const string ElementPopup = "Popup";
-        
+
         /// <summary>
         /// The name for the text box part.
         /// </summary>
@@ -310,7 +310,7 @@ namespace System.Windows.Controls
             if (source._delayTimer != null)
             {
                 source._delayTimer.Stop();
-                
+
                 if (newValue == 0)
                 {
                     source._delayTimer = null;
@@ -331,7 +331,7 @@ namespace System.Windows.Controls
             }
         }
         #endregion public int MinimumPopulateDelay
-        
+
         #region public bool IsTextCompletionEnabled
         /// <summary>
         /// Gets or sets a value indicating whether the first possible match
@@ -471,7 +471,16 @@ namespace System.Windows.Controls
                 ElementTextBoxStyle,
                 typeof(Style),
                 typeof(AutoCompleteBox),
-                new PropertyMetadata(Application.Current.FindResource(typeof(TextBox)) as Style));
+                new PropertyMetadata(null, OnTextBoxStylePropertyChanged));
+        private static void OnTextBoxStylePropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is Style style)
+            {
+                AutoCompleteBox source = d as AutoCompleteBox;
+                var textBox = source.GetTemplateChild(AutoCompleteBox.ElementTextBox) as TextBox;
+                textBox?.Style = style;
+            }
+        }
 
         #endregion public Style TextBoxStyle
 
@@ -521,7 +530,7 @@ namespace System.Windows.Controls
             }
 
             double newValue = (double)e.NewValue;
-            
+
             // Revert to the old value if invalid (negative)
             if (newValue < 0)
             {
@@ -705,7 +714,7 @@ namespace System.Windows.Controls
             {
                 removed.Add(e.OldValue);
             }
-            
+
             List<object> added = new List<object>();
             if (e.NewValue != null)
             {
@@ -713,14 +722,14 @@ namespace System.Windows.Controls
             }
 
             source.OnSelectionChanged(new SelectionChangedEventArgs(
-#if !SILVERLIGHT
+#if SILVERLIGHT
                 SelectionChangedEvent,
 #endif
                 removed,
                 added));
         }
 
-#if !SILVERLIGHT
+#if SILVERLIGHT
         /// <summary>
         /// Declares the routed event for SelectionChanged.
         /// </summary>
@@ -925,7 +934,7 @@ namespace System.Windows.Controls
                 mode != AutoCompleteFilterMode.ContainsCaseSensitive &&
                 mode != AutoCompleteFilterMode.ContainsOrdinal &&
                 mode != AutoCompleteFilterMode.ContainsOrdinalCaseSensitive &&
-                mode != AutoCompleteFilterMode.Custom && 
+                mode != AutoCompleteFilterMode.Custom &&
                 mode != AutoCompleteFilterMode.Equals &&
                 mode != AutoCompleteFilterMode.EqualsCaseSensitive &&
                 mode != AutoCompleteFilterMode.EqualsOrdinal &&
@@ -992,7 +1001,7 @@ namespace System.Windows.Controls
         {
             AutoCompleteBox source = d as AutoCompleteBox;
             AutoCompleteFilterPredicate<object> value = e.NewValue as AutoCompleteFilterPredicate<object>;
-            
+
             // If null, revert to the "None" predicate
             if (value == null)
             {
@@ -1141,8 +1150,8 @@ namespace System.Windows.Controls
         /// use with AutoCompleteBox or deriving from AutoCompleteBox to 
         /// create a custom control.
         /// </remarks>
-        protected internal ISelectionAdapter SelectionAdapter 
-        { 
+        protected internal ISelectionAdapter SelectionAdapter
+        {
             get { return _adapter; }
             set
             {
@@ -2526,7 +2535,7 @@ namespace System.Windows.Controls
                     _items = new List<object>(ItemsSource.Cast<object>().ToList());
                 }
             }
-            
+
             // Refresh the observable collection used in the selection adapter.
             RefreshView();
         }
