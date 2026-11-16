@@ -223,5 +223,8 @@
 	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="AutoCompleteBox\" />
+	</ItemGroup>
 
 </Project>

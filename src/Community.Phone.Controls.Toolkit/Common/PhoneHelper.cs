@@ -39,12 +39,10 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         /// <param name="phoneApplicationFrame">The current <see cref="T:PhoneApplicationFrame"/>.</param>
         /// <returns><code>true</code> if the current <see cref="T:PhoneApplicationFrame"/> was found; <code>false</code> otherwise.</returns>
-        [Obsolete("", true)]
         public static bool TryGetPhoneApplicationFrame(out PhoneApplicationFrame phoneApplicationFrame)
         {
-            throw new NotImplementedException();
-            //phoneApplicationFrame = Application.Current.RootVisual as PhoneApplicationFrame;
-            //return phoneApplicationFrame != null;
+            phoneApplicationFrame = Application.Current.RootVisual as PhoneApplicationFrame;
+            return phoneApplicationFrame != null;
         }
 
         /// <summary>
@@ -93,19 +91,16 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         /// <param name="textBox">The <see cref="T:TextBox"/>.</param>
         /// <returns><code>true</code> if there is a focused <see cref="T:TextBox"/>; <code>false</code> otherwise.</returns>
-        [Obsolete("", true)]
         private static bool TryGetFocusedTextBox(out TextBox textBox)
         {
-            throw new NotImplementedException();
-            //textBox = FocusManager.GetFocusedElement() as TextBox;
-            //return textBox != null;
+            textBox = Keyboard.FocusedElement as TextBox;
+            return textBox != null;
         }
 
         /// <summary>
         /// Determines whether the SIP is shown.
         /// </summary>
         /// <returns><code>true</code> if the SIP is shown; <code>false</code> otherwise.</returns>
-        [Obsolete("", true)]
         public static bool IsSipShown()
         {
             TextBox textBox;
@@ -117,25 +112,23 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         /// <param name="textBox">The <see cref="T:TextBox"/>.</param>
         /// <returns><code>true</code> if the <see cref="T:TextBox"/> woudl show the SIP text completion; <code>false</code> otherwise.</returns>
-        [Obsolete("", true)]
         public static bool IsSipTextCompletionShown(this TextBox textBox)
         {
-            throw new NotImplementedException();
-            //if (textBox.InputScope == null)
-            //{
-            //    return false;
-            //}
-            //IList inputScopeNames = textBox.InputScope.Names;
-            //foreach (InputScopeName inputScopeName in inputScopeNames)
-            //{
-            //    switch (inputScopeName.NameValue)
-            //    {
-            //        case InputScopeNameValue.Text:
-            //        case InputScopeNameValue.Chat:
-            //            return true;
-            //    }
-            //}
-            //return false;
+            if (textBox.InputScope == null)
+            {
+                return false;
+            }
+            IList inputScopeNames = textBox.InputScope.Names;
+            foreach (InputScopeName inputScopeName in inputScopeNames)
+            {
+                switch (inputScopeName.NameValue)
+                {
+                    case InputScopeNameValue.Default:
+                    case InputScopeNameValue.OneChar:
+                        return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -143,7 +136,6 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         /// <param name="phoneApplicationFrame">The <see cref="T:PhoneApplicationFrame"/>.</param>
         /// <returns>The <see cref="T:Size"/>.</returns>
-        [Obsolete("", true)]
         public static Size GetSipCoveredSize(this PhoneApplicationFrame phoneApplicationFrame)
         {
             if (!IsSipShown())
@@ -165,7 +157,6 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         /// <param name="phoneApplicationFrame">The <see cref="T:PhoneApplicationFrame"/>.</param>
         /// <returns>The <see cref="T:Size"/>.</returns>
-        [Obsolete("", true)]
         public static Size GetSipUncoveredSize(this PhoneApplicationFrame phoneApplicationFrame)
         {
             double width = phoneApplicationFrame.GetUsefulWidth();

@@ -11,6 +11,7 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="/Community.Phone;component/Themes/Generic.xaml" />
 
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/AutoCompleteBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/Button.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ComboBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ContextMenu.xaml" />
@@ -20,118 +21,12 @@
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListPicker.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TransitionFrame.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TextBlock.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TextBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ToggleSwitch.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!--  Default Metro styles for the WPF controls used by applications.  -->
 
     <FontFamily x:Key="PhoneFontFamilySymbol">Segoe MDL2 Assets</FontFamily>
-
-
-    <Style x:Key="PhoneContextMenuStyle" TargetType="{x:Type ContextMenu}">
-        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource PhoneSubtleBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type ContextMenu}">
-                    <Border
-                        Padding="{TemplateBinding Padding}"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        SnapsToDevicePixels="True">
-                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style BasedOn="{StaticResource PhoneContextMenuStyle}" TargetType="{x:Type ContextMenu}" />
-
-    <Style x:Key="PhoneMenuItemStyle" TargetType="{x:Type MenuItem}">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type MenuItem}">
-                    <Border
-                        x:Name="MenuItemRoot"
-                        Padding="{TemplateBinding Padding}"
-                        Background="{TemplateBinding Background}"
-                        SnapsToDevicePixels="True">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <ContentPresenter
-                                Width="24"
-                                Height="24"
-                                Margin="0,0,8,0"
-                                VerticalAlignment="Center"
-                                ContentSource="Icon" />
-                            <ContentPresenter
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                ContentSource="Header"
-                                RecognizesAccessKey="True" />
-                            <TextBlock
-                                Grid.Column="2"
-                                Margin="16,0,0,0"
-                                VerticalAlignment="Center"
-                                Foreground="{DynamicResource PhoneSubtleBrush}"
-                                Text="{TemplateBinding InputGestureText}" />
-                            <Popup
-                                x:Name="PART_Popup"
-                                AllowsTransparency="True"
-                                Focusable="False"
-                                IsOpen="{TemplateBinding IsSubmenuOpen}"
-                                Placement="Right"
-                                PopupAnimation="Fade">
-                                <Border Background="{DynamicResource PhoneChromeBrush}" BorderBrush="{DynamicResource PhoneSubtleBrush}" BorderThickness="1">
-                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" />
-                                </Border>
-                            </Popup>
-                        </Grid>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="MenuItemRoot" Property="Background" Value="#33FFFFFF" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="MenuItemRoot" Property="Opacity" Value="0.4" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style BasedOn="{StaticResource PhoneMenuItemStyle}" TargetType="{x:Type MenuItem}" />
-
-    <Style x:Key="PhoneSeparatorStyle" TargetType="{x:Type Separator}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type Separator}">
-                    <Border Height="1" Margin="8,2" Background="{DynamicResource PhoneSubtleBrush}" />
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style BasedOn="{StaticResource PhoneSeparatorStyle}" TargetType="{x:Type Separator}" />
 
     <Style x:Key="PhoneScrollBarThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="Template">

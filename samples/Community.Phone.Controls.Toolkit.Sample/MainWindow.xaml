@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     Title="Community Phone Toolkit WPF Sample"
+    Topmost="True"
     Width="480"
     Height="800"
     Background="Black"
