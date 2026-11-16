@@ -394,6 +394,7 @@ namespace System.Windows.Controls
                 u = VisualTreeHelper.GetParent(u) as UIElement;
             }
             var margin = Application.Current.TryFindResource("PhoneTouchTargetOverhang") as Thickness? ?? new Thickness(0);
+            var border = (PopupChild as Control).BorderThickness as Thickness? ?? new Thickness(0);
             Window w = u as Window;
             if (w == null)
             {
@@ -503,7 +504,7 @@ namespace System.Windows.Controls
             popupMaxHeight = below ? Math.Min(rootHeight - popupY, popupMaxHeight) : Math.Min(rootOffsetY, popupMaxHeight);
 
             Popup.HorizontalOffset = margin.Left;
-            Popup.VerticalOffset = -margin.Bottom;
+            Popup.VerticalOffset = -margin.Bottom - border.Top;
 
 #if SILVERLIGHT
             OutsidePopupCanvas.Width = rootWidth;

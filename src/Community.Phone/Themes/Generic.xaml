@@ -13,6 +13,8 @@
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/LongListSelector.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/PhoneApplicationFrame.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Pivot.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollViewer.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/TextBox.xaml" />
     </ResourceDictionary.MergedDictionaries>
 

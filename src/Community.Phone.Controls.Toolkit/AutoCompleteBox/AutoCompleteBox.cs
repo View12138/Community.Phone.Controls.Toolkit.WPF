@@ -1452,6 +1452,8 @@ namespace System.Windows.Controls
 #endif
 #else
                 TextBox.PreviewKeyDown += OnTextBoxPreviewKeyDown;
+                TextBox.LostKeyboardFocus += (s, e) => { DropDownPopup.IsOpen = false; };
+                TextBox.LostFocus += (s, e) => { DropDownPopup.IsOpen = false; };
 #endif
             }
 
