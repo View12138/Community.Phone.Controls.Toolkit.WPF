@@ -9,6 +9,7 @@
         <ResourceDictionary Source="/Community.Phone;component/Themes/Theme.xaml" />
 
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Button.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ListBox.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/LongListSelector.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/PhoneApplicationFrame.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Pivot.xaml" />

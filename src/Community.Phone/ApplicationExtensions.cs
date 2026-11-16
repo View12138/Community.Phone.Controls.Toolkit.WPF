@@ -10,10 +10,27 @@ namespace Microsoft.Phone.Controls;
 public static class ApplicationExtensions
 {
     private static UIElement? _rootVisual;
+    private static PhoneApplicationFrame? _loadedFrame;
 
     extension(Application application)
     {
-        public UIElement? RootVisual { get => _rootVisual; set => _rootVisual = value; }
+        /// <summary>
+        /// Gets or sets the root visual of the application.
+        /// </summary>
+        /// <remarks>
+        /// The Windows Phone platform always sets the root visual to the
+        /// application frame before the first page is created, which is what
+        /// popup positioning, context menus and transitions rely on. WPF has
+        /// no such notion, so when nothing assigned the property the first
+        /// <see cref="PhoneApplicationFrame"/> that loads is reported as the
+        /// root visual. Applications that want a different root can still
+        /// assign it explicitly.
+        /// </remarks>
+        public UIElement? RootVisual
+        {
+            get => _rootVisual ?? _loadedFrame;
+            set => _rootVisual = value;
+        }
 
         /// <summary>
         /// Gets or sets the requested theme. Setting it applies the new theme
@@ -72,5 +89,18 @@ public static class ApplicationExtensions
         /// Call this once at startup, before the first window is created.
         /// </summary>
         public void InitializeTheme() => ThemeManager.ApplyTheme(application, false);
+    }
+
+    internal static void RegisterRootFrame(PhoneApplicationFrame frame)
+    {
+        _loadedFrame = frame;
+    }
+
+    internal static void UnregisterRootFrame(PhoneApplicationFrame frame)
+    {
+        if (ReferenceEquals(_loadedFrame, frame))
+        {
+            _loadedFrame = null;
+        }
     }
 }

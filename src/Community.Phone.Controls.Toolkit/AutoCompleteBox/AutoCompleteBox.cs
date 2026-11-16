@@ -722,14 +722,14 @@ namespace System.Windows.Controls
             }
 
             source.OnSelectionChanged(new SelectionChangedEventArgs(
-#if SILVERLIGHT
+#if !SILVERLIGHT
                 SelectionChangedEvent,
 #endif
                 removed,
                 added));
         }
 
-#if SILVERLIGHT
+#if !SILVERLIGHT
         /// <summary>
         /// Declares the routed event for SelectionChanged.
         /// </summary>

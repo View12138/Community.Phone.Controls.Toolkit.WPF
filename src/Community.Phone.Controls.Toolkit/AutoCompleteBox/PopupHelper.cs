@@ -124,7 +124,7 @@ namespace System.Windows.Controls
             Popup = popup;
         }
 
-#if WINDOWS_PHONE
+#if !WINDOWS_PHONE
         /// <summary>
         /// Gets the <see cref="T:MatrixTransform"/> for the control.
         /// </summary>
@@ -136,13 +136,7 @@ namespace System.Windows.Controls
             // This can happen if you first open the popup and then click on something else on the page that removes it from the live tree.
             try
             {
-                GeneralTransform s = Parent.TransformToVisual(Application.Current.RootVisual);
-                var p = s.Transform(new Point(0, 0));
-                if (!double.IsNaN(p.X) && !double.IsNaN(p.Y))
-                {
-                    return new MatrixTransform(0, 0, 0, 0, p.X, p.Y);
-                }
-                return Parent.TransformToVisual(Application.Current.RootVisual) as MatrixTransform;
+                return Parent.TransformToVisual(null) as MatrixTransform;
             }
             catch
             {
@@ -309,7 +303,9 @@ namespace System.Windows.Controls
             if (Popup == null ||
                 PopupChild == null ||
                 Application.Current == null ||
-                OutsidePopupCanvas == null)
+                OutsidePopupCanvas == null ||
+                Application.Current.Host == null ||
+                Application.Current.Host.Content == null)
             {
                 return;
             }
@@ -371,7 +367,7 @@ namespace System.Windows.Controls
         /// Arrange the popup.
         /// </summary>
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "This try-catch pattern is used by other popup controls to keep the runtime up.")]
-        public void Arrange()
+        public void Arrange(Size? finalSize)
         {
             if (Popup == null
                 || PopupChild == null || Application.Current == null
@@ -397,6 +393,7 @@ namespace System.Windows.Controls
             {
                 u = VisualTreeHelper.GetParent(u) as UIElement;
             }
+            var margin = Application.Current.TryFindResource("PhoneTouchTargetOverhang") as Thickness? ?? new Thickness(0);
             Window w = u as Window;
             if (w == null)
             {
@@ -450,8 +447,8 @@ namespace System.Windows.Controls
             }
 #endif
 
-            double myControlHeight = Parent.ActualHeight;
-            double myControlWidth = Parent.ActualWidth;
+            double myControlHeight = Parent.ActualHeight - margin.Top - margin.Bottom;
+            double myControlWidth = Parent.ActualWidth - margin.Left - margin.Right;
 
             // Use or come up with a maximum popup height.
             double popupMaxHeight = MaxDropDownHeight;
@@ -505,8 +502,8 @@ namespace System.Windows.Controls
             // its size.
             popupMaxHeight = below ? Math.Min(rootHeight - popupY, popupMaxHeight) : Math.Min(rootOffsetY, popupMaxHeight);
 
-            Popup.HorizontalOffset = 0;
-            Popup.VerticalOffset = 0;
+            Popup.HorizontalOffset = margin.Left;
+            Popup.VerticalOffset = -margin.Bottom;
 
 #if SILVERLIGHT
             OutsidePopupCanvas.Width = rootWidth;

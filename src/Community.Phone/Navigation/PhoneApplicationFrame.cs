@@ -64,6 +64,8 @@ namespace Microsoft.Phone.Controls
             Navigating += OnFrameNavigating;
             Navigated += OnFrameNavigated;
             NavigationStopped += OnFrameNavigationStopped;
+            Loaded += OnFrameLoaded;
+            Unloaded += OnFrameUnloaded;
         }
 
         static PhoneApplicationFrame()
@@ -244,6 +246,16 @@ namespace Microsoft.Phone.Controls
             //{
             //    Orientation = orientation;
             //}
+        }
+
+        private void OnFrameLoaded(object sender, RoutedEventArgs e)
+        {
+            ApplicationExtensions.RegisterRootFrame(this);
+        }
+
+        private void OnFrameUnloaded(object sender, RoutedEventArgs e)
+        {
+            ApplicationExtensions.UnregisterRootFrame(this);
         }
 
         private void OnFrameNavigated(object sender, NavigationEventArgs e)
