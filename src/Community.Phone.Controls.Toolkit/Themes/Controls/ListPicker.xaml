@@ -7,10 +7,6 @@
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
-    <ResourceDictionary.MergedDictionaries>
-        <!--<ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Generic.xaml" />-->
-    </ResourceDictionary.MergedDictionaries>
-
     <Style TargetType="controls:ListPicker">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}"/>
@@ -19,7 +15,7 @@
         <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeMediumLarge}"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="Margin" Value="{DynamicResource PhoneTouchTargetOverhang}"/>
-        <Setter Property="PickerPageUri" Value="/Community.Phone.Controls.Toolkit;component/Controls/ListPicker/ListPickerPage.xaml"/>
+        <Setter Property="PickerPageUri" Value="/Community.Phone.Controls.Toolkit;component/ListPicker/ListPickerPage.xaml"/>
 
         <Setter Property="Template">
             <Setter.Value>

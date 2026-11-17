@@ -16,6 +16,7 @@
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ComboBox.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ContextMenu.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/CustomMessageBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/DateTimePicker.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/HubTile.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListPicker.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TransitionFrame.xaml" />

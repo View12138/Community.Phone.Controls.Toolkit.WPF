@@ -1,4 +1,4 @@
-// (c) Copyright Microsoft Corporation.
+﻿// (c) Copyright Microsoft Corporation.
 // This source is subject to the Microsoft Public License (Ms-PL).
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
@@ -9,19 +9,19 @@ using System.Windows;
 namespace Microsoft.Phone.Controls.Primitives
 {
     /// <summary>
-    /// Represents an interface used by date/time pickers to communicate with a
-    /// picker page.
+    /// Represents an interface for DatePicker/TimePicker to use for communicating with a picker page.
     /// </summary>
     public interface IDateTimePickerPage
     {
         /// <summary>
-        /// Gets or sets the date/time value.
+        /// Gets or sets the DateTime to show in the picker page and to set when the user makes a selection.
         /// </summary>
         DateTime? Value { get; set; }
 
         /// <summary>
-        /// Sets the flow direction on child controls that need it.
+        /// Sets the flow direction on any children controls that need it.
         /// </summary>
+        /// <param name="flowDirection">Flow direction to set.</param>
         void SetFlowDirection(FlowDirection flowDirection);
     }
 }

@@ -70,7 +70,6 @@
 		</Page>
 	</ItemGroup>
 
-
 	<ItemGroup>
 		<None Remove="Transitions\Storyboards\Roll.xaml" />
 		<None Remove="Transitions\Storyboards\RotateOut180Clockwise.xaml" />
@@ -210,6 +209,7 @@
 			<Generator>MSBuild:Compile</Generator>
 		</Resource>
 	</ItemGroup>
+	
 	<ItemGroup>
 	  <Compile Update="Properties\Resources.Designer.cs">
 	    <DesignTime>True</DesignTime>
@@ -222,9 +222,6 @@
 	    <Generator>ResXFileCodeGenerator</Generator>
 	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="AutoCompleteBox\" />
 	</ItemGroup>
 
 </Project>
