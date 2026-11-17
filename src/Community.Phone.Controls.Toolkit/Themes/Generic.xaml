@@ -517,69 +517,6 @@
         </Setter>
     </Style>
 
-    <!--  DatePicker and TimePicker.  -->
-    <Style TargetType="{x:Type controls:DatePicker}">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
-        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:DatePicker}">
-                    <StackPanel>
-                        <ContentControl
-                            Margin="0,0,0,4"
-                            Content="{TemplateBinding Header}"
-                            ContentTemplate="{TemplateBinding HeaderTemplate}"
-                            FontSize="{StaticResource PhoneFontSizeSmall}"
-                            Foreground="{DynamicResource PhoneSubtleBrush}" />
-                        <Button
-                            x:Name="DateTimeButton"
-                            Padding="12,8"
-                            HorizontalContentAlignment="Left"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            Content="{TemplateBinding ValueString}"
-                            Foreground="{TemplateBinding Foreground}" />
-                    </StackPanel>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="{x:Type controls:TimePicker}">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
-        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:TimePicker}">
-                    <StackPanel>
-                        <ContentControl
-                            Margin="0,0,0,4"
-                            Content="{TemplateBinding Header}"
-                            ContentTemplate="{TemplateBinding HeaderTemplate}"
-                            FontSize="{StaticResource PhoneFontSizeSmall}"
-                            Foreground="{DynamicResource PhoneSubtleBrush}" />
-                        <Button
-                            x:Name="DateTimeButton"
-                            Padding="12,8"
-                            HorizontalContentAlignment="Left"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            Content="{TemplateBinding ValueString}"
-                            Foreground="{TemplateBinding Foreground}" />
-                    </StackPanel>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
 </ResourceDictionary>
 
 
