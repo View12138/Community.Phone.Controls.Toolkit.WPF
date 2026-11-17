@@ -2,8 +2,6 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeNormal}" />
         <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
     </Style>
 
