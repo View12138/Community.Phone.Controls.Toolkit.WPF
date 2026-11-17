@@ -5,30 +5,17 @@
 
 using System;
 using System.Collections;
+using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Media;
 
 namespace Microsoft.Phone.Shell
 {
-    /// <summary>
-    /// Represents the application bar displayed at the bottom of a phone page.
-    /// The API follows the original <c>Microsoft.Phone.Shell.ApplicationBar</c>;
-    /// in the WPF port the bar is drawn by an
-    /// <see cref="ApplicationBarPresenter"/> instead of the native compositor.
-    /// </summary>
     [ContentProperty("Buttons")]
     public sealed class ApplicationBar : IApplicationBar
     {
-        /// <summary>
-        /// The maximum number of icon buttons an application bar accepts.
-        /// </summary>
         internal static readonly int MaxIconButtons = 4;
-
-        /// <summary>
-        /// The maximum number of menu items an application bar accepts.
-        /// </summary>
         internal static readonly int MaxMenuItems = 50;
-
         private const double AppBarDefaultSize = 72.0;
         private const double AppBarMiniSize = 30.0;
 
@@ -43,9 +30,6 @@ namespace Microsoft.Phone.Shell
         private Color _foregroundColor;
         private ApplicationBarMode _mode;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ApplicationBar"/> class.
-        /// </summary>
         public ApplicationBar()
         {
             _isVisible = true;
@@ -58,6 +42,26 @@ namespace Microsoft.Phone.Shell
             // colors so the bar is visible without being configured.
             _backgroundColor = Color.FromArgb(255, 31, 31, 31);
             _foregroundColor = Colors.White;
+            if (Application.Current.FindResource("PhoneChromeColor") is Color backgroundColor)
+            {
+                _backgroundColor = backgroundColor;
+            }
+            if (Application.Current.FindResource("PhoneForegroundColor") is Color foregroundColor)
+            {
+                _foregroundColor = foregroundColor;
+            }
+
+            ThemeManager.ThemeChanged += (s, e) =>
+            {
+                if (Application.Current.FindResource("PhoneChromeColor") is Color backgroundColor)
+                {
+                    BackgroundColor = backgroundColor;
+                }
+                if (Application.Current.FindResource("PhoneForegroundColor") is Color foregroundColor)
+                {
+                    ForegroundColor = foregroundColor;
+                }
+            };
 
             _buttons = new ApplicationBarItemList<IApplicationBarIconButton>(ApplicationBarItemType.ImageButton);
             _buttons.MaxItems = MaxIconButtons;
@@ -68,19 +72,10 @@ namespace Microsoft.Phone.Shell
             _menuItems.Changed += OnItemsChanged;
         }
 
-        /// <summary>
-        /// Occurs when the application bar menu opens or closes.
-        /// </summary>
         public event EventHandler<ApplicationBarStateChangedEventArgs> StateChanged;
 
-        /// <summary>
-        /// Occurs when a property of the bar or of one of its items changed.
-        /// </summary>
         internal event EventHandler Changed;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the application bar is visible.
-        /// </summary>
         public bool IsVisible
         {
             get
@@ -99,10 +94,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets or sets the opacity of the application bar. Values outside the
-        /// range 0..1 are clamped, like the original.
-        /// </summary>
         public double Opacity
         {
             get
@@ -130,9 +121,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the menu is available.
-        /// </summary>
         public bool IsMenuEnabled
         {
             get
@@ -150,9 +138,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets or sets the background color of the application bar.
-        /// </summary>
         public Color BackgroundColor
         {
             get
@@ -171,9 +156,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets or sets the foreground color of the application bar.
-        /// </summary>
         public Color ForegroundColor
         {
             get
@@ -191,9 +173,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets or sets the display mode of the application bar.
-        /// </summary>
         public ApplicationBarMode Mode
         {
             get
@@ -211,51 +190,31 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets the height of the application bar in the default mode.
-        /// </summary>
         public double DefaultSize
         {
             get { return AppBarDefaultSize; }
         }
 
-        /// <summary>
-        /// Gets the height of the application bar in the minimized mode.
-        /// </summary>
         public double MiniSize
         {
             get { return AppBarMiniSize; }
         }
 
-        /// <summary>
-        /// Gets the icon buttons shown by the application bar.
-        /// </summary>
         public IList Buttons
         {
             get { return _buttons; }
         }
 
-        /// <summary>
-        /// Gets the menu items shown by the application bar.
-        /// </summary>
         public IList MenuItems
         {
             get { return _menuItems; }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether the page layout reserves space for
-        /// the bar. Mirrors the original rule: an invisible, translucent or
-        /// semi-transparent bar floats over the page instead of reserving room.
-        /// </summary>
         internal bool ReservesSpace
         {
             get { return _reservesSpace; }
         }
 
-        /// <summary>
-        /// Gets the height the bar occupies in the page layout.
-        /// </summary>
         internal double ReservedHeight
         {
             get
@@ -269,37 +228,21 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Gets the height of the bar itself.
-        /// </summary>
         internal double BarHeight
         {
             get { return _mode == ApplicationBarMode.Minimized ? AppBarMiniSize : AppBarDefaultSize; }
         }
 
-        /// <summary>
-        /// Gets the container that renders the icon button at the given index.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The container.</returns>
         internal ApplicationBarItemContainer GetButtonContainer(int index)
         {
             return _buttons.GetContainer(index);
         }
 
-        /// <summary>
-        /// Gets the container that renders the menu item at the given index.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <returns>The container.</returns>
         internal ApplicationBarItemContainer GetMenuItemContainer(int index)
         {
             return _menuItems.GetContainer(index);
         }
 
-        /// <summary>
-        /// Raises <see cref="StateChanged"/> for an opened menu.
-        /// </summary>
         internal void OnEnterMenu()
         {
             EventHandler<ApplicationBarStateChangedEventArgs> handler = StateChanged;
@@ -309,9 +252,6 @@ namespace Microsoft.Phone.Shell
             }
         }
 
-        /// <summary>
-        /// Raises <see cref="StateChanged"/> for a closed menu.
-        /// </summary>
         internal void OnExitMenu()
         {
             EventHandler<ApplicationBarStateChangedEventArgs> handler = StateChanged;

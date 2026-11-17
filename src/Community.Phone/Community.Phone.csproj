@@ -4,7 +4,7 @@
 		<TargetFramework>net10.0-windows</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<OutputType>Library</OutputType>
-		<Nullable>enable</Nullable>
+		<Nullable>disable</Nullable>
 		<AssemblyName>Community.Phone</AssemblyName>
 		<RootNamespace>Microsoft.Phone</RootNamespace>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
