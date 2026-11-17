@@ -20,7 +20,6 @@
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/HubTile.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ListPicker.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TransitionFrame.xaml" />
-        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TextBlock.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ToggleSwitch.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
