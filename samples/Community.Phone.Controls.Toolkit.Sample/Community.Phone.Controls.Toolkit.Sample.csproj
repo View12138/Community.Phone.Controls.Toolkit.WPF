@@ -19,6 +19,9 @@
 	<ItemGroup>
 		<Resource Include="Images\*.png" />
 		<Resource Include="Images\*.jpg" />
+		<Resource Include="Assets\Tiles\*.png" />
+		<Resource Include="Assets\*.png" />
+		<Resource Include="Assets\*.jpg" />
 		<Resource Include="Data\LoremIpsum.txt" />
 		<Compile Update="Resources\AppResources.Designer.cs">
 		  <DesignTime>True</DesignTime>
