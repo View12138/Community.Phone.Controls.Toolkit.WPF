@@ -25,8 +25,6 @@
 
     <!--  Default Metro styles for the WPF controls used by applications.  -->
 
-    <FontFamily x:Key="PhoneFontFamilySymbol">Segoe MDL2 Assets</FontFamily>
-
     <Style x:Key="PhoneScrollBarThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="Template">
             <Setter.Value>
