@@ -26,7 +26,7 @@
     <!--Resources-->
     <phone:PhoneApplicationPage.Resources>
         <data:DateTimeCollection x:Key="DateTimeCollection"/>
-        <Style x:Key="ListBoxStyle" TargetType="ListBox">
+        <Style x:Key="ListBoxStyle" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
             <Setter Property="Margin" Value="12,0,0,12"/>
             <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMediumLarge}"/>
         </Style>
@@ -66,8 +66,7 @@
 
         <!--Pivot Control-->
         <controls:Pivot Title="DATE+TIME CONVERTERS">
-
-            <!--Relative Time Converter-->
+                <!--Relative Time Converter-->
             <controls:PivotItem Header="relative">
                 <ListBox ItemsSource="{Binding Source={StaticResource DateTimeCollection}}"  
                             Style="{StaticResource ListBoxStyle}">
