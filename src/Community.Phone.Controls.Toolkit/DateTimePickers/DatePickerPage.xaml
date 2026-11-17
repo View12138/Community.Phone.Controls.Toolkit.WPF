@@ -15,9 +15,9 @@
     xmlns:primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    FontFamily="{StaticResource PhoneFontFamilyNormal}"
-    FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    FontFamily="{DynamicResource PhoneFontFamilyNormal}"
+    FontSize="{DynamicResource PhoneFontSizeNormal}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
     SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     mc:Ignorable="d" d:DesignHeight="728" d:DesignWidth="480">
 
@@ -26,7 +26,7 @@
         <ExponentialEase x:Key="Ease" EasingMode="EaseIn"/>
     </primitives:DateTimePickerPageBase.Resources>
 
-    <Grid Background="{StaticResource PhoneChromeBrush}">
+    <Grid Background="{DynamicResource PhoneChromeBrush}">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="VisibilityStates">
                 <VisualState x:Name="Open">
@@ -70,9 +70,9 @@
             x:Name="HeaderTitle"
             Grid.Row="1"
             Text="{Binding DatePickerTitle, Source={StaticResource DateTimePickerResources}}"
-            FontFamily="{StaticResource PhoneFontFamilySemiBold}"
-            FontSize="{StaticResource PhoneFontSizeMedium}"
-            Foreground="{StaticResource PhoneForegroundBrush}"
+            FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
+            FontSize="{DynamicResource PhoneFontSizeMedium}"
+            Foreground="{DynamicResource PhoneForegroundBrush}"
             Margin="24,16,24,24"/>
         <!-- LoopingSelectors -->
         <Grid
@@ -98,12 +98,12 @@
                             <TextBlock
                                 Text="{Binding MonthNumber}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                             <TextBlock
                                 Text="{Binding MonthName}"
                                 FontSize="20"
-                                FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                FontFamily="{DynamicResource PhoneFontFamilyNormal}"
                                 Margin="0,-2"/>
                         </StackPanel>
                     </DataTemplate>
@@ -124,12 +124,12 @@
                             <TextBlock
                                 Text="{Binding DayNumber}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                             <TextBlock
                                 Text="{Binding DayName}"
                                 FontSize="20"
-                                FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                FontFamily="{DynamicResource PhoneFontFamilyNormal}"
                                 Margin="0,-2"/>
                         </StackPanel>
                     </DataTemplate>
@@ -150,12 +150,12 @@
                             <TextBlock
                                 Text="{Binding YearNumber}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                             <TextBlock
                                 Text=" "
                                 FontSize="20"
-                                FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                FontFamily="{DynamicResource PhoneFontFamilyNormal}"
                                 Margin="0,-2"/>
                         </StackPanel>
                     </DataTemplate>

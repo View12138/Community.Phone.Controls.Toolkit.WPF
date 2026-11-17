@@ -15,9 +15,9 @@
     xmlns:primitives="clr-namespace:Microsoft.Phone.Controls.Primitives"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    FontFamily="{StaticResource PhoneFontFamilyNormal}"
-    FontSize="{StaticResource PhoneFontSizeNormal}"
-    Foreground="{StaticResource PhoneForegroundBrush}"
+    FontFamily="{DynamicResource PhoneFontFamilyNormal}"
+    FontSize="{DynamicResource PhoneFontSizeNormal}"
+    Foreground="{DynamicResource PhoneForegroundBrush}"
     SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     mc:Ignorable="d" d:DesignHeight="728" d:DesignWidth="480">
 
@@ -26,7 +26,7 @@
         <ExponentialEase x:Key="Ease" EasingMode="EaseIn"/>
     </primitives:DateTimePickerPageBase.Resources>
 
-    <Grid Background="{StaticResource PhoneChromeBrush}">
+    <Grid Background="{DynamicResource PhoneChromeBrush}">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="VisibilityStates">
                 <VisualState x:Name="Open">
@@ -70,9 +70,9 @@
             x:Name="HeaderTitle"
             Grid.Row="1"
             Text="{Binding TimePickerTitle, Source={StaticResource DateTimePickerResources}}"
-            FontFamily="{StaticResource PhoneFontFamilySemiBold}"
-            FontSize="{StaticResource PhoneFontSizeMedium}"
-            Foreground="{StaticResource PhoneForegroundBrush}"
+            FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
+            FontSize="{DynamicResource PhoneFontSizeMedium}"
+            Foreground="{DynamicResource PhoneForegroundBrush}"
             Margin="24,16,24,24"/>
         <!-- LoopingSelectors -->
         <Grid
@@ -98,7 +98,7 @@
                             <TextBlock
                                 Text="{Binding HourNumber}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                         </StackPanel>
                     </DataTemplate>
@@ -119,7 +119,7 @@
                             <TextBlock
                                 Text="{Binding MinuteNumber}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                         </StackPanel>
                     </DataTemplate>
@@ -140,7 +140,7 @@
                             <TextBlock
                                 Text="{Binding AmPmString}"
                                 FontSize="54"
-                                FontFamily="{StaticResource PhoneFontFamilySemiBold}"
+                                FontFamily="{DynamicResource PhoneFontFamilySemiBold}"
                                 Margin="0,-8"/>
                         </StackPanel>
                     </DataTemplate>

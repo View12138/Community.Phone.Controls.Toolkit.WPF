@@ -81,7 +81,7 @@ namespace Microsoft.Phone.Controls.Primitives
             }
 
             // Hook up to storyboard(s)
-            FrameworkElement templateRoot = VisualTreeHelper.GetChild(this, 0) as FrameworkElement;
+            FrameworkElement templateRoot = this.Content as FrameworkElement;
             if (null != templateRoot)
             {
                 foreach (VisualStateGroup group in VisualStateManager.GetVisualStateGroups(templateRoot))
@@ -123,7 +123,7 @@ namespace Microsoft.Phone.Controls.Primitives
             }
 
             // Play the Open state
-            VisualStateManager.GoToState(this, OpenVisibilityStateName, true);
+            VisualStateManager.GoToElementState(this, OpenVisibilityStateName, true);
         }
 
         private void OnDataSourceSelectionChanged(object sender, SelectionChangedEventArgs e)
