@@ -23,6 +23,7 @@
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/LongListMultiSelector.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/LoopingSelector.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/PhoneTextBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/Rating.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/TransitionFrame.xaml" />
         <ResourceDictionary Source="/Community.Phone.Controls.Toolkit;component/Themes/Controls/ToggleSwitch.xaml" />
     </ResourceDictionary.MergedDictionaries>
@@ -56,134 +57,6 @@
         <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
     </Style>
     
-    <!--  Rating.  -->
-    <Style TargetType="{x:Type controls:Rating}">
-        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="Width" Value="215" />
-        <Setter Property="Height" Value="43" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:Rating}">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                        <Grid x:Name="Root" Background="Transparent">
-                            <Border
-                                x:Name="DragBorderElement"
-                                Width="35"
-                                Height="30"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Top"
-                                Background="{TemplateBinding Background}"
-                                Opacity="0">
-                                <TextBlock x:Name="DragTextBlockElement" Text="3.5" TextAlignment="Center" />
-                            </Border>
-                            <Grid x:Name="UnfilledGridElement" />
-                            <Border x:Name="FilledClipElement">
-                                <Grid x:Name="FilledGridElement" />
-                            </Border>
-                        </Grid>
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="DragHelperStates">
-                                <VisualStateGroup.Transitions>
-                                    <VisualTransition GeneratedDuration="0:0:0.1" To="Visible" />
-                                    <VisualTransition GeneratedDuration="0:0:0.3" To="Collapsed" />
-                                </VisualStateGroup.Transitions>
-                                <VisualState x:Name="Collapsed" />
-                                <VisualState x:Name="Visible">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="DragBorderElement" Storyboard.TargetProperty="Opacity" To="1.0" />
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="FilledItemStyle">
-            <Setter.Value>
-                <Style TargetType="{x:Type controls:RatingItem}">
-                    <Setter Property="Background" Value="{DynamicResource PhoneForegroundBrush}" />
-                </Style>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="UnfilledItemStyle">
-            <Setter.Value>
-                <Style TargetType="{x:Type controls:RatingItem}">
-                    <Setter Property="Background" Value="{DynamicResource PhoneSubtleBrush}" />
-                </Style>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="{x:Type controls:RatingItem}">
-        <Setter Property="Margin" Value="2" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:RatingItem}">
-                    <Path
-                        Data="F1 M 5.0,0.0 L 6.1,3.5 L 9.8,3.5 L 6.8,5.6 L 7.9,9.0 L 5.0,6.9 L 2.1,9.1 L 3.2,5.6 L 0.2,3.5 L 3.9,3.5 L 5.0,0.0 Z"
-                        Fill="{TemplateBinding Background}"
-                        Stretch="Fill"
-                        Stroke="{TemplateBinding BorderBrush}"
-                        StrokeThickness="{TemplateBinding StrokeThickness}" />
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!--  PerformanceProgressBar.  -->
-    <Style TargetType="{x:Type controls:PerformanceProgressBar}">
-        <Setter Property="Height" Value="8" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:PerformanceProgressBar}">
-                    <Grid>
-                        <ProgressBar
-                            x:Name="EmbeddedProgressBar"
-                            Background="{DynamicResource PhoneChromeBrush}"
-                            BorderThickness="0"
-                            Foreground="{DynamicResource PhoneAccentBrush}"
-                            IsIndeterminate="{TemplateBinding ActualIsIndeterminate}" />
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="VisibilityStates">
-                                <VisualState x:Name="Normal">
-                                    <Storyboard>
-                                        <DoubleAnimation
-                                            Storyboard.TargetName="EmbeddedProgressBar"
-                                            Storyboard.TargetProperty="Opacity"
-                                            To="1"
-                                            Duration="0:0:0.2" />
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Hidden">
-                                    <Storyboard>
-                                        <DoubleAnimation
-                                            Storyboard.TargetName="EmbeddedProgressBar"
-                                            Storyboard.TargetProperty="Opacity"
-                                            To="0"
-                                            Duration="0:0:0.4" />
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style TargetType="{x:Type controls:RelativeAnimatingContentControl}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type controls:RelativeAnimatingContentControl}">
-                    <ContentPresenter />
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
 </ResourceDictionary>
 
 

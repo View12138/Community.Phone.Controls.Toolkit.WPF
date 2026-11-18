@@ -4,6 +4,9 @@
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell">
 
+    <Style TargetType="{x:Type controls:PhoneApplicationPage}" BasedOn="{StaticResource {x:Type controls:PhoneApplicationPage}}">
+        <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />
+    </Style>
 
     <Style TargetType="{x:Type controls:PhoneApplicationFrame}">
         <Setter Property="Background" Value="{DynamicResource PhoneBackgroundBrush}" />

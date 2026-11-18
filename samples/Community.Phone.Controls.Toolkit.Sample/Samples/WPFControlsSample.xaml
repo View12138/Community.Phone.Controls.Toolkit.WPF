@@ -74,9 +74,6 @@
                 <phone:DatePicker Header="Date" Margin="0,0,0,12" />
                 <phone:TimePicker Header="Time" Margin="0,0,0,16" />
                 <phone:PerformanceProgressBar IsIndeterminate="True" Margin="0,0,0,16" />
-                <phone:RelativeAnimatingContentControl Margin="0,0,0,16">
-                    <TextBlock Text="RelativeAnimatingContentControl content" Style="{StaticResource PhoneTextNormalStyle}" />
-                </phone:RelativeAnimatingContentControl>
                 <phone:HubTile Title="HubTile" Message="Back side" DisplayNotification="False" HorizontalAlignment="Left" Margin="0,0,0,16" />
 
                 <Button Content="Go back" Click="OnGoBack" />
