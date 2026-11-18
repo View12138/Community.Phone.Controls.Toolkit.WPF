@@ -4,26 +4,20 @@
 // All other rights reserved.
 
 using System;
-using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 
 namespace Microsoft.Phone.Shell
 {
     /// <summary>
-    /// The shared visual for one application bar item: handles the hover and
-    /// keyboard highlight, the enabled state and the click, and leaves the
-    /// content to the derived view.
+    /// The shared behaviour of one application bar item: the enabled state, the
+    /// click and the keyboard activation. The visuals come from the control
+    /// template in Themes/Controls/ApplicationBar.xaml; a derived view only
+    /// pushes its data into the dependency properties the template binds to.
     /// </summary>
-    internal abstract class ApplicationBarItemView : Border
+    internal abstract class ApplicationBarItemView : Control
     {
-        private static readonly Brush TransparentBrush = CreateFrozenBrush(Color.FromArgb(0, 0, 0, 0));
-        private static readonly Brush HighlightBrush = CreateFrozenBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-
-        private Brush _foregroundBrush = Brushes.White;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationBarItemView"/> class.
         /// </summary>
@@ -32,17 +26,8 @@ namespace Microsoft.Phone.Shell
         {
             Container = container;
 
-            Background = TransparentBrush;
-            Cursor = Cursors.Hand;
-            Focusable = true;
-            SnapsToDevicePixels = true;
-
-            MouseEnter += OnMouseEnter;
-            MouseLeave += OnMouseLeave;
-            MouseLeftButtonUp += OnMouseLeftButtonUp;
             KeyDown += OnKeyDown;
-            GotKeyboardFocus += OnGotKeyboardFocus;
-            LostKeyboardFocus += OnLostKeyboardFocus;
+            MouseLeftButtonUp += OnMouseLeftButtonUp;
 
             Refresh();
         }
@@ -58,38 +43,17 @@ namespace Microsoft.Phone.Shell
         internal ApplicationBarItemContainer Container { get; }
 
         /// <summary>
-        /// Gets or sets the brush used for the item text.
-        /// </summary>
-        internal Brush ForegroundBrush
-        {
-            get
-            {
-                return _foregroundBrush;
-            }
-
-            set
-            {
-                if (!Equals(_foregroundBrush, value))
-                {
-                    _foregroundBrush = value;
-                    UpdateContent();
-                }
-            }
-        }
-
-        /// <summary>
         /// Applies the current container state to the view.
         /// </summary>
         internal virtual void Refresh()
         {
             IsEnabled = Container.IsEnabled;
-            Opacity = Container.IsEnabled ? 1.0 : 0.4;
             AutomationProperties.SetName(this, Container.Text ?? string.Empty);
             UpdateContent();
         }
 
         /// <summary>
-        /// Rebuilds the content from the container state.
+        /// Pushes the container state into the properties the template binds to.
         /// </summary>
         protected abstract void UpdateContent();
 
@@ -98,18 +62,6 @@ namespace Microsoft.Phone.Shell
         /// </summary>
         protected virtual void OnActivated()
         {
-        }
-
-        /// <summary>
-        /// Creates a frozen brush, so it can be shared across threads.
-        /// </summary>
-        /// <param name="color">The brush color.</param>
-        /// <returns>The frozen brush.</returns>
-        protected static Brush CreateFrozenBrush(Color color)
-        {
-            SolidColorBrush brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
         }
 
         /// <summary>
@@ -130,26 +82,6 @@ namespace Microsoft.Phone.Shell
             {
                 handler(this, EventArgs.Empty);
             }
-        }
-
-        private void OnMouseEnter(object sender, MouseEventArgs e)
-        {
-            Background = HighlightBrush;
-        }
-
-        private void OnMouseLeave(object sender, MouseEventArgs e)
-        {
-            Background = TransparentBrush;
-        }
-
-        private void OnGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            Background = HighlightBrush;
-        }
-
-        private void OnLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            Background = TransparentBrush;
         }
 
         private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)

@@ -8,6 +8,7 @@
         <!--  Single, persistent theme dictionary. Loaded once; Microsoft.Phone.Shell.ThemeManager recolors its brushes in place.  -->
         <ResourceDictionary Source="/Community.Phone;component/Themes/Theme.xaml" />
 
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ApplicationBar.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Button.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ListBox.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/LongListSelector.xaml" />

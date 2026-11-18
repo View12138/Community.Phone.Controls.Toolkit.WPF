@@ -5,25 +5,22 @@
 
 using System;
 using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Shapes;
-using System.Windows.Threading;
 
 namespace Microsoft.Phone.Shell
 {
     /// <summary>
     /// Renders an <see cref="IApplicationBar"/>: the icon buttons, the menu
     /// button and the menu. In Windows Phone this chrome is drawn by the
-    /// compositor; the WPF port draws it with this control, which
+    /// compositor; the WPF port draws it with this control, whose template lives
+    /// in Themes/Controls/ApplicationBar.xaml and which
     /// <see cref="Microsoft.Phone.Controls.PhoneApplicationFrame"/> hosts under
     /// the page content. This type is additive (it has no Windows Phone
     /// counterpart) and is documented as such.
     /// </summary>
-    public class ApplicationBarPresenter : Border
+    public class ApplicationBarPresenter : Control
     {
         /// <summary>
         /// The height of the bar in the default mode.
@@ -41,6 +38,16 @@ namespace Microsoft.Phone.Shell
         internal const double MenuButtonWidth = 48;
 
         /// <summary>
+        /// The height of the menu button slot, measured from the top of the
+        /// icon row; it fills the minimized bar.
+        /// </summary>
+        internal const double MenuButtonHeight = 30;
+
+        private const string ButtonsPartName = "PART_Buttons";
+        private const string MenuItemsPartName = "PART_MenuItems";
+        private const string MenuButtonPartName = "PART_MenuButton";
+
+        /// <summary>
         /// Identifies the <see cref="ApplicationBar"/> property.
         /// </summary>
         public static readonly DependencyProperty ApplicationBarProperty =
@@ -50,18 +57,20 @@ namespace Microsoft.Phone.Shell
                 typeof(ApplicationBarPresenter),
                 new PropertyMetadata(null, OnApplicationBarPropertyChanged));
 
-        private static readonly Brush TransparentBrush = CreateFrozenBrush(Color.FromArgb(0, 0, 0, 0));
-        private static readonly Brush HighlightBrush = CreateFrozenBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
-
-        private readonly Grid _bar;
-        private readonly StackPanel _buttons;
-        private readonly Popup _menuPopup;
-        private readonly Border _menuBorder;
-        private readonly StackPanel _menuPanel;
+        private StackPanel _buttons;
+        private StackPanel _menuItems;
+        private Border _menuButton;
 
         private ApplicationBar _subscribedBar;
-        private bool _isMenuOpen;
+        private bool _isExpanded;
         private double _reservedHeight;
+
+        static ApplicationBarPresenter()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(
+                typeof(ApplicationBarPresenter),
+                new FrameworkPropertyMetadata(typeof(ApplicationBarPresenter)));
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationBarPresenter"/> class.
@@ -71,42 +80,6 @@ namespace Microsoft.Phone.Shell
             HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Bottom;
             Visibility = Visibility.Collapsed;
-
-            _bar = new Grid
-            {
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Background = TransparentBrush,
-            };
-
-            _buttons = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Stretch,
-            };
-
-            _bar.Children.Add(_buttons);
-            Child = _bar;
-
-            _menuPanel = new StackPanel { Orientation = Orientation.Vertical };
-            _menuBorder = new Border
-            {
-                Child = _menuPanel,
-                Focusable = true,
-                UseLayoutRounding = true,
-            };
-            _menuBorder.PreviewKeyDown += OnMenuPreviewKeyDown;
-
-            _menuPopup = new Popup
-            {
-                Placement = PlacementMode.Top,
-                PlacementTarget = this,
-                StaysOpen = false,
-                AllowsTransparency = true,
-                PopupAnimation = PopupAnimation.Slide,
-                Child = _menuBorder,
-            };
-            _menuPopup.Closed += OnMenuPopupClosed;
         }
 
         /// <summary>
@@ -126,7 +99,9 @@ namespace Microsoft.Phone.Shell
         /// <summary>
         /// Gets the height the page layout must reserve for the bar. It is the
         /// bar height when the bar is visible and opaque, and zero otherwise
-        /// (the bar then floats over the page), like the original.
+        /// (the bar then floats over the page), like the original. The expanded
+        /// bar is taller than the reserved height, so it covers the page while
+        /// it is open instead of reflowing it.
         /// </summary>
         internal double ReservedHeight
         {
@@ -134,20 +109,19 @@ namespace Microsoft.Phone.Shell
         }
 
         /// <summary>
-        /// Gets a value indicating whether the menu is open.
+        /// Gets a value indicating whether the bar is expanded.
         /// </summary>
         internal bool IsMenuOpen
         {
-            get { return _isMenuOpen; }
+            get { return _isExpanded; }
         }
 
         /// <summary>
-        /// Gets the elements rendered for the bar items (icon buttons, then
-        /// the menu button when the bar has menu items).
+        /// Gets the elements rendered for the bar items (icon buttons).
         /// </summary>
         internal UIElementCollection ButtonElements
         {
-            get { return _buttons.Children; }
+            get { return _buttons == null ? null : _buttons.Children; }
         }
 
         /// <summary>
@@ -155,7 +129,7 @@ namespace Microsoft.Phone.Shell
         /// </summary>
         internal UIElementCollection MenuElements
         {
-            get { return _menuPanel.Children; }
+            get { return _menuItems == null ? null : _menuItems.Children; }
         }
 
         /// <summary>
@@ -198,80 +172,61 @@ namespace Microsoft.Phone.Shell
             return reserves ? GetBarHeight(bar) : 0;
         }
 
+        /// <inheritdoc />
+        public override void OnApplyTemplate()
+        {
+            DetachMenuButton();
+
+            base.OnApplyTemplate();
+
+            _buttons = GetTemplateChild(ButtonsPartName) as StackPanel;
+            _menuItems = GetTemplateChild(MenuItemsPartName) as StackPanel;
+            _menuButton = GetTemplateChild(MenuButtonPartName) as Border;
+
+            AttachMenuButton();
+            UpdateChrome();
+        }
+
         /// <summary>
-        /// Opens the menu, like tapping the menu button.
+        /// Expands the bar, like tapping the menu button: the bar grows upward
+        /// to show the icon labels and the menu items.
         /// </summary>
         internal void OpenMenu()
         {
             IApplicationBar bar = ApplicationBar;
-            if (bar == null || !bar.IsMenuEnabled || bar.MenuItems.Count == 0 || _isMenuOpen)
+            if (bar == null || !bar.IsMenuEnabled || _isExpanded || !HasItems(bar))
             {
                 return;
             }
 
-            Brush foreground = new SolidColorBrush(bar.ForegroundColor);
-            UpdateMenuItems(bar, foreground);
-            _menuBorder.Background = new SolidColorBrush(bar.BackgroundColor);
-            _menuBorder.Width = Math.Max(ActualWidth, 1);
-            _menuBorder.Opacity = bar.Opacity;
-
-            _isMenuOpen = true;
-            _menuPopup.IsOpen = true;
+            _isExpanded = true;
+            UpdateChrome();
 
             ApplicationBar applicationBar = bar as ApplicationBar;
             if (applicationBar != null)
             {
                 applicationBar.OnEnterMenu();
             }
-
-            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => _menuBorder.Focus()));
         }
 
         /// <summary>
-        /// Closes the menu, like tapping an item or tapping outside of it.
+        /// Collapses the bar back to its resting height.
         /// </summary>
         internal void CloseMenu()
         {
-            if (!_isMenuOpen)
+            if (!_isExpanded)
             {
                 return;
             }
 
-            _isMenuOpen = false;
-            _menuPopup.IsOpen = false;
+            _isExpanded = false;
+            UpdateChrome();
 
             ApplicationBar applicationBar = ApplicationBar as ApplicationBar;
             if (applicationBar != null)
             {
                 applicationBar.OnExitMenu();
             }
-        }
-
-        /// <summary>
-        /// Gets the default font family of the bar, from the phone theme when
-        /// it is available.
-        /// </summary>
-        /// <returns>The font family.</returns>
-        internal static FontFamily GetDefaultFontFamily()
-        {
-            try
-            {
-                Application application = Application.Current;
-                if (application != null)
-                {
-                    FontFamily family = application.TryFindResource("PhoneFontFamilyNormal") as FontFamily;
-                    if (family != null)
-                    {
-                        return family;
-                    }
-                }
-            }
-            catch (InvalidOperationException)
-            {
-                // No resource scope yet; fall through to the system font.
-            }
-
-            return new FontFamily("Segoe UI");
         }
 
         /// <summary>
@@ -283,30 +238,43 @@ namespace Microsoft.Phone.Shell
 
             if (bar == null || !bar.IsVisible)
             {
-                CloseMenu();
+                CollapseWithoutNotification();
+
                 Visibility = Visibility.Collapsed;
                 Height = 0;
-                _buttons.Children.Clear();
+                ClearItems();
                 UpdateReservedHeight(0);
                 return;
             }
 
-            double barHeight = GetBarHeight(bar);
-            Visibility = Visibility.Visible;
-            Height = barHeight;
-            _bar.Height = barHeight;
-            _bar.Background = new SolidColorBrush(bar.BackgroundColor);
-            _bar.Opacity = bar.Opacity;
-
-            Brush foreground = new SolidColorBrush(bar.ForegroundColor);
-            UpdateButtons(bar, foreground);
-
-            if (_isMenuOpen)
+            if (_isExpanded && !HasItems(bar))
             {
-                UpdateMenuItems(bar, foreground);
-                _menuBorder.Background = new SolidColorBrush(bar.BackgroundColor);
-                _menuBorder.Opacity = bar.Opacity;
+                CollapseWithoutNotification();
             }
+
+            bool minimized = bar.Mode == ApplicationBarMode.Minimized;
+            bool showButtons = !minimized || _isExpanded;
+            double itemsHeight = _isExpanded ? bar.MenuItems.Count * ApplicationBarMenuItemView.RowHeight : 0;
+            double iconRowHeight = showButtons
+                ? ApplicationBarIconButtonView.IconAreaHeight + (_isExpanded ? ApplicationBarIconButtonView.LabelHeight : 0)
+                : 0;
+            double height = Math.Max(GetBarHeight(bar), iconRowHeight + itemsHeight);
+
+            Visibility = Visibility.Visible;
+            Height = height;
+            Background = new SolidColorBrush(bar.BackgroundColor);
+            Opacity = bar.Opacity;
+            Foreground = new SolidColorBrush(bar.ForegroundColor);
+
+            if (_buttons != null)
+            {
+                _buttons.Height = iconRowHeight;
+                _buttons.Visibility = showButtons ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            UpdateButtons(bar, showButtons);
+            UpdateMenuItems(bar);
+            UpdateMenuButton(height, itemsHeight, minimized);
 
             UpdateReservedHeight(GetReservedHeight(bar));
         }
@@ -317,11 +285,9 @@ namespace Microsoft.Phone.Shell
             presenter.OnApplicationBarChanged((IApplicationBar)e.OldValue, (IApplicationBar)e.NewValue);
         }
 
-        private static Brush CreateFrozenBrush(Color color)
+        private static bool HasItems(IApplicationBar bar)
         {
-            SolidColorBrush brush = new SolidColorBrush(color);
-            brush.Freeze();
-            return brush;
+            return bar.Buttons.Count > 0 || bar.MenuItems.Count > 0;
         }
 
         private void OnApplicationBarChanged(IApplicationBar oldBar, IApplicationBar newBar)
@@ -332,7 +298,15 @@ namespace Microsoft.Phone.Shell
                 _subscribedBar = null;
             }
 
-            CloseMenu();
+            if (_isExpanded)
+            {
+                _isExpanded = false;
+                ApplicationBar oldApplicationBar = oldBar as ApplicationBar;
+                if (oldApplicationBar != null)
+                {
+                    oldApplicationBar.OnExitMenu();
+                }
+            }
 
             _subscribedBar = newBar as ApplicationBar;
             if (_subscribedBar != null)
@@ -348,40 +322,77 @@ namespace Microsoft.Phone.Shell
             UpdateChrome();
         }
 
-        private void UpdateButtons(IApplicationBar bar, Brush foreground)
+        private void CollapseWithoutNotification()
         {
-            _buttons.Children.Clear();
-
-            bool minimized = bar.Mode == ApplicationBarMode.Minimized;
-            if (!minimized)
+            if (_isExpanded)
             {
-                for (int i = 0; i < bar.Buttons.Count; i++)
+                _isExpanded = false;
+                ApplicationBar applicationBar = ApplicationBar as ApplicationBar;
+                if (applicationBar != null)
                 {
-                    ApplicationBarItemContainer container = GetButtonContainer(bar, i);
-                    if (container == null)
-                    {
-                        continue;
-                    }
-
-                    ApplicationBarIconButtonView view = new ApplicationBarIconButtonView(container)
-                    {
-                        ForegroundBrush = foreground,
-                        VerticalAlignment = VerticalAlignment.Stretch,
-                    };
-
-                    _buttons.Children.Add(view);
+                    applicationBar.OnExitMenu();
                 }
-            }
-
-            if (bar.IsMenuEnabled && bar.MenuItems.Count > 0)
-            {
-                _buttons.Children.Add(CreateMenuButton(foreground, minimized));
             }
         }
 
-        private void UpdateMenuItems(IApplicationBar bar, Brush foreground)
+        private void ClearItems()
         {
-            _menuPanel.Children.Clear();
+            if (_buttons != null)
+            {
+                _buttons.Children.Clear();
+            }
+
+            if (_menuItems != null)
+            {
+                _menuItems.Children.Clear();
+            }
+        }
+
+        private void UpdateButtons(IApplicationBar bar, bool showButtons)
+        {
+            if (_buttons == null)
+            {
+                return;
+            }
+
+            _buttons.Children.Clear();
+
+            if (!showButtons)
+            {
+                return;
+            }
+
+            for (int i = 0; i < bar.Buttons.Count; i++)
+            {
+                ApplicationBarItemContainer container = GetButtonContainer(bar, i);
+                if (container == null)
+                {
+                    continue;
+                }
+
+                ApplicationBarIconButtonView view = new ApplicationBarIconButtonView(container)
+                {
+                    Foreground = Foreground,
+                    VerticalAlignment = VerticalAlignment.Top,
+                };
+
+                _buttons.Children.Add(view);
+            }
+        }
+
+        private void UpdateMenuItems(IApplicationBar bar)
+        {
+            if (_menuItems == null)
+            {
+                return;
+            }
+
+            _menuItems.Children.Clear();
+
+            if (!_isExpanded)
+            {
+                return;
+            }
 
             for (int i = 0; i < bar.MenuItems.Count; i++)
             {
@@ -393,70 +404,87 @@ namespace Microsoft.Phone.Shell
 
                 ApplicationBarMenuItemView view = new ApplicationBarMenuItemView(container)
                 {
-                    ForegroundBrush = foreground,
+                    Foreground = Foreground,
                 };
 
                 view.Activated += OnMenuItemActivated;
-                _menuPanel.Children.Add(view);
+                _menuItems.Children.Add(view);
             }
         }
 
-        private Border CreateMenuButton(Brush foreground, bool minimized)
+        private void UpdateMenuButton(double barHeight, double itemsHeight, bool minimized)
         {
-            Border button = new Border
+            if (_menuButton == null)
             {
-                Width = MenuButtonWidth,
-                Background = TransparentBrush,
-                Cursor = Cursors.Hand,
-                Focusable = true,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = minimized ? VerticalAlignment.Stretch : VerticalAlignment.Top,
-                Height = minimized ? double.NaN : 30,
-            };
-
-            StackPanel dots = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-
-            for (int i = 0; i < 3; i++)
-            {
-                dots.Children.Add(new Rectangle
-                {
-                    Width = 3,
-                    Height = 3,
-                    Margin = new Thickness(2, 0, 2, 0),
-                    Fill = foreground,
-                });
+                return;
             }
 
-            button.Child = dots;
-            AutomationProperties.SetName(button, "menu");
+            if (minimized && !_isExpanded)
+            {
+                _menuButton.VerticalAlignment = VerticalAlignment.Stretch;
+                _menuButton.Height = double.NaN;
+                _menuButton.Margin = new Thickness(0);
+            }
+            else
+            {
+                // Keep the button at the top of the icon row, so it stays put
+                // while the bar grows upward.
+                _menuButton.VerticalAlignment = VerticalAlignment.Bottom;
+                _menuButton.Height = MenuButtonHeight;
+                _menuButton.Margin = new Thickness(
+                    0,
+                    0,
+                    0,
+                    Math.Max(barHeight - itemsHeight - MenuButtonHeight, 0));
+            }
+        }
 
-            button.MouseEnter += delegate { button.Background = HighlightBrush; };
-            button.MouseLeave += delegate { button.Background = TransparentBrush; };
-            button.MouseLeftButtonUp += delegate(object sender, MouseButtonEventArgs e)
+        private void AttachMenuButton()
+        {
+            if (_menuButton == null)
+            {
+                return;
+            }
+
+            _menuButton.MouseLeftButtonUp += OnMenuButtonClick;
+            _menuButton.KeyDown += OnMenuButtonKeyDown;
+        }
+
+        private void DetachMenuButton()
+        {
+            if (_menuButton == null)
+            {
+                return;
+            }
+
+            _menuButton.MouseLeftButtonUp -= OnMenuButtonClick;
+            _menuButton.KeyDown -= OnMenuButtonKeyDown;
+            _menuButton = null;
+        }
+
+        private void OnMenuButtonClick(object sender, MouseButtonEventArgs e)
+        {
+            ToggleMenu();
+            e.Handled = true;
+        }
+
+        private void OnMenuButtonKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Space)
             {
                 ToggleMenu();
                 e.Handled = true;
-            };
-            button.KeyDown += delegate(object sender, KeyEventArgs e)
+            }
+            else if (e.Key == Key.Escape && _isExpanded)
             {
-                if (e.Key == Key.Enter || e.Key == Key.Space)
-                {
-                    ToggleMenu();
-                    e.Handled = true;
-                }
-            };
-
-            return button;
+                CloseMenu();
+                e.Handled = true;
+            }
         }
 
         private void ToggleMenu()
         {
-            if (_isMenuOpen)
+            if (_isExpanded)
             {
                 CloseMenu();
             }
@@ -469,31 +497,6 @@ namespace Microsoft.Phone.Shell
         private void OnMenuItemActivated(object sender, EventArgs e)
         {
             CloseMenu();
-        }
-
-        private void OnMenuPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Escape)
-            {
-                CloseMenu();
-                e.Handled = true;
-            }
-        }
-
-        private void OnMenuPopupClosed(object sender, EventArgs e)
-        {
-            if (!_isMenuOpen)
-            {
-                return;
-            }
-
-            _isMenuOpen = false;
-
-            ApplicationBar applicationBar = ApplicationBar as ApplicationBar;
-            if (applicationBar != null)
-            {
-                applicationBar.OnExitMenu();
-            }
         }
 
         private void UpdateReservedHeight(double height)

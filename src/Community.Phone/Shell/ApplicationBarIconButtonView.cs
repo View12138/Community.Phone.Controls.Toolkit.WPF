@@ -7,15 +7,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Microsoft.Phone.Shell
 {
     /// <summary>
-    /// Renders an <see cref="ApplicationBarIconButton"/>: the 48x48 icon above
-    /// the lower-case label, inside a 96 pixel wide slot.
+    /// Renders an <see cref="ApplicationBarIconButton"/>: the circled icon above
+    /// the lower-case label. The visuals are the control template in
+    /// Themes/Controls/ApplicationBar.xaml; this class only supplies the text
+    /// and the icon. The label starts at the default bar's bottom edge, so a
+    /// collapsed bar clips it and only the icon shows.
     /// </summary>
     internal class ApplicationBarIconButtonView : ApplicationBarItemView
     {
@@ -27,22 +29,50 @@ namespace Microsoft.Phone.Shell
         /// <summary>
         /// The size of the circular button that hosts the icon.
         /// </summary>
-        internal const double IconSize = 48;
+        internal const double IconSize = 36;
 
         /// <summary>
-        /// The size of the glyph inside the circular button.
+        /// The height of the area the circle is centered in: the default bar
+        /// height, so the label starts at the bar's bottom edge.
         /// </summary>
-        internal const double GlyphSize = 32;
+        internal const double IconAreaHeight = ApplicationBarPresenter.DefaultBarHeight;
 
         /// <summary>
-        /// The thickness of the circle around the icon.
+        /// The height of the label row under the icon.
         /// </summary>
-        internal const double CircleThickness = 2;
+        internal const double LabelHeight = 18;
 
         /// <summary>
         /// The font size of the label under the icon.
         /// </summary>
         internal const double LabelFontSize = 12;
+
+        /// <summary>
+        /// Identifies the <see cref="IconSource"/> property.
+        /// </summary>
+        public static readonly DependencyProperty IconSourceProperty =
+            DependencyProperty.Register(
+                "IconSource",
+                typeof(ImageSource),
+                typeof(ApplicationBarIconButtonView),
+                new PropertyMetadata(null));
+
+        /// <summary>
+        /// Identifies the <see cref="Text"/> property.
+        /// </summary>
+        public static readonly DependencyProperty TextProperty =
+            DependencyProperty.Register(
+                "Text",
+                typeof(string),
+                typeof(ApplicationBarIconButtonView),
+                new PropertyMetadata(null));
+
+        static ApplicationBarIconButtonView()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(
+                typeof(ApplicationBarIconButtonView),
+                new FrameworkPropertyMetadata(typeof(ApplicationBarIconButtonView)));
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApplicationBarIconButtonView"/> class.
@@ -51,68 +81,31 @@ namespace Microsoft.Phone.Shell
         internal ApplicationBarIconButtonView(ApplicationBarItemContainer container)
             : base(container)
         {
-            Width = SlotWidth;
-            HorizontalAlignment = HorizontalAlignment.Right;
+        }
+
+        /// <summary>
+        /// Gets or sets the image shown inside the circle.
+        /// </summary>
+        public ImageSource IconSource
+        {
+            get { return (ImageSource)GetValue(IconSourceProperty); }
+            set { SetValue(IconSourceProperty, value); }
+        }
+
+        /// <summary>
+        /// Gets or sets the label under the icon.
+        /// </summary>
+        public string Text
+        {
+            get { return (string)GetValue(TextProperty); }
+            set { SetValue(TextProperty, value); }
         }
 
         /// <inheritdoc />
         protected override void UpdateContent()
         {
-            // Leave room above the circle so the label sits below it instead of
-            // overlapping its lower edge (4 + 48 + 20 = 72).
-            Grid grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(IconSize + 4) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-            // Windows Phone draws a circular outline around every application
-            // bar icon; the icon itself is only the glyph inside it.
-            Border circle = new Border
-            {
-                Width = IconSize,
-                Height = IconSize,
-                Margin = new Thickness(0, 4, 0, 0),
-                CornerRadius = new CornerRadius(IconSize / 2),
-                BorderThickness = new Thickness(CircleThickness),
-                BorderBrush = ForegroundBrush,
-                Background = Brushes.Transparent,
-                IsHitTestVisible = false,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            grid.Children.Add(circle);
-
-            Image icon = new Image
-            {
-                Width = GlyphSize,
-                Height = GlyphSize,
-                Margin = new Thickness(0, 4, 0, 0),
-                Stretch = Stretch.Uniform,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Source = ApplicationBarIconLoader.Load(Container.IconUri),
-            };
-
-            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
-            grid.Children.Add(icon);
-
-            TextBlock label = new TextBlock
-            {
-                Text = Container.Text,
-                FontSize = LabelFontSize,
-                FontFamily = ApplicationBarPresenter.GetDefaultFontFamily(),
-                Foreground = ForegroundBrush,
-                TextAlignment = TextAlignment.Center,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                TextWrapping = TextWrapping.NoWrap,
-                Margin = new Thickness(2, 1, 2, 2),
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-            };
-
-            Grid.SetRow(label, 1);
-            grid.Children.Add(label);
-
-            Child = grid;
+            Text = Container.Text;
+            IconSource = ApplicationBarIconLoader.Load(Container.IconUri);
         }
     }
 
@@ -160,11 +153,28 @@ namespace Microsoft.Phone.Shell
 
         private static ImageSource LoadCore(Uri iconUri)
         {
+            ImageSource image = LoadFrom(iconUri, false);
+            if (image == null)
+            {
+                // The toolkit pages reference their icons the Windows Phone way
+                // ("/Toolkit.Content/..."), which expects the app to ship them.
+                // The port keeps those icons in the toolkit assembly, so a
+                // missing app resource falls back to the packaged copy.
+                image = LoadFrom(iconUri, true);
+            }
+
+            return image;
+        }
+
+        private static ImageSource LoadFrom(Uri iconUri, bool toolkitContent)
+        {
             try
             {
-                Uri source = iconUri.IsAbsoluteUri
-                    ? iconUri
-                    : new Uri("pack://application:,,,/" + iconUri.OriginalString.TrimStart('/'), UriKind.Absolute);
+                Uri source = toolkitContent ? ResolveToolkitContent(iconUri) : Resolve(iconUri);
+                if (source == null)
+                {
+                    return null;
+                }
 
                 if (source.IsFile && !File.Exists(source.LocalPath))
                 {
@@ -183,6 +193,26 @@ namespace Microsoft.Phone.Shell
             {
                 return null;
             }
+        }
+
+        private static Uri Resolve(Uri iconUri)
+        {
+            return iconUri.IsAbsoluteUri
+                ? iconUri
+                : new Uri("pack://application:,,,/" + iconUri.OriginalString.TrimStart('/'), UriKind.Absolute);
+        }
+
+        private static Uri ResolveToolkitContent(Uri iconUri)
+        {
+            string fileName = Path.GetFileName(iconUri.OriginalString);
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return null;
+            }
+
+            return new Uri(
+                "pack://application:,,,/Community.Phone.Controls.Toolkit;component/Content/" + fileName,
+                UriKind.Absolute);
         }
     }
 }

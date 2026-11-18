@@ -1,0 +1,189 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell">
+
+    <Style TargetType="{x:Type shell:ApplicationBarPresenter}">
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type shell:ApplicationBarPresenter}">
+                    <Grid
+                        x:Name="PART_Bar"
+                        Background="{TemplateBinding Background}"
+                        ClipToBounds="True">
+                        <StackPanel
+                            Orientation="Vertical"
+                            VerticalAlignment="Bottom">
+                            <StackPanel x:Name="PART_MenuItems" Orientation="Vertical" />
+                            <StackPanel
+                                x:Name="PART_Buttons"
+                                Height="72"
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Top" />
+                        </StackPanel>
+                        <Border
+                            x:Name="PART_MenuButton"
+                            Width="48"
+                            Height="30"
+                            AutomationProperties.Name="menu"
+                            Cursor="Hand"
+                            Focusable="True"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#33FFFFFF" />
+                                        </Trigger>
+                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                            <Setter Property="Background" Value="#33FFFFFF" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                                <Rectangle
+                                    Width="3"
+                                    Height="3"
+                                    Margin="2,0,2,0"
+                                    Fill="{TemplateBinding Foreground}" />
+                                <Rectangle
+                                    Width="3"
+                                    Height="3"
+                                    Margin="2,0,2,0"
+                                    Fill="{TemplateBinding Foreground}" />
+                                <Rectangle
+                                    Width="3"
+                                    Height="3"
+                                    Margin="2,0,2,0"
+                                    Fill="{TemplateBinding Foreground}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Icon button: 36 pixel circle centered in the 72 pixel icon row, with a
+          12 pixel label right below it. Keep 72/18 in sync with
+          ApplicationBarIconButtonView.IconAreaHeight / .LabelHeight.  -->
+    <Style TargetType="{x:Type shell:ApplicationBarIconButtonView}">
+        <Setter Property="Width" Value="96" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type shell:ApplicationBarIconButtonView}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="72" />
+                            <RowDefinition Height="18" />
+                        </Grid.RowDefinitions>
+                        <Border
+                            Grid.Row="0"
+                            Width="36"
+                            Height="36"
+                            Background="Transparent"
+                            BorderBrush="{TemplateBinding Foreground}"
+                            BorderThickness="2"
+                            CornerRadius="18"
+                            HorizontalAlignment="Center"
+                            IsHitTestVisible="False"
+                            VerticalAlignment="Center" />
+                        <Image
+                            Grid.Row="0"
+                            Width="36"
+                            Height="36"
+                            HorizontalAlignment="Center"
+                            RenderOptions.BitmapScalingMode="HighQuality"
+                            Source="{TemplateBinding IconSource}"
+                            Stretch="Uniform"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Margin="2,0,2,0"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="12"
+                            Foreground="{TemplateBinding Foreground}"
+                            Text="{TemplateBinding Text}"
+                            TextAlignment="Center"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap"
+                            VerticalAlignment="Center" />
+                        <Border
+                            x:Name="Highlight"
+                            Grid.RowSpan="2"
+                            Background="Transparent"
+                            IsHitTestVisible="False" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Highlight" Property="Background" Value="#33FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Highlight" Property="Background" Value="#33FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--  Menu item: one 48 pixel high row (ApplicationBarMenuItemView.RowHeight).  -->
+    <Style TargetType="{x:Type shell:ApplicationBarMenuItemView}">
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type shell:ApplicationBarMenuItemView}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <TextBlock
+                            Margin="16,0,16,0"
+                            FontFamily="{TemplateBinding FontFamily}"
+                            FontSize="20"
+                            Foreground="{TemplateBinding Foreground}"
+                            Text="{TemplateBinding Text}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap"
+                            VerticalAlignment="Center" />
+                        <Border
+                            x:Name="Highlight"
+                            Background="Transparent"
+                            IsHitTestVisible="False" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Highlight" Property="Background" Value="#33FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Highlight" Property="Background" Value="#33FFFFFF" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
