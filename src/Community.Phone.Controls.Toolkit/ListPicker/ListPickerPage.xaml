@@ -170,7 +170,7 @@
                                     </VisualStateGroup>
                                 </VisualStateManager.VisualStateGroups>
 
-                                <phone:ProjectionHost x:Name="ProjectionHost">
+                                <platform:ProjectionHost x:Name="ProjectionHost">
                                     <CheckBox IsChecked="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=IsSelected, Mode=TwoWay}"
                                           Style="{StaticResource AnyFontSizeCheckBoxStyle}"
                                           Content="{TemplateBinding Content}"
@@ -184,7 +184,7 @@
                                           VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalAlignment}"
                                           Padding="{TemplateBinding Padding}"/>
-                                </phone:ProjectionHost>
+                                </platform:ProjectionHost>
                             </Border>
                         </ControlTemplate>
                     </Setter.Value>
@@ -236,7 +236,7 @@
                                         </VisualState>
                                     </VisualStateGroup>
                                 </VisualStateManager.VisualStateGroups>
-                                <phone:ProjectionHost x:Name="ProjectionHost">
+                                <platform:ProjectionHost x:Name="ProjectionHost">
                                     <ContentControl x:Name="ContentContainer"
                                                 Content="{TemplateBinding Content}"
                                                 ContentTemplate="{TemplateBinding ContentTemplate}"
@@ -244,7 +244,7 @@
                                                 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                                 Margin="{TemplateBinding Padding}"/>
-                                </phone:ProjectionHost>
+                                </platform:ProjectionHost>
                             </Border>
                         </ControlTemplate>
                     </Setter.Value>
@@ -295,9 +295,9 @@
             FontSize="{DynamicResource PhoneFontSizeMedium}"
             Foreground="{DynamicResource PhoneForegroundBrush}"
             Margin="24 12 12 12">
-            <phone:ProjectionService.Projection>
-                <phone:PlaneProjection RotationX="-90"/>
-            </phone:ProjectionService.Projection>
+            <platform:ProjectionService.Projection>
+                <platform:PlaneProjection RotationX="-90"/>
+            </platform:ProjectionService.Projection>
         </TextBlock>
 
         <!-- List of Items -->

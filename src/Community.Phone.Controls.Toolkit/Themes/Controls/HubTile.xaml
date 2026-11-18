@@ -5,6 +5,7 @@
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework">
 
     <ResourceDictionary.MergedDictionaries>
@@ -143,9 +144,9 @@
                             <StackPanel x:Name="Viewport"
                                     Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource WidthConverter}}"
                                     Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource HeightConverter}}">
-                                <controls:ProjectionService.Projection>
-                                    <controls:PlaneProjection CenterOfRotationY="0.5" x:Name="ViewportProjection"/>
-                                </controls:ProjectionService.Projection>
+                                <platform:ProjectionService.Projection>
+                                    <platform:PlaneProjection CenterOfRotationY="0.5" x:Name="ViewportProjection"/>
+                                </platform:ProjectionService.Projection>
                                 <Grid x:Name="TitlePanel"
                                     RenderTransformOrigin="0.5,0.5"
                                     Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource WidthConverter}}"
@@ -183,9 +184,9 @@
                                             <RowDefinition Height="*"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        <controls:ProjectionService.Projection>
-                                            <controls:PlaneProjection CenterOfRotationY="0.5" RotationX="180"/>
-                                        </controls:ProjectionService.Projection>
+                                        <platform:ProjectionService.Projection>
+                                            <platform:PlaneProjection CenterOfRotationY="0.5" RotationX="180"/>
+                                        </platform:ProjectionService.Projection>
                                         <TextBlock x:Name="NotificationBlock" Grid.Row="0"
                                                Margin="8,8,0,6"
                                                Text="{TemplateBinding Notification}"

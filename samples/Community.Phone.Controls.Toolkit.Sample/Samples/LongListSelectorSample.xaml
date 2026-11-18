@@ -66,7 +66,7 @@
         <!-- The template for groups when they are items in the "jump list". Not setting -->
         <!-- the GroupItemTemplate property will disable "jump list" functionality. -->
         <DataTemplate x:Key="groupItemHeader">
-            <phone:ProjectionHost>
+            <platform:ProjectionHost>
                 <Border Background="{DynamicResource PhoneAccentBrush}"
                     Width="432" Height="62"
                     Margin="6" Padding="12,0,0,6">
@@ -76,10 +76,10 @@
                            VerticalAlignment="Bottom"
                            FontFamily="{StaticResource PhoneFontFamilySemiBold}"/>
                 </Border>
-                <phone:ProjectionHost.Projection>
-                    <phone:PlaneProjection RotationX="-60"/>
-                </phone:ProjectionHost.Projection>
-            </phone:ProjectionHost>
+                <platform:ProjectionHost.Projection>
+                    <platform:PlaneProjection RotationX="-60"/>
+                </platform:ProjectionHost.Projection>
+            </platform:ProjectionHost>
         </DataTemplate>
 
         <!-- The template for movie items -->

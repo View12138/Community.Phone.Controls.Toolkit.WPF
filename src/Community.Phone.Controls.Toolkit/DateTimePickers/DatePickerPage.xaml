@@ -51,9 +51,9 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
-        <controls:ProjectionService.Projection>
-            <controls:PlaneProjection x:Name="PlaneProjection"/>
-        </controls:ProjectionService.Projection>
+        <phone:ProjectionService.Projection>
+            <phone:PlaneProjection x:Name="PlaneProjection"/>
+        </phone:ProjectionService.Projection>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>

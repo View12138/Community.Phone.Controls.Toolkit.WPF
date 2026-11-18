@@ -5,6 +5,7 @@
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls"
+    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
     xmlns:wpf="clr-namespace:System.Windows;assembly=PresentationFramework"
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone">
 
@@ -21,12 +22,12 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <phone:ProjectionHost
+                        <platform:ProjectionHost
                             x:Name="FirstContentPresenter"
                             Grid.Row="0"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch" />
-                        <phone:ProjectionHost
+                        <platform:ProjectionHost
                             x:Name="SecondContentPresenter"
                             Grid.Row="0"
                             HorizontalAlignment="Stretch"
