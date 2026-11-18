@@ -43,7 +43,7 @@
                                             <Storyboard>
                                                 <DoubleAnimation Storyboard.TargetProperty="(FrameworkElement.Height)" 
                                                                  Storyboard.TargetName="ItemsCanvas"
-                                                                 Duration="0" To="0"/>
+                                                                 Duration="0" From="0" To="0"/>
                                                 <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)" 
                                                                  Storyboard.TargetName="ItemsCanvas"
                                                                  Duration="0" To="0.0"/>
@@ -95,13 +95,13 @@
                                     <VisualState x:Name="NonExpandable">
                                         <Storyboard>
                                             <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="ExpandableContent">
-                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="Collapsed"/>
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="{x:Static Visibility.Collapsed}"/>
                                             </ObjectAnimationUsingKeyFrames>
                                             <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="Line">
-                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="Collapsed"/>
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="{x:Static Visibility.Collapsed}"/>
                                             </ObjectAnimationUsingKeyFrames>
                                             <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="NonExpandableContent">
-                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="Visible"/>
+                                                <DiscreteObjectKeyFrame KeyTime="0:0:0.0" Value="{x:Static Visibility.Visible}"/>
                                             </ObjectAnimationUsingKeyFrames>
                                         </Storyboard>
                                     </VisualState>

@@ -69,7 +69,7 @@
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
             <ListBox ItemsSource="{StaticResource Inbox}" Margin="12,0,0,0">
                 <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     </Style>
                 </ListBox.ItemContainerStyle>

@@ -57,6 +57,7 @@
 
 	<ItemGroup>
 		<Resource Include="Content\*.png" />
+		<Resource Include="Images\*.png" />
 	</ItemGroup>
 
 	<ItemGroup>
