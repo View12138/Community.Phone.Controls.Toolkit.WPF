@@ -24,12 +24,12 @@
                 <platform:ProjectionHost x:Name="ProjectionDemo" Height="180" Margin="0,8,0,16">
                     <Border Background="{DynamicResource PhoneAccentBrush}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="PlaneProjection" Foreground="White" FontSize="24" HorizontalAlignment="Center" />
+                            <TextBlock Text="PlaneProjection with ProjectionHost" Foreground="White" FontSize="24" HorizontalAlignment="Center" />
                             <TextBlock Text="real Viewport2DVisual3D" Foreground="White" FontSize="14" HorizontalAlignment="Center" />
                         </StackPanel>
                     </Border>
                     <platform:ProjectionHost.Projection>
-                        <platform:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
+                        <platform:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" RotationX="20" RotationY="0"/>
                     </platform:ProjectionHost.Projection>
                 </platform:ProjectionHost>
 
@@ -38,7 +38,7 @@
                     Margin="0,0,0,16"
                     Background="{DynamicResource PhoneAccentBrush}">
                     <platform:ProjectionService.Projection>
-                        <platform:PlaneProjection x:Name="HostlessProjection" RotationY="-22" RotationX="10" />
+                        <platform:PlaneProjection x:Name="HostlessProjection" RotationY="-28" RotationX="10" />
                     </platform:ProjectionService.Projection>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="No ProjectionHost" Foreground="White" FontSize="20" HorizontalAlignment="Center" />

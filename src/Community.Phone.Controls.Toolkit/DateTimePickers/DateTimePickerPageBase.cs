@@ -32,14 +32,16 @@ namespace Microsoft.Phone.Controls.Primitives
         private LoopingSelector _secondarySelectorPart;
         private LoopingSelector _tertiarySelectorPart;
         private Storyboard _closedStoryboard;
+        private DependencyObject _layoutRoot;
 
         /// <summary>
         /// Initializes the DateTimePickerPageBase class; must be called from the subclass's constructor.
         /// </summary>
+        /// <param name="layoutRoot">The root layout element of the page.</param>
         /// <param name="primarySelector">Primary selector.</param>
         /// <param name="secondarySelector">Secondary selector.</param>
         /// <param name="tertiarySelector">Tertiary selector.</param>
-        protected void InitializeDateTimePickerPage(LoopingSelector primarySelector, LoopingSelector secondarySelector, LoopingSelector tertiarySelector)
+        protected void InitializeDateTimePickerPage(DependencyObject layoutRoot, LoopingSelector primarySelector, LoopingSelector secondarySelector, LoopingSelector tertiarySelector)
         {
             if (null == primarySelector)
             {
@@ -57,6 +59,7 @@ namespace Microsoft.Phone.Controls.Primitives
             _primarySelectorPart = primarySelector;
             _secondarySelectorPart = secondarySelector;
             _tertiarySelectorPart = tertiarySelector;
+            _layoutRoot = layoutRoot;
 
             // Hook up to interesting events
             _primarySelectorPart.DataSource.SelectionChanged += OnDataSourceSelectionChanged;
@@ -81,7 +84,7 @@ namespace Microsoft.Phone.Controls.Primitives
             }
 
             // Hook up to storyboard(s)
-            FrameworkElement templateRoot = this.Content as FrameworkElement;
+            FrameworkElement templateRoot = layoutRoot as FrameworkElement;
             if (null != templateRoot)
             {
                 foreach (VisualStateGroup group in VisualStateManager.GetVisualStateGroups(templateRoot))
@@ -123,7 +126,7 @@ namespace Microsoft.Phone.Controls.Primitives
             }
 
             // Play the Open state
-            VisualStateManager.GoToElementState(this, OpenVisibilityStateName, true);
+            VisualStateManager.GoToElementState(layoutRoot as FrameworkElement, OpenVisibilityStateName, true);
         }
 
         private void OnDataSourceSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -182,7 +185,7 @@ namespace Microsoft.Phone.Controls.Primitives
             // Play the Close state (if available)
             if (null != _closedStoryboard)
             {
-                VisualStateManager.GoToState(this, ClosedVisibilityStateName, true);
+                VisualStateManager.GoToElementState(_layoutRoot as FrameworkElement, ClosedVisibilityStateName, true);
             }
             else
             {

@@ -597,7 +597,7 @@ namespace Microsoft.Phone.Controls
         static bool PrepareControlForTilt(FrameworkElement element, Rect bounds, FrameworkElement container)
         {
             // Prevents interference with any existing projection
-            if (ProjectionService.GetProjection(element) != null)
+            if (element.Projection != null)
             {
                 return false;
             }
@@ -618,14 +618,13 @@ namespace Microsoft.Phone.Controls
 
             // Assigning a projection wraps the control in a ProjectionHost on
             // demand; the host is removed again when the projection is cleared.
-            ProjectionService.SetProjection(element, projection);
-
+            element.Projection = projection;
             ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
             if (host == null)
             {
                 // The control cannot be projected (an item container, for
                 // example); undo the assignment and do nothing.
-                ProjectionService.SetProjection(element, null);
+                element.Projection = null;
                 return false;
             }
 

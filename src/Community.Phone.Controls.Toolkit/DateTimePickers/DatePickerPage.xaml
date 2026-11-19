@@ -26,7 +26,7 @@
         <ExponentialEase x:Key="Ease" EasingMode="EaseIn"/>
     </primitives:DateTimePickerPageBase.Resources>
 
-    <Grid Background="{DynamicResource PhoneChromeBrush}">
+    <Grid x:Name="LayoutRoot" Background="{DynamicResource PhoneChromeBrush}">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="VisibilityStates">
                 <VisualState x:Name="Open">
@@ -51,20 +51,21 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
-        <phone:ProjectionService.Projection>
-            <phone:PlaneProjection x:Name="PlaneProjection"/>
-        </phone:ProjectionService.Projection>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
+        <phone:ProjectionService.Projection>
+            <phone:PlaneProjection x:Name="PlaneProjection" RotationX="0" />
+        </phone:ProjectionService.Projection>
 
         <!-- SystemTray placeholder -->
         <Rectangle
             x:Name="SystemTrayPlaceholder"
             Grid.Row="0"
-            Height="32"/>
+            Height="32"
+            Visibility="Collapsed"/>
         <!-- Title -->
         <TextBlock
             x:Name="HeaderTitle"

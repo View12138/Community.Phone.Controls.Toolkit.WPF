@@ -7,6 +7,7 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
     xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     xmlns:localControls="clr-namespace:PhoneToolkitSample.LocalControls"
+    xmlns:data="clr-namespace:PhoneToolkitSample.Data"
     xmlns:local="clr-namespace:PhoneToolkitSample8"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -46,6 +47,9 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.Resources>
+            <data:DisabledToStrikethroughConverter x:Key="DisabledToStrikethroughConverter"/>
+        </Grid.Resources>
 
         <!-- LOCALIZATION NOTE:
             To localize the displayed strings copy their values to appropriately named
@@ -88,10 +92,10 @@
                                     <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}"/>
                                 </Grid>
                             </Button>-->
-                            <platform:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
+                            <platform:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}" IsEnabled="{Binding Supported}">
                                 <Grid RowDefinitions="auto,auto" Margin="0,0,0,24">
-                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}"/>
-                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}"/>
+                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
+                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
                                 </Grid>
                             </platform:HyperlinkButton>
                             <!--<phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">

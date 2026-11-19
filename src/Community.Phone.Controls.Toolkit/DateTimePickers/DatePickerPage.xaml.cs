@@ -28,7 +28,7 @@ namespace Microsoft.Phone.Controls
             SecondarySelector.DataSource = new MonthDataSource();
             TertiarySelector.DataSource = new DayDataSource();
 
-            InitializeDateTimePickerPage(PrimarySelector, SecondarySelector, TertiarySelector);
+            InitializeDateTimePickerPage(LayoutRoot, PrimarySelector, SecondarySelector, TertiarySelector);
         }
 
         /// <summary>

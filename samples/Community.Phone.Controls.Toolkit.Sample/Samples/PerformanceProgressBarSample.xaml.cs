@@ -18,7 +18,7 @@ namespace PhoneToolkitSample.Samples
         {
             InitializeComponent();
 
-            MessageBox.Show(
+            MessageBox.ShowCustomer(
 @"The PerformanceProgressBar is obsolete in Windows Phone 8, as the built-in progress bar control now animates off of the UI thread.
 
 This sample demonstrates the usage of either the progress indicator or the progress bar control to provide performant loading feedback for users.");

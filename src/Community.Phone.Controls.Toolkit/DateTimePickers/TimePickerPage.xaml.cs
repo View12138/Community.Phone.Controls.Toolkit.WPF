@@ -30,7 +30,7 @@ namespace Microsoft.Phone.Controls
             SecondarySelector.DataSource = new MinuteDataSource();
             TertiarySelector.DataSource = new AmPmDataSource();
 
-            InitializeDateTimePickerPage(PrimarySelector, SecondarySelector, TertiarySelector);
+            InitializeDateTimePickerPage(LayoutRoot, PrimarySelector, SecondarySelector, TertiarySelector);
         }
 
         /// <summary>

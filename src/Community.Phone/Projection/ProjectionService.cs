@@ -263,18 +263,51 @@ namespace Microsoft.Phone.Controls
             {
                 return existing;
             }
+            if (element is ListBoxItem listBoxItem)
+            {
+                return listBoxItem.Template.FindName("ProjectionHost", listBoxItem) as ProjectionHost;
+            }
 
             // WPF's UIElementCollection refuses writes to a panel that is an
             // ItemsControl's items host (the ItemsControl generates its
             // children), so item containers (ListBoxItem, ComboBoxItem, ...)
             // cannot be re-parented into a host. Every other direct child of a
             // regular panel - ContentPresenter included - can.
-            if (element.Parent is not Panel panel || panel.IsItemsHost)
+            ParentEntry parent = null;
+            if (element.Parent is Panel panel)
+            {
+                parent = new ParentEntry(panel,
+                    (child) => panel.Children.IndexOf(child as UIElement),
+                    (child) => panel.Children.Remove(child as UIElement),
+                    (index, child) => panel.Children.Insert(index, child as UIElement));
+            }
+            if (element.Parent is ItemsControl itemsControl)
+            {
+                parent = new ParentEntry(itemsControl,
+                    itemsControl.Items.IndexOf,
+                    itemsControl.Items.Remove,
+                    itemsControl.Items.Insert);
+            }
+            if (element.Parent is ContentControl contentControl)
+            {
+                parent = new ParentEntry(contentControl,
+                    (child) => 0,
+                    (child) => contentControl.Content = null,
+                    (index, child) => contentControl.Content = child);
+            }
+            if (element.Parent is Page page)
+            {
+                parent = new ParentEntry(page,
+                    (child) => 0,
+                    (child) => page.Content = null,
+                    (index, child) => page.Content = child);
+            }
+            if (parent == null)
             {
                 return null;
             }
 
-            int index = panel.Children.IndexOf(element);
+            int index = parent.IndexOfChildren(element);
             if (index < 0)
             {
                 return null;
@@ -282,7 +315,7 @@ namespace Microsoft.Phone.Controls
 
             HostInfo info = new HostInfo
             {
-                Parent = panel,
+                Parent = parent,
                 Index = index,
                 Width = element.Width,
                 Height = element.Height,
@@ -343,8 +376,8 @@ namespace Microsoft.Phone.Controls
             element.MaxWidth = double.PositiveInfinity;
             element.MaxHeight = double.PositiveInfinity;
 
-            panel.Children.RemoveAt(index);
-            panel.Children.Insert(index, host);
+            parent.RemoveChildren(element);
+            parent.SetChildren(index, host);
             host.Content = element;
             info.Host = host;
             HostInfos.Add(element, info);
@@ -356,6 +389,10 @@ namespace Microsoft.Phone.Controls
             if (HostInfos.TryGetValue(element, out HostInfo info))
             {
                 return info.Host;
+            }
+            if (element is ListBoxItem listBoxItem)
+            {
+                return listBoxItem.Template.FindName("ProjectionHost", listBoxItem) as ProjectionHost;
             }
 
             DependencyObject parent = element.Parent;
@@ -391,11 +428,12 @@ namespace Microsoft.Phone.Controls
             ProjectionHost host = info.Host;
             host.Content = null;
 
-            int currentIndex = info.Parent.Children.IndexOf(host);
-            if (currentIndex >= 0)
-            {
-                info.Parent.Children.RemoveAt(currentIndex);
-            }
+            info.Parent.RemoveChildren(host);
+            //int currentIndex = info.Parent.Children.IndexOf(host);
+            //if (currentIndex >= 0)
+            //{
+            //    info.Parent.Children.RemoveAt(currentIndex);
+            //}
 
             element.Width = info.Width;
             element.Height = info.Height;
@@ -415,12 +453,13 @@ namespace Microsoft.Phone.Controls
             Canvas.SetLeft(element, info.CanvasLeft);
             Canvas.SetTop(element, info.CanvasTop);
 
-            info.Parent.Children.Insert(Math.Min(info.Index, info.Parent.Children.Count), element);
+            info.Parent.SetChildren(info.Index, element);
+            //info.Parent.Children.Insert(Math.Min(info.Index, info.Parent.Children.Count), element);
         }
 
         private sealed class HostInfo
         {
-            public Panel Parent;
+            public ParentEntry Parent;
             public int Index;
             public double Width;
             public double Height;
@@ -441,6 +480,25 @@ namespace Microsoft.Phone.Controls
             public double CanvasTop;
             public ProjectionHost Host;
             public bool AutoRelease;
+        }
+
+        private sealed class ParentEntry
+        {
+            public ParentEntry(DependencyObject parent, Func<object, int> indexOfChildren, Action<object> removeChildren, Action<int, object> setChildren)
+            {
+                Parent = parent;
+                this.indexOfChildren = indexOfChildren;
+                this.setChildren = setChildren;
+                this.removeChildren = removeChildren;
+            }
+            public DependencyObject Parent;
+            private Func<object, int> indexOfChildren;
+            private Action<int, object> setChildren;
+            private Action<object> removeChildren;
+
+            public int IndexOfChildren(object child) => indexOfChildren(child);
+            public void RemoveChildren(object child) => removeChildren(child);
+            public void SetChildren(int index, object child) => setChildren(index, child);
         }
     }
 }

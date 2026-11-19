@@ -10,7 +10,7 @@
     <Style TargetType="primitives:LoopingSelector">
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate>
+                <ControlTemplate TargetType="primitives:LoopingSelector">
                     <Border Background="Transparent">
                         <Canvas x:Name="ItemsPanel">
                             <Canvas.RenderTransform>
@@ -31,7 +31,7 @@
         <Setter Property="Padding" Value="6"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate>
+                <ControlTemplate TargetType="primitives:LoopingSelectorItem">
                     <Border x:Name="root" CacheMode="BitmapCache" Background="Transparent" Padding="{TemplateBinding Padding}">
 
                         <VisualStateManager.VisualStateGroups>
