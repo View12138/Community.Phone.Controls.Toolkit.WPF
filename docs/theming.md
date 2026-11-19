@@ -129,3 +129,4 @@ Application.Current.CustomAccentColor = Colors.Orange;   // 优先于 AccentColo
 - 页面在自身 `Resources` 中合并 `/Community.Phone;component/Themes/Theme.xaml` 携带颜色。
 - 尚未挂树时求值的属性（`FontFamily`、`FontSize`、`Foreground`、背景画刷）使用 `DynamicResource`。
 - 模板 storyboard 里的关键帧值使用 `StaticResource` 或内联画刷：这种场景下关键帧不能使用 `DynamicResource`，`StaticResource` 也只在所属字典内解析。
+- `DatePickerPage` / `TimePickerPage` 的 `VisibilityStates` 挂在 `LayoutRoot` 上，视觉状态通过 `VisualStateManager.GoToElementState(LayoutRoot, ...)` 播放；`DatePickerPage` 的 `ProjectionService.Projection` 也赋在 `LayoutRoot` 上。

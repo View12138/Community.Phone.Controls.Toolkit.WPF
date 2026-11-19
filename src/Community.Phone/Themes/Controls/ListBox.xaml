@@ -18,11 +18,9 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ListBox}">
-                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                        <ScrollViewer x:Name="ScrollViewer" Background="Transparent" Foreground="{TemplateBinding Foreground}" Padding="{TemplateBinding Padding}">
-                            <ItemsPresenter/>
-                        </ScrollViewer>
-                    </Border>
+                    <ScrollViewer x:Name="ScrollViewer" Background="Transparent" Foreground="{TemplateBinding Foreground}" Padding="{TemplateBinding Padding}">
+                        <ItemsPresenter/>
+                    </ScrollViewer>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

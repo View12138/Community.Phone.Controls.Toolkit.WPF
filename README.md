@@ -122,6 +122,8 @@ WPF 的 `UIElement` 没有 `Projection` 属性。投影类型位于 `Community.P
 element.Projection = new PlaneProjection { RotationY = -35 };
 ```
 
+`ListBoxItem` 无需手动包装：默认主题模板 `Community.Phone/Themes/Controls/ListBox.xaml` 已提供名为 `ProjectionHost` 的部件，`ProjectionService` 直接把投影应用到该部件，不改动 items panel 的子元素。自定义 `ListBoxItem` 模板必须保留同名部件；由 `ItemsControl` 生成且没有该部件的 item 容器（如 `ComboBoxItem`）不能这样投影。
+
 `PlaneProjection` 继承 `Animatable`，可直接创建动画：
 
 ```csharp
@@ -210,6 +212,7 @@ dotnet run --project samples\Community.Phone.Controls.Toolkit.Sample
 | `Samples/LongListSelectorSample.xaml` | 分组列表、跳转列表、网格模式、`PersonDetail` 子页 |
 | `Samples/LongListMultiSelectorSample.xaml` | 多选 long list；`?multiselect` 入口说明已弃用的 `MultiselectList` |
 | `Samples/PivotSample.xaml` | `Pivot` 的拖拽、页眉点击、`IsLocked` |
+| `Samples/LockablePivotSample.xaml` | 通过 `Pivot.IsLocked` 演示锁定/解锁（无独立 `LockablePivot` 类型） |
 | `Samples/HubTileSample.xaml` | `HubTile` 与图片 |
 | `Samples/SlideInEffectSample.xaml` | `SlideInEffect` 逐项动画 |
 | `Samples/ToggleSwitchSample.xaml`、`Samples/CustomMessageBoxSample.xaml` | 对应控件与消息框 |
@@ -219,11 +222,11 @@ dotnet run --project samples\Community.Phone.Controls.Toolkit.Sample
 | `Samples/FeatheredTransitionsSample1.xaml` → `Samples/TurnstileFeatherEffectSample1.xaml` | 逐元素羽化进场与退场 |
 | `Samples/TiltEffectSample.xaml`、`Samples/ContextMenuSample.xaml`、`Samples/ContextMenuPositionTest.xaml` | 倾斜效果、上下文菜单 |
 
-`MainPage` 的条目表沿用原版 `PhoneToolkitSample8` 的 25 条记录，其中 `GestureSample`、`LockablePivotSample`、`MapsSample`、`SpeechTextBoxSample`、`TransferControlSample` 五项没有对应页面文件，导航会失败。
+`MainPage` 的条目表沿用原版 `PhoneToolkitSample8` 的 25 条记录。`GestureSample`、`MapsSample`、`SpeechTextBoxSample`、`TransferControlSample` 四项没有对应页面文件，索引中用 `Supported=false` 禁用并加删除线；`lockablepivot` 指向 `Samples/LockablePivotSample.xaml`。
 
 ## 未实现模块
 
-地图扩展、`TransferControl`、`SpeechTextBox`、`GestureListener` / `GestureService` 没有实现；没有独立的 `LockablePivot` 类型，由 `Pivot.IsLocked` 提供等价能力。`MultiselectList` 的类型与代码已移植，但没有默认主题模板。原因与替代方案见[已知限制](docs/known-limitations.md#1-不支持的控件与模块)。
+地图扩展、`TransferControl`、`SpeechTextBox`、`GestureListener` / `GestureService` 没有实现；没有独立的 `LockablePivot` 类型，示例 `Samples/LockablePivotSample.xaml` 演示 `Pivot.IsLocked` 的等价能力。`MultiselectList` 的类型与代码已移植，但没有默认主题模板。原因与替代方案见[已知限制](docs/known-limitations.md#1-不支持的控件与模块)。
 
 ## 文档
 

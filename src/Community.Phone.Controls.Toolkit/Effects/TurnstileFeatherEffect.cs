@@ -182,8 +182,8 @@ namespace Microsoft.Phone.Controls
                 typeof(PhoneApplicationFrame),
                 typeof(PhoneApplicationPage),
                 typeof(PivotItem),
-                //typeof(Panorama),
-                //typeof(PanoramaItem)
+                typeof(Panorama),
+                typeof(PanoramaItem)
             };
 
         /// <summary>

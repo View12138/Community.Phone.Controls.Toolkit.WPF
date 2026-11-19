@@ -30,6 +30,7 @@
 - 矩阵为行向量：`p' = (((p - center) + localOffset) * R) + center + globalOffset`，`R = CreateRotationMatrix(RotationX, -RotationY, RotationZ)`。Y 偏移取反，**RotationY 取反**；RotationX/Z 已一致，不要“修正”。
 - `Prefer3D` 让 3D 路径在投影仍为 identity 时保持启用，使转场/效果在首个动画帧前完成路径切换。不要在转场或效果宿主上重新引入 `BitmapCache`：`Viewport2DVisual3D` 已栅格化内容。
 - 元素级效果必须投影**直接包含**该元素的宿主（`ProjectionService.EnsureProjectionHost`）；复用祖先宿主会投影整页。
+- `ListBoxItem` 使用默认主题模板 `Themes/Controls/ListBox.xaml` 中名为 `ProjectionHost` 的部件；服务直接复用该部件，不重父级化。自定义 `ListBoxItem.Template` 必须保留同名部件；其他由 `ItemsControl` 生成且无该部件的 item 容器不可包装。
 
 ### 框架、导航、转场
 
@@ -48,7 +49,7 @@
 - 构建：`dotnet build Community.Phone.Controls.Toolkit.slnx -c Release`，当前通过（0 错误，若干警告）。
 - 仓库内**没有测试工程**。新增行为需要手动验证（示例应用）并在 `docs/porting-status.md` 记录依据，不得虚构测试结果。
 - 打包：`dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release` 当前因 `csproj` 引用不存在的 `THIRD-PARTY-NOTICES_zh-CN.md`、`docs/en/*.md`、`docs/zh-CN/*.md` 报 `NU5019`；`build\verify-package.ps1` 引用了不存在的 `tests/PackageConsumer`，修复后才能执行。
-- 示例：`samples/Community.Phone.Controls.Toolkit.Sample` 是人工验证面，结构与原 `PhoneToolkitSample8` 对齐（`MainPage` 索引、每个示例一页、`SampleNavigator` 显式设置双向转场）。行为变更后示例须能演示该行为。
+- 示例：`samples/Community.Phone.Controls.Toolkit.Sample` 是人工验证面，结构与原 `PhoneToolkitSample8` 对齐（`MainPage` 索引、`SampleNavigator` 显式设置双向转场）。索引 25 条中 4 条没有页面文件的条目用 `Supported=false` 禁用并加删除线；`lockablepivot` 指向 `Samples/LockablePivotSample.xaml`，演示 `Pivot.IsLocked`。行为变更后示例须能演示该行为。
 - 文档为简体中文，位于 `docs/`；同一次改动内更新受影响的文档。
 - 不要手改生成的资源设计器文件。
 - 如果是参照项目中的代码，请尽可能的保持不变，和参照代码一致，除非是需要兼容处理的地方

@@ -16,7 +16,7 @@
 
 | 检查项 | 命令 | 结果 |
 |---|---|---|
-| 解决方案编译 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | 通过；0 错误，警告来自可空性注释（`CS8632`）、成员隐藏（`CS0108`）、未使用事件（`CS0067`）、XML 注释（`CS1574`/`CS1587`）等 |
+| 解决方案编译 | `dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` | 通过；0 错误，警告来自可空性注释（`CS8632`）、成员隐藏（`CS0108`）、未使用事件/字段（`CS0067`/`CS0414`/`CS0649`）、XML 注释（`CS1574`）与恒真比较（`CS8073`） |
 | toolkit 工程编译 | 同上 | 通过 |
 | 示例工程编译 | 同上 | 通过 |
 | 打包 | `dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release` | 失败：`NU5019` —— `csproj` 打包项引用仓库中不存在的 `THIRD-PARTY-NOTICES_zh-CN.md`、`docs/en/*.md`、`docs/zh-CN/*.md` |
@@ -32,7 +32,8 @@
 |---|---|---|
 | `Projection`、`PlaneProjection`、`Matrix3DProjection` | 已实现 | 位于 `Community.Phone`；12 个 `PlaneProjection` 依赖属性；`Animatable`；`ToMatrix3D` 复现 XAML 的 999 DIP 透视与符号约定；`Matrix3DProjection` 使用归一化矩阵 |
 | `ProjectionHost` | 已实现 | 位于 `Community.Phone`；`Viewport3D` + `Viewport2DVisual3D`；`Content`、`Projection`、`PerspectiveDepth`（默认 999）、`Prefer3D`、`IsRenderingIn3D`；双面四边形；内容按布局槽裁剪，投影结果不裁剪 |
-| `ProjectionService` | 已实现 | 位于 `Community.Phone`；附加属性 `Projection`、扩展成员 `element.Projection`、`EnsureProjectionHost`（复制布局属性）、`ReleaseProjectionHost`、`GetDirectProjectionHost`、`GetProjectionPropertyPath`；item 容器不包装 |
+| `ProjectionService` | 已实现 | 位于 `Community.Phone`；附加属性 `Projection`、扩展成员 `element.Projection`、`EnsureProjectionHost`（复制布局属性）、`ReleaseProjectionHost`、`GetDirectProjectionHost`、`GetProjectionPropertyPath`；按需包装支持 `Panel`、`ItemsControl`、`ContentControl`、`Page` 父容器 |
+| `ListBoxItem` 投影 | 已实现 | 默认主题模板 `Themes/Controls/ListBox.xaml` 内建名为 `ProjectionHost` 的部件；服务直接复用，不重父级化；自定义模板必须保留同名部件 |
 | storyboard 路径 `(ProjectionService.Projection).(PlaneProjection.X)` | 已实现 | 供原版 storyboard 使用；storyboard 的 `xmlns:phone` 指向 `Community.Phone` |
 | `Matrix3DProjection` 的复杂矩阵 | 部分实现 | `ToMatrix3D` 依次做“按尺寸归一化 → 应用矩阵 → 反归一化”；任意矩阵的视觉结果没有验证，示例未演示 |
 
@@ -43,7 +44,7 @@
 | `PhoneApplicationFrame`（WPF `Frame`）、journal、`Navigate(page, parameters)` | 已实现 | 参数与 URI 查询串合并进 `NavigationContext` |
 | 页面生命周期分发 | 已实现 | `Navigating`/`Navigated` 触发 `OnNavigatingFrom`、`OnNavigatedFrom`、`OnNavigatedTo`；`GoBack()` 先触发 `BackKeyPress` |
 | 页面状态、`KeepAlive` | 已实现 | `State` 是内存字典，按页面实例保存；构造函数设置 `KeepAlive = true` |
-| 方向检测 | 部分实现 | 保留 `Orientation` / `SupportedOrientations` 枚举与默认值；Frame 尺寸变化时不再按宽高推断方向，不强制旋转桌面窗口 |
+| 方向检测 | 部分实现 | 保留 `Orientation` / `SupportedOrientations` 枚举与默认值；Frame 尺寸变化不触发方向推断，不强制旋转桌面窗口；页面/Frame 未加载时忽略方向变更回调；`OnOrientationChanged` 是可重写的受保护虚方法 |
 | Tombstone / 真实 WP 生命周期 | 未实现 | 见[已知限制 §2](known-limitations.md#2-导航与页面模型) |
 | `PhoneApplicationService` | 部分实现 | `State`、生命周期事件、idle 检测模式；无 tombstoning |
 | `SystemTray` | 部分实现 | 只有状态 API，无视觉 chrome；同时提供静态属性与 `IsVisibleProperty` 附加属性 |
@@ -70,7 +71,7 @@
 
 | 项目 | 状态 | 说明 |
 |---|---|---|
-| `TiltEffect` | 已实现 | 通过 `ProjectionService` 赋投影；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation；跳过 item 容器 |
+| `TiltEffect` | 已实现 | 通过 `ProjectionService` 赋投影；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation；`ListBoxItem` 复用模板部件，其余无法包装的容器跳过 |
 | `TurnstileFeatherEffect` | 已实现 | 目标从可视树收集；包装延迟到 dispatcher；`Prefer3D` + `CenterOfRotationX = -0.2`；恢复后 `InvalidateVisual()` |
 | `SlideInEffect` | 已实现 | `LineIndex` 等附加属性；订阅宿主 Pivot 选择变化；有独立示例页 |
 
@@ -99,7 +100,7 @@
 | `HyperlinkButton` | 已实现 | 相对/pack URI 导航；外部 URI 交系统处理；`IInvokeProvider` |
 | `ClipToBounds` | 已实现 | 附加属性 |
 | 地图扩展、`TransferControl`、`SpeechTextBox`、`GestureListener`/`GestureService` | 未实现 | 源码中不存在 |
-| `LockablePivot` | 未实现 | 无独立类型；由 `Pivot.IsLocked` 提供等价能力 |
+| `LockablePivot` | 未实现 | 无独立类型；`Samples/LockablePivotSample.xaml` 演示 `Pivot.IsLocked` |
 
 ## 6. 主题、本地化、打包
 
@@ -110,7 +111,7 @@
 | 本地化资源 | 已实现 | 51 个 resx（50 个文化 + 中性）；`qps-ploc` 未打包 |
 | `Community.Phone` 兼容层 | 已实现 | 独立程序集、独立主题字典；页面/框架、投影、Shell 类型均在此 |
 | NuGet 包 | 部分实现 | 单包包含两个程序集的设计与 `IncludeCompatibilityLayerInPackage` 已就位；打包项引用的 `zh-CN` 文档与 `docs/en`、`docs/zh-CN` 目录不存在，`dotnet pack` 当前失败 |
-| 示例应用 | 部分实现 | 页面与控件演示齐全；索引 25 条中 5 条（`GestureSample`、`LockablePivotSample`、`MapsSample`、`SpeechTextBoxSample`、`TransferControlSample`）没有对应页面文件 |
+| 示例应用 | 部分实现 | 页面与控件演示齐全；索引 25 条中 4 条（`GestureSample`、`MapsSample`、`SpeechTextBoxSample`、`TransferControlSample`）没有对应页面文件，在索引中禁用并加删除线；`lockablepivot` 指向 `Samples/LockablePivotSample.xaml` |
 
 ## 维护规则
 

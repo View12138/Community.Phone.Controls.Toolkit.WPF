@@ -75,7 +75,7 @@ WPF 有 `System.Windows.Controls.ContextMenu`，移植版的 `Microsoft.Phone.Co
 
 ## 4. 投影子系统
 
-投影类型编译在 `Community.Phone` 程序集，早期 toolkit 程序集下的 `Projection/` 目录不再包含这些类型。
+投影类型编译在 `Community.Phone` 程序集。
 
 ### 4.1 公共模型
 
@@ -142,11 +142,11 @@ WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的
 
 ### 4.5 宿主包装规则
 
-`ProjectionService` 把投影应用到**直接包含**该元素的宿主；元素尚未被包装时按需创建 `ProjectionHost`（复制尺寸、`Margin`、对齐、`Grid` 行列、`ZIndex`、`Dock`、`Canvas` 位置），并在投影被清除时释放这个按需创建的宿主。
+`ProjectionService` 只投影**直接宿主**，不复用祖先宿主：页面由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影。
 
-- 只复用直接宿主：页面本身由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影。
-- 可包装的目标是 Panel 的直接子元素，且该 Panel 不能是 `ItemsControl` 的 items panel；item 容器（`ListBoxItem`、`ComboBoxItem` 等）跳过，因为 items panel 的子元素由 WPF 生成。
-- `ContentPresenter` 可以包装：重新挂载后 WPF 保留其 `TemplatedParent`、TemplateBinding 和具名模板部件。
+- `ListBoxItem`：默认主题模板 `Themes/Controls/ListBox.xaml` 内含 `x:Name="ProjectionHost"` 的 `ProjectionHost`（包住 `Border` 与内容容器）。模板应用后，`EnsureProjectionHost` / `FindDirectHost` 通过 `Template.FindName` 复用该部件，不重父级化、不复制布局属性；清除投影后部件保留并回到 2D 路径。自定义 `ListBoxItem.Template` 必须保留同名部件。
+- 其他元素：按需创建 `ProjectionHost`，复制尺寸、`Margin`、对齐、`Grid` 行列、`ZIndex`、`Dock`、`Canvas` 位置，并按父容器类型插回原位：`Panel.Children`、`ItemsControl.Items`、`ContentControl.Content` 或 `Page.Content`；投影清除时释放宿主并恢复布局属性。`ContentPresenter` 可以包装：重新挂载后 WPF 保留其 `TemplatedParent`、TemplateBinding 和具名模板部件。
+- 由 `ItemsControl` 生成且模板没有该部件的 item 容器（如 `ComboBoxItem`）无法可靠地重父级化到新宿主；应把需要投影的内容放进模板内的 `ProjectionHost`。
 
 `TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），`TurnstileFeatherEffect` 在订阅时准备包装并延迟到 dispatcher 执行，因此指针按下与转场动画期间都不会改动视觉树。
 
@@ -155,6 +155,8 @@ WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的
 投影为 identity 时 Host 走 2D 路径，否则走 3D 路径。`Prefer3D` 让 Host 在投影仍为 identity 时保持 3D 路径，使转场与效果在**准备阶段**完成路径切换，而不是等到动画首帧（此时文本栅格化方式会从 ClearType 变成 3D 纹理的灰度抗锯齿）。
 
 `Viewport2DVisual3D` 把被投影可视对象的**绘制边界**映射到四边形上，而不是布局槽。若直接投影内容，绘制范围小于布局槽的元素（左对齐的 `CheckBox`、较短的 `TextBlock`）会被拉伸到整个平面。因此 Host 投影一个填满**布局槽**、绘制透明矩形并被裁剪的内部表面，平面几何与 `CenterOfRotation`/`LocalOffset`/`GlobalOffset` 都以布局槽为准。
+
+投影动画每帧都会触发 `ProjectionChanged`，因此逐帧路径只做增量更新：`Viewport2DVisual3D.Transform` 复用同一个 `MatrixTransform3D` 并原地替换矩阵，相机只在 `FieldOfView`/`Position` 真正变化时才写依赖属性（重复赋值会让 3D 场景在变换之外再失效一次），矩阵未变时完全跳过。
 
 ## 5. 导航子系统
 
@@ -171,6 +173,7 @@ WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的
 | `ApplicationBar` | 当前页面的应用栏（只读） |
 
 - 页面生命周期：`Navigating` 调用旧页面 `OnNavigatingFrom`；`Navigated` 调用旧页面 `OnNavigatedFrom` 与新页面 `OnNavigatedTo`；`OnOrientationChanged` 由 `Orientation` 变化触发。
+- `Orientation` 与 `ApplicationBar` 的变更回调在元素未加载时直接返回，初始赋值不会提前分发事件或更新 chrome。
 - 页面状态按页面实例保存在 Frame 的私有字典中，返回同一实例时恢复。
 - 模板部件：`ApplicationBarHost`（按应用栏高度预留的行）与 `ApplicationBar`（`ApplicationBarPresenter`）。
 
@@ -187,6 +190,7 @@ WPF `Page` 没有 WP 的受保护导航虚方法，因此这些方法声明在 `
 | `Orientation`、`SupportedOrientations`、`OrientationChanged` | 方向模型 |
 | `ApplicationBar` | `IApplicationBar`；只接受移植版的 `ApplicationBar` 实现 |
 | `NavigatedTo`、`NavigatingFrom`、`NavigatedFrom`、`BackKeyPress` | 公共事件，对应受保护虚方法 `OnNavigatedTo`、`OnNavigatingFrom`、`OnNavigatedFrom`、`OnBackKeyPress` |
+| `OnOrientationChanged(OrientationChangedEventArgs)` | 受保护虚方法，触发 `OrientationChanged`；页面可重写它处理方向占位元素 |
 | `Frame` | 所属的 `PhoneApplicationFrame` |
 | `RaiseBackKeyPress()` | 触发 `BackKeyPress` 并返回是否被取消 |
 
@@ -215,11 +219,13 @@ Windows Phone 由合成器绘制应用栏，移植版由 `ApplicationBarPresente
 
 导航转场顺序：
 
-1. `Navigating`：捕获旧页面，选择 `NavigationOutTransition.Forward/Backward`，取得 `ITransition`，准备旧 Host（关闭命中测试、打开 `Prefer3D`），启动退场。
+1. `Navigating`：捕获旧页面，选择 `NavigationOutTransition.Forward/Backward`，取得 `ITransition`，准备旧 Host（关闭命中测试、非羽化转场同时打开 `Prefer3D`），启动退场。
 2. `OnContentChanged`：把新页面放入非活动 Host，取 `NavigationInTransition`，并先强制执行一次布局，让羽化目标具备真实几何；退场仍在进行则暂存，否则立即启动进场。
 3. 退场完成：停止/恢复旧转场，隐藏旧 Host，启动进场。
 4. 进场完成：停止/恢复、恢复交互、触发 `EndTransition`。
 5. `NavigationStopped`：恢复旧内容并取消已存的转场。
+
+`TurnstileFeatherTransition` 例外：它只动画页面内部的元素，页面本身不动，因此页面宿主保持 2D 路径。若把页面也放进 3D 路径，整页会被额外光栅化进一个 `Viewport2DVisual3D`，与每个羽化元素各自的 3D 场景嵌套，实测（13 个目标）帧时间从约 12 ms 涨到约 23 ms，p95 从 29 ms 涨到 70 ms 并出现长帧卡顿。
 
 `Transition` 保存/恢复 `CacheMode` 与 `IsHitTestVisible`，并自行跟踪状态，以适配 WPF 比 Silverlight 严格的 storyboard 控制 API：
 
@@ -261,7 +267,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 附加属性 `FeatheringIndex`，静态属性 `NonPermittedTypes` 与交错时间常数。合成 storyboard 时目标从页面的**可视树**收集（`FeatheringIndex` 稳定排序），因为进场页面在接入可视树之前就被合成。附加属性订阅只负责准备包装，且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（布局过程中包装会引发布局循环）。
 
-`TurnstileFeatherTransition` 开始时为屏幕内的目标确保 `ProjectionHost`，先打开 `Prefer3D` 再赋 `PlaneProjection`（`CenterOfRotationX = -0.2`），然后按 40–50 ms 交错组合 `RotationY` 与透明度动画。清理时恢复透明度、投影、渲染变换与 2D 路径，并对元素与包装器 `InvalidateVisual()`（走过 3D 路径的包装使用独立表面合成，不重绘会残留最后一帧）。包装保留到元素卸载，避免一次转场中反复重新父级化。无法包装的目标（item 容器）跳过。
+`TurnstileFeatherTransition` 开始时为屏幕内的目标确保 `ProjectionHost`，先打开 `Prefer3D` 再赋 `PlaneProjection`（`CenterOfRotationX = -0.2`），然后按 40–50 ms 交错组合 `RotationY` 与透明度动画。清理时恢复透明度、投影、渲染变换与 2D 路径，并对元素与包装器 `InvalidateVisual()`（走过 3D 路径的包装使用独立表面合成，不重绘会残留最后一帧）。包装保留到元素卸载，避免一次转场中反复重新父级化。没有 `ProjectionHost` 模板部件的 item 容器跳过。
 
 ### `SlideInEffect`
 
@@ -302,7 +308,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 - `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml`。
 - `Community.Phone.Controls.Toolkit/Themes/Generic.xaml` 合并 `Community.Phone` 的 `Generic.xaml` 与自身 `Controls/*.xaml`（`AutoCompleteBox`、`Button`、`ComboBox`、`ContextMenu`、`CustomMessageBox`、`DateTimePicker`、`ExpanderView`、`HubTile`、`ListPicker`、`LongListMultiSelector`、`LoopingSelector`、`PhoneTextBox`、`Rating`、`ToggleSwitch`、`TransitionFrame`）。
 
-主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。
+主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。`ListBoxItem` 模板内含名为 `ProjectionHost` 的部件，供投影服务直接复用（见 §4.5）。
 
 三条 WPF 规则决定写法：
 
@@ -310,7 +316,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 2. 主题字典里的 `StaticResource` 在**所属字典**（或应用程序）中解析，因此跨字典引用会失败；动画关键帧的取值使用字面量或内联画刷。
 3. 运行时可切换主题要求消费方使用 `DynamicResource` 引用主题画刷（库内模板已经如此）。
 
-库自己创建的页面（`ListPickerPage`、`DatePickerPage`、`TimePickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，因此它们在自己的 `Resources` 中合并 `Theme.xaml`，并在“尚未挂树”时求值的属性上使用 `DynamicResource`。
+库自己创建的页面（`ListPickerPage`、`DatePickerPage`、`TimePickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，因此它们在自己的 `Resources` 中合并 `Theme.xaml`，并在“尚未挂树”时求值的属性上使用 `DynamicResource`。日期/时间 picker 页面的 `VisibilityStates` 挂在 `LayoutRoot` 上，由 `VisualStateManager.GoToElementState(LayoutRoot, ...)` 播放；`DatePickerPage` 的投影也赋在 `LayoutRoot` 上。
 
 调色板、映射表与切换机制见[主题系统](theming.md)。
 

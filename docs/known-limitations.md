@@ -9,7 +9,7 @@
 | 地图扩展（`MapChild`、`MapItemsControl`、`Pushpin` 等） | 没有 WPF 地图提供程序，依赖 `Microsoft.Phone.Maps`。示例索引中的 `mapssample` 没有对应页面。 |
 | `TransferControl` | 依赖 `Microsoft.Phone.BackgroundTransfer`；示例索引中的 `transfercontrol` 没有对应页面。 |
 | `SpeechTextBox` | 依赖 `Windows.Phone.Speech.Recognition`；示例索引中的 `speechtextbox` 没有对应页面。 |
-| `LockablePivot` | 没有独立类型，`Pivot.IsLocked` 提供等价能力；示例索引中的 `lockablepivot` 没有对应页面。 |
+| `LockablePivot` | 没有独立类型，`Pivot.IsLocked` 提供等价能力；示例索引的 `lockablepivot` 指向 `Samples/LockablePivotSample.xaml`。 |
 | `GestureListener` / `GestureService` | WP 手势服务；请使用 WPF `Touch`/`Manipulation` 事件。示例索引中的 `gestures` 没有对应页面。 |
 
 以下模块有源码实现，但存在明确缺口，见[控件差异](#6-控件)：`MultiselectList`（无默认主题模板）、`Panorama`（无独立示例页）、`Matrix3DProjection` 的复杂矩阵（未做视觉验证）。
@@ -18,7 +18,7 @@
 
 1. **基类差异**：`PhoneApplicationPage` 继承 WPF `Page`，`PhoneApplicationFrame` / `TransitionFrame` 继承 WPF `Frame`。WPF 中不存在的 Silverlight 导航 API 没有模拟。
 2. **生命周期**：`OnNavigatedTo`、`OnNavigatingFrom`、`OnNavigatedFrom`、`OnOrientationChanged` 由 `PhoneApplicationFrame` 在 WPF 导航事件中调用。把页面放在移植 Frame 之外时，WPF 不会调用它们。
-3. **方向**：保留 `PageOrientation` 与 `SupportedPageOrientation` 及默认枚举值，但 Frame 不再按尺寸推断横竖；桌面窗口不会被强制旋转。
+3. **方向**：保留 `PageOrientation` 与 `SupportedPageOrientation` 及默认枚举值；Frame 不按尺寸推断横竖，桌面窗口不会被强制旋转。
 4. **返回键**：`BackKeyPress` 与 `GoBack()` 可用，但没有硬件返回键；需要时绑定键盘快捷键（示例在窗口底部放了返回按钮）。
 5. **`PhoneApplicationService`**：`State`、生命周期事件与 idle 检测模式映射到 WPF 应用/窗口语义；WP 的 tombstoning 与生命周期不复刻。
 6. **状态持久化**：`PhoneApplicationPage.State` 是内存字典，没有自动序列化。
@@ -38,7 +38,7 @@
 1. **XAML 面**：WPF `UIElement` 没有 `Projection` 属性，也不能给密封框架类型增加属性元素。原始 `<Grid.Projection>` 需改为同一元素上的 `platform:ProjectionService.Projection`（按需包装）或显式 `platform:ProjectionHost`。投影类型编译在 `Community.Phone` 程序集，使用 `platform:` 前缀。
 2. **透视**：相机复现 XAML 固定的 999 DIP 透视深度与旋转/偏移符号，因此投影缩放与透视收缩与 WP 一致。差异在 `TurnstileFeatherEffect`：原版把每个羽化元素的透视原点平移到页面垂直中心，而 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，因此移植版让元素绕自身中心旋转；角度、错峰延迟与透明度时序一致。
 3. **`Matrix3DProjection`**：矩阵按 0..1 归一化坐标解释再转换为像素空间；复杂矩阵没有验证。
-4. **包装限制**：`ProjectionService` 只能包装某个 Panel 的直接子元素，且该 Panel 不能是 `ItemsControl` 的 items panel；item 容器（`ListBoxItem`、`ComboBoxItem` 等）跳过，因为 items panel 的子元素由 WPF 管理，直接修改会抛 `InvalidOperationException`。`ContentPresenter` 可以包装。元素级效果始终使用**直接包含**该元素的宿主，复用祖先宿主会把整页一起投影。
+4. **包装限制**：元素级投影只作用于直接宿主，复用祖先宿主会把整页一起投影。`ListBoxItem` 依赖主题模板中名为 `ProjectionHost` 的部件（`Community.Phone/Themes/Controls/ListBox.xaml`）：模板应用后服务通过 `Template.FindName` 直接复用它，不重父级化；自定义模板必须保留同名部件。其他元素按需创建宿主，按父容器类型插入 `Panel.Children`、`ItemsControl.Items`、`ContentControl.Content` 或 `Page.Content` 并恢复布局属性，`ContentPresenter` 同样可以包装。由 `ItemsControl` 生成且模板没有该部件的 item 容器（如 `ComboBoxItem`）无法可靠包装。
 5. **布局**：Host 同时 measure/arrange 2D 子元素与隐藏的 3D viewport；投影固定尺寸内容时建议给 Host 显式 `Width`/`Height`。
 6. **命中测试**：Host 与内容可用；嵌套 Host 和变换后的内容可能改变命中坐标。
 7. **文本清晰度**：`Viewport2DVisual3D` 把内容作为纹理渲染，投影状态下 ClearType 变为灰度抗锯齿；几何保持 1:1。
@@ -62,7 +62,7 @@
 3. **`ListPicker`**：普通模式对模板 Canvas 直接做高度/位移动画（storyboard 无法驱动模板里的 `TranslateTransform`）；完整模式页面由控件自己创建，挂树前看不到 `Application.Resources`，因此在自身 `Resources` 中合并 `Theme.xaml`，模板关键帧使用 `StaticResource`；长列表只对屏幕内容器做动画，并在 dispatcher 轮次里重复 `ScrollIntoView` 直到选中项就绪。
 4. **`DatePicker` / `TimePicker`**：通过宿主 `PhoneApplicationFrame` 导航到使用 `LoopingSelector` 的 `DatePickerPage` / `TimePickerPage`；没有复刻 picker 页面转场与应用栏动画。`ValueStringFormat` 是复合格式字符串（例如 `"{0:yyyy-MM-dd}"`）。
 5. **`ExpanderView`**：高度动画简化；布局与 WP 可能存在差异；保留 `ItemsCanvas`/`ExpanderPanel` 部件名。
-6. **`HubTile`**：滑动偏移由代码施加（WPF 不会应用绑定模板父级的 storyboard 值）；`TranslateTransform` 由代码创建（模板中声明的 `Freezable` 会被冻结）；视口外套一层普通面板（`ProjectionService` 只包装父级是面板的元素）；`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面的同一条线）。
+6. **`HubTile`**：滑动偏移由代码施加（WPF 不会应用绑定模板父级的 storyboard 值）；`TranslateTransform` 由代码创建（模板中声明的 `Freezable` 会被冻结）；模板在视口外套一层普通面板，投影赋给视口元素，内容裁剪由投影宿主提供，翻转可画到瓦片外；`CenterOfRotationY` 取 `0.5`（原版 `0.25` 相对两倍高表面的同一条线）。
 7. **`PhoneTextBox`**：WP 内置文本选择与输入作用域边界在 WPF 中可能不同；水印动画的视觉细节未验证。
 8. **`Rating`**：偏离原版——原工具包在 `AllowHalfItemIncrement` 时把翻倍后的位置数写入 `Value`，导致填充区域是指针位置的两倍；移植版以“星”为单位存储。自定义模板必须提供预期部件。
 9. **`ContextMenu`**：自绘 `Popup`，不使用 WPF `ContextMenu`。WPF 没有 `Hold` 手势：右键（在菜单外单击右键也会关闭菜单）直接打开，左键长按由 800 ms 计时器模拟（按下后移动超过拖动阈值或提前抬起即取消，松手后才弹出，因此不会在长按松手时误触菜单项）。**横屏分支已移除**：WPF 没有手机的方向概念，菜单始终按竖屏布局（左对齐、全页宽、上下展开）。`IsZoomEnabled` 为 `true` 时打开瞬间拍摄页面快照并缩放到 0.94、同时按 `IsFadeEnabled` 叠加 30% 淡入黑层；两者都用 `BeginAnimation` 直接驱动变换，关闭动画结束后才关闭 `Popup`（另有 0.52 s 兜底，避免弹窗窗口残留吞掉页面输入）。
@@ -98,7 +98,7 @@
 3. 转场只验证了“播放原版 storyboard 资源”这一实现事实，没有逐帧像素对比；只有 Turnstile 的轴心与时长为手动调优值。
 4. 应用栏的栏高、槽位、圆形图标、菜单与预留空间由实现决定，仅 ListPicker 完整模式页面曾与 WP 8.1 截图对比；`SystemTray` 没有任何绘制。
 5. 输入通过路由事件与合成事件覆盖，没有物理触摸设备，因此 `TiltEffect`、manipulation 与拖拽行为缺少真实输入验证。
-6. 日期/时间 picker 的页面交互、全部 50 个文化的资源、高 DPI/多显示器/软件渲染 3D、`AutoCompleteBox` 的 popup 布局与 `Panorama` 手势均未系统验证。
+6. 日期/时间 picker 的页面交互、全部 50 个文化的资源、高 DPI/多显示器/软件渲染 3D、`AutoCompleteBox` 的 popup 布局与 `Panorama` 手势均未系统验证。`ListBoxItem` 投影通过模板部件接入，尚未与原版列表项动画做视觉对比；自定义模板未提供该部件时也不会投影。
 
 ## 10. 手动验证步骤
 
@@ -127,6 +127,12 @@ dotnet run --project samples\Community.Phone.Controls.Toolkit.Sample
 
 1. 给多个 `TextBlock` 设置 `phone:TurnstileFeatherEffect.FeatheringIndex`。
 2. 导航到页面时元素按交错时序羽化进入；离开后包装被移除、视觉树恢复。
+
+### ListBoxItem 投影
+
+1. 在 `ListBoxItem.Loaded` 后设置 `element.Projection = new PlaneProjection { RotationY = -35 };`（`using Microsoft.Phone.Controls;`）。
+2. 确认列表项在真实 3D 中倾斜，内容与选择交互仍可用。
+3. 替换为未提供 `ProjectionHost` 部件的自定义 `ListBoxItem.Template` 时，投影不会生效。
 
 ### 包消费
 
