@@ -64,7 +64,8 @@
         <Rectangle
             x:Name="SystemTrayPlaceholder"
             Grid.Row="0"
-            Height="32"/>
+            Height="32"
+            Visibility="Collapsed"/>
         <!-- Title -->
         <TextBlock
             x:Name="HeaderTitle"

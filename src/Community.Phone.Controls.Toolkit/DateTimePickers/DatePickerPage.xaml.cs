@@ -52,22 +52,22 @@ namespace Microsoft.Phone.Controls
                 new LoopingSelector[] { PrimarySelector, SecondarySelector, TertiarySelector });
         }
 
-        ///// <summary>
-        ///// Handles changes to the page's Orientation property.
-        ///// </summary>
-        ///// <param name="e">Event arguments.</param>
-        //protected override void OnOrientationChanged(OrientationChangedEventArgs e)
-        //{
-        //    if (null == e)
-        //    {
-        //        throw new ArgumentNullException("e");
-        //    }
+        /// <summary>
+        /// Handles changes to the page's Orientation property.
+        /// </summary>
+        /// <param name="e">Event arguments.</param>
+        protected override void OnOrientationChanged(OrientationChangedEventArgs e)
+        {
+            if (null == e)
+            {
+                throw new ArgumentNullException("e");
+            }
 
-        //    base.OnOrientationChanged(e);
-        //    SystemTrayPlaceholder.Visibility = (0 != (PageOrientation.Portrait & e.Orientation)) ?
-        //        Visibility.Visible :
-        //        Visibility.Collapsed;
-        //}
+            base.OnOrientationChanged(e);
+            SystemTrayPlaceholder.Visibility = (0 != (PageOrientation.Portrait & e.Orientation)) ?
+                Visibility.Visible :
+                Visibility.Collapsed;
+        }
 
         /// <summary>
         /// Sets the selectors and title flow direction.

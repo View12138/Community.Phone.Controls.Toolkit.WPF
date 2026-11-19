@@ -308,7 +308,9 @@ namespace Microsoft.Phone.Controls
         }
 
         private static void OnOrientationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {            PhoneApplicationFrame frame = (PhoneApplicationFrame)d;
+        {
+            PhoneApplicationFrame frame = (PhoneApplicationFrame)d;
+            if (!frame.IsLoaded) { return; }
             PageOrientation orientation = (PageOrientation)e.NewValue;
 
             PhoneApplicationPage page = frame.Content as PhoneApplicationPage;

@@ -230,6 +230,15 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        protected virtual void OnOrientationChanged(OrientationChangedEventArgs e)
+        {
+            EventHandler<OrientationChangedEventArgs> handler = OrientationChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
         internal void RaiseNavigatedTo(NavigationEventArgs e)
         {
             OnNavigatedTo(e);
@@ -248,17 +257,15 @@ namespace Microsoft.Phone.Controls
         private static void OnApplicationBarPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             PhoneApplicationPage page = (PhoneApplicationPage)d;
+            if (!page.IsLoaded) { return; }
             page._frame?.UpdateApplicationBarChrome();
         }
 
         private static void OnOrientationPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             PhoneApplicationPage page = (PhoneApplicationPage)d;
-            EventHandler<OrientationChangedEventArgs> handler = page.OrientationChanged;
-            if (handler != null)
-            {
-                handler(page, new OrientationChangedEventArgs((PageOrientation)e.NewValue));
-            }
+            if (!page.IsLoaded) { return; }
+            page.OnOrientationChanged(new OrientationChangedEventArgs((PageOrientation)e.NewValue));
         }
     }
 }
