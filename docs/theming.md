@@ -7,9 +7,10 @@
 | 文件 | 作用 |
 |---|---|
 | `src/Community.Phone/Themes/Theme.xaml` | 唯一主题字典：`Phone*Color` 颜色、`Phone*Brush` 画刷、字体/字号/厚度、文本样式，以及 `PhoneDarkTheme*` / `PhoneLightTheme*` 的 Visibility 与 Opacity |
-| `src/Community.Phone/Themes/Generic.xaml` | 合并 `Theme.xaml` 与 `Controls/{Button,LongListSelector,PhoneApplicationFrame,Pivot}.xaml` |
+| `src/Community.Phone/Themes/Generic.xaml` | 合并 `Theme.xaml` 与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml` |
 | `src/Community.Phone/Shell/ThemePalette.cs` | `ThemePalette` 记录：24 个颜色属性 + 5 个非颜色值，`Dark` / `Light` 两个静态实例、`WithAccent`、`GetValue(key)`、`ResourceKeys` |
 | `src/Community.Phone/Shell/ThemeManager.cs` | `ThemeManager` 静态类：应用调色板、定位字典、系统主题/强调色读取、`ThemeChanged` |
+| `src/Community.Phone/ApplicationExtensions.cs` | `Application` 的 C# 14 扩展成员：`RequestedTheme`、`AccentColor`、`CustomAccentColor`、`InitializeTheme()` |
 | `src/Community.Phone/Shell/AccentColor.cs` | `AccentColor` 枚举（`Auto` + 20 个 Metro 强调色）与 `AccentColors` 颜色表 |
 | `src/Community.Phone/Shell/ApplicationTheme.cs` | `ApplicationTheme` 枚举（`Auto` / `Light` / `Dark`） |
 
@@ -72,7 +73,9 @@
 ## 4. 公开 API
 
 ```csharp
+using Microsoft.Phone.Controls;   // Application 的扩展成员
 using Microsoft.Phone.Shell;
+using System.Windows.Media;
 
 ThemeManager.AvailableApplicationThemes;   // Auto / Light / Dark
 ThemeManager.AvailableAccentColors;        // Auto + 20 个强调色
@@ -80,13 +83,13 @@ ThemeManager.ActualTheme;                  // Auto 解析为当前 Windows 应�
 ThemeManager.ActualAccentColor;            // Auto 解析为系统强调色（忽略 CustomAccentColor）
 ThemeManager.ThemeChanged += (s, e) => { }; // ThemeChangedEventArgs(Theme, AccentColor)
 
-this.InitializeTheme();                          // 应用当前主题（不播放动画）
+this.InitializeTheme();                             // 应用当前主题（不播放动画）
 Application.Current.RequestedTheme = ApplicationTheme.Light;
 Application.Current.AccentColor = AccentColor.Cobalt;
 Application.Current.CustomAccentColor = Colors.Orange;   // 优先于 AccentColor，null 清除
 ```
 
-`RequestedTheme`、`AccentColor`、`CustomAccentColor`、`InitializeTheme()` 是 `Application` 的 C# 14 扩展成员，值变化时立即应用调色板。
+`RequestedTheme`、`AccentColor`、`CustomAccentColor`、`InitializeTheme()` 定义在 `Microsoft.Phone.Controls.ApplicationExtensions`，是 `Application` 的 C# 14 扩展成员，值变化时立即应用调色板。
 
 最终强调色为 `CustomAccentColor ?? ActualAccentColor`，`ThemeChanged` 报告的是最终生效的 `Theme` 与 `Color`，且只在生效值变化时触发。
 
@@ -95,7 +98,7 @@ Application.Current.CustomAccentColor = Colors.Orange;   // 优先于 AccentColo
 `ThemeManager.ApplyTheme` 按以下顺序执行：
 
 1. 校验在 UI 线程（否则用 `Dispatcher.BeginInvoke` 重新调度）。
-2. `ResolvePalette()`：按 `ActualTheme` 取 `ThemePalette.Light` / `Dark`，再用 `WithAccent(customAccentColor ?? ActualAccentColor)`。
+2. 取调色板：`ActualTheme == Light ? ThemePalette.Light : ThemePalette.Dark`，再用 `WithAccent(customAccentColor ?? ActualAccentColor)` 覆盖强调色。
 3. 定位字典：从 `Application.Resources`（或传入的 `FrameworkElement.Resources`）递归扫描合并树，找 `Source` 含 `/Community.Phone;component/Themes/Theme.xaml` 的字典。**找不到时抛 `Exception("Theme dictionary not found.")`** —— 应用必须先在 `App.xaml` 中合并主题字典。
 4. 遍历 `ResourceKeys` 写入新值。
 5. 若生效主题或强调色变化，触发 `ThemeChanged`。
@@ -104,9 +107,9 @@ Application.Current.CustomAccentColor = Colors.Orange;   // 优先于 AccentColo
 
 ## 6. 颜色动画
 
-1. **可变副本**：WPF 会把 `Application.Resources`（含合并字典）中的 `Freezable` 强制冻结。首次应用时若目标画刷 `IsFrozen`，创建一个同色可变副本，用 1 ms `HoldEnd` 动画“护卫”后写入字典（正在动画的 `Freezable` 不会被冻结），随后撤销护卫；该实例此后伴随应用生命周期。
+1. **可变副本**：WPF 会把 `Application.Resources`（含合并字典）中的 `Freezable` 强制冻结。首次应用时若目标画刷 `IsFrozen`，创建一个同色可变副本，用零时长（`TimeSpan.Zero`）`FillBehavior = HoldEnd` 的同色动画写入字典；正在动画的 `Freezable` 不会被冻结。之后对该键的切色直接用 `HandoffBehavior.SnapshotAndReplace` 启动新动画覆盖这个护卫动画。
 2. **用动画持有目标色**：`ColorAnimation(from, to, duration) { FillBehavior = HoldEnd }` 以 `HandoffBehavior.SnapshotAndReplace` 启动，时间线一直持有目标色（画刷的基础值保持旧色）。`from` 读取画刷当前**有效**颜色（含正在运行的动画），因此快速连续切换会从画面上的中间色继续，不跳变、不叠加。
-3. **同步启动**：先收集全部 `(brush, from, to)` 再统一 `BeginAnimation`，同一帧内启动。
+3. **逐键启动**：在遍历 `ResourceKeys` 的循环内对每个键直接 `BeginAnimation`，无先收集后批处理的阶段。
 4. **不播放动画的情况**：`InitializeTheme()`（首次应用）与值为 `Color` 以外的资源改动直接赋值；动画时长为 `ThemeManager.ThemeTransitionDuration`（内部常量 300 ms）。
 5. **失败兜底**：键不存在、值不是 `SolidColorBrush` 时跳过该键，不抛异常。
 
@@ -121,7 +124,7 @@ Application.Current.CustomAccentColor = Colors.Orange;   // 优先于 AccentColo
 
 ## 8. 自建页面的注意事项
 
-由库自己创建的页面（`ListPickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，也不会走应用级主题切换：
+由库自己创建的页面（`ListPickerPage`、`DatePickerPage`、`TimePickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，也不会走应用级主题切换：
 
 - 页面在自身 `Resources` 中合并 `/Community.Phone;component/Themes/Theme.xaml` 携带颜色。
 - 尚未挂树时求值的属性（`FontFamily`、`FontSize`、`Foreground`、背景画刷）使用 `DynamicResource`。

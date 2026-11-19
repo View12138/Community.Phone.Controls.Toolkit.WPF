@@ -2,45 +2,69 @@
     x:Class="PhoneToolkitSample.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
     Title="Community Phone Toolkit WPF Sample"
-    Topmost="True"
+    KeyUp="Window_KeyUp"
     Width="480"
-    Height="800"
-    Background="Black"
-    ResizeMode="CanResizeWithGrip">
+    Height="800">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="auto" />
-        </Grid.RowDefinitions>
+        <Grid.Resources>
+            <Style x:Key="ActionBarButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Padding" Value="0,0,0,0" />
+                <Setter Property="Width" Value="48" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySymbol}" />
+            </Style>
+        </Grid.Resources>
         <phone:TransitionFrame x:Name="Frame" />
-        <Grid Grid.Row="1" Background="{DynamicResource PhoneBackgroundBrush}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Button
-                HorizontalAlignment="Center"
-                BorderThickness="0"
-                Click="Back_Button_Click"
-                Content="&#xE72B;"
-                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
-            <Button
-                Grid.Column="1"
-                HorizontalAlignment="Center"
-                BorderThickness="0"
-                Click="Home_Button_Click"
-                Content="&#xE80F;"
-                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
-            <Button
-                Grid.Column="2"
-                HorizontalAlignment="Center"
-                BorderThickness="0"
-                Click="Search_Button_Click"
-                Content="&#xE721;"
-                FontFamily="{DynamicResource PhoneFontFamilySymbol}" />
+        <Grid x:Name="ActionBar" RowDefinitions="12,60" VerticalAlignment="Bottom">
+            <Grid.RenderTransform>
+                <TranslateTransform  Y="60"/>
+            </Grid.RenderTransform>
+            <Grid.Triggers>
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="ActionBar" 
+                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             To="0" Duration="0:0:0.15">
+                                <DoubleAnimation.EasingFunction>
+                                    <QuadraticEase EasingMode="EaseIn" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Background" 
+                                                           Storyboard.TargetName="ActionMouseBar">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="{DynamicResource PhoneChromeBrush}"/>
+                            </ObjectAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetName="ActionBar" 
+                                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             To="60" Duration="0:0:0.15">
+                                <DoubleAnimation.EasingFunction>
+                                    <QuadraticEase EasingMode="EaseOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Background" 
+                                                           Storyboard.TargetName="ActionMouseBar">
+                                <DiscreteObjectKeyFrame KeyTime="0" Value="{DynamicResource PhoneProgressBarBackgroundBrush}"/>
+                            </ObjectAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Grid.Triggers>
+            <Grid x:Name="ActionMouseBar" Background="{DynamicResource PhoneProgressBarBackgroundBrush}"/>
+            <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Background="{DynamicResource PhoneChromeBrush}" >
+                <Button Style="{StaticResource ActionBarButton}" Grid.Column="0" Click="Back_Button_Click" Content="&#xE72B;"/>
+                <Button Style="{StaticResource ActionBarButton}" Grid.Column="1" Click="Home_Button_Click" Content="&#xE80F;"/>
+                <Button Style="{StaticResource ActionBarButton}" Grid.Column="2" Click="Search_Button_Click" Content="&#xE721;" />
+            </Grid>
         </Grid>
     </Grid>
 </Window>

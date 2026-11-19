@@ -205,8 +205,8 @@
 
     <Style TargetType="{x:Type RadioButton}">
         <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeNormal}" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />

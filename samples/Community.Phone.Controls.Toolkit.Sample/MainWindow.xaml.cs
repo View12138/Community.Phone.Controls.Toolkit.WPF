@@ -32,5 +32,24 @@ namespace PhoneToolkitSample
         {
 
         }
+
+        private void Window_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if(e.Key == System.Windows.Input.Key.F1)
+            {
+                PhoneFrame.GoBack();
+            }
+            if (e.Key == System.Windows.Input.Key.F2)
+            {
+                if (PhoneFrame.Content.GetType() != typeof(MainPage))
+                {
+                    PhoneFrame.Navigate(new MainPage());
+                }
+            }
+            if (e.Key == System.Windows.Input.Key.F1)
+            {
+
+            }
+        }
     }
 }

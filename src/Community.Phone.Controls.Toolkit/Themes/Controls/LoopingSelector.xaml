@@ -27,7 +27,7 @@
     </Style>
 
     <Style TargetType="primitives:LoopingSelectorItem">
-        <Setter Property="Foreground" Value="{StaticResource PhoneSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}"/>
         <Setter Property="Padding" Value="6"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -46,24 +46,24 @@
 
                                 <VisualState x:Name="Expanded">
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="Opacity" To="0.8" Duration="0"/>
+                                        <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="Opacity" To="0.8" Duration="0:0:0.33"/>
                                     </Storyboard>
                                 </VisualState>
 
                                 <VisualState x:Name="Selected">
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="background" Storyboard.TargetProperty="Opacity" To="1" Duration="0"/>
-                                        <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="Opacity" To="1" Duration="0"/>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="border" Storyboard.TargetProperty="BorderBrush" Duration="0">
-                                            <ObjectAnimationUsingKeyFrames.KeyFrames>
-                                                <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
-                                            </ObjectAnimationUsingKeyFrames.KeyFrames>
-                                        </ObjectAnimationUsingKeyFrames>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="contentControl" Storyboard.TargetProperty="Foreground" Duration="0">
-                                            <ObjectAnimationUsingKeyFrames.KeyFrames>
-                                                <DiscreteObjectKeyFrame KeyTime="0" Value="White" />
-                                            </ObjectAnimationUsingKeyFrames.KeyFrames>
-                                        </ObjectAnimationUsingKeyFrames>
+                                        <DoubleAnimation Storyboard.TargetName="background" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.33"/>
+                                        <DoubleAnimation Storyboard.TargetName="border" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.33"/>
+                                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="border" Storyboard.TargetProperty="BorderBrush.Color" Duration="0:0:0.33">
+                                            <ColorAnimationUsingKeyFrames.KeyFrames>
+                                                <DiscreteColorKeyFrame KeyTime="0" Value="Transparent" />
+                                            </ColorAnimationUsingKeyFrames.KeyFrames>
+                                        </ColorAnimationUsingKeyFrames>
+                                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="contentControl" Storyboard.TargetProperty="Foreground.Color" Duration="0:0:0.33">
+                                            <ColorAnimationUsingKeyFrames.KeyFrames>
+                                                <DiscreteColorKeyFrame KeyTime="0" Value="White" />
+                                            </ColorAnimationUsingKeyFrames.KeyFrames>
+                                        </ColorAnimationUsingKeyFrames>
                                     </Storyboard>
                                 </VisualState>
 
@@ -75,9 +75,9 @@
                         </Border.RenderTransform>
 
                         <Grid>
-                            <Rectangle x:Name="background" Margin="0" Opacity="0" Fill="{StaticResource PhoneAccentBrush}" CacheMode="BitmapCache"/>
+                            <Rectangle x:Name="background" Margin="0" Opacity="0" Fill="{DynamicResource PhoneAccentBrush}" CacheMode="BitmapCache"/>
 
-                            <Border x:Name="border" Opacity="0" BorderThickness="3" BorderBrush="{StaticResource PhoneSubtleBrush}">
+                            <Border x:Name="border" Opacity="0" BorderThickness="3" BorderBrush="{DynamicResource PhoneSubtleBrush}">
                                 <ContentControl x:Name="contentControl" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" VerticalContentAlignment="Stretch">
                                     <ContentPresenter x:Name="contentPresenter" CacheMode="BitmapCache"/>
                                 </ContentControl>

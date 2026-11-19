@@ -53,8 +53,8 @@
         <Setter Property="BorderBrush" Value="{DynamicResource PhoneSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="8,4" />
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
+        <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilyNormal}" />
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeNormal}" />
     </Style>
     
 </ResourceDictionary>

@@ -25,13 +25,6 @@
 
     <platform:PhoneApplicationPage.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <!--The page is created by the ListPicker before it is attached
-                    to the frame, so it cannot see the application's theme
-                    resources while its styles are applied. Carry the phone
-                    colors on the page itself.-->
-                <ResourceDictionary Source="/Community.Phone;component/Themes/Theme.xaml" />
-            </ResourceDictionary.MergedDictionaries>
 
             <Style x:Key="AnyFontSizeCheckBoxStyle" TargetType="CheckBox">
                 <Setter Property="VerticalContentAlignment" Value="Top"/>

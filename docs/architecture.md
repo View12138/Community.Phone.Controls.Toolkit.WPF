@@ -16,16 +16,19 @@
 ```text
 Community.Phone.Controls.Toolkit.slnx
 ├─ src/Community.Phone/                       兼容层（程序集 Community.Phone，根命名空间 Microsoft.Phone）
-│  ├─ Controls/     Pivot、PivotItem、Primitives/*、LongListSelector、HyperlinkButton、ViewportControl
+│  ├─ Controls/     Pivot、PivotItem、Panorama、PanoramaItem、LongListSelector、HyperlinkButton、ViewportControl、Primitives/*
 │  ├─ Navigation/   PhoneApplicationFrame、PhoneApplicationPage、NavigationContext、方向类型
-│  ├─ Shell/        ApplicationBar 及其呈现器、SystemTray、PhoneApplicationService、ThemeManager、ThemePalette
-│  └─ Themes/       Theme.xaml（调色板）、Generic.xaml、Controls/{Button,LongListSelector,PhoneApplicationFrame,Pivot}.xaml
-├─ src/Community.Phone.Controls.Toolkit/      toolkit 程序集（程序集名同目录名，根命名空间 Microsoft.Phone.Controls）
 │  ├─ Projection/   Projection、PlaneProjection、Matrix3DProjection、ProjectionHost、ProjectionService、ProjectionMath
+│  ├─ Shell/        ApplicationBar 及其呈现器、SystemTray、PhoneApplicationService、ThemeManager、ThemePalette
+│  ├─ Globalization/  SortedLocaleGrouping
+│  └─ Themes/       Theme.xaml（调色板）、Generic.xaml、Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml
+├─ src/Community.Phone.Controls.Toolkit/      toolkit 程序集（根命名空间 Microsoft.Phone.Controls）
+│  ├─ Projection/   资源键与投影互操作辅助（投影类型在 Community.Phone）
 │  ├─ Transitions/  ITransition、Transition、TransitionFrame、TransitionService、Storyboards/*.xaml、各转场族
-│  ├─ Effects/      TiltEffect、TurnstileFeatherEffect
-│  ├─ 控件目录/      Controls/、ListPicker/、HubTile/、PhoneTextBox/、ToggleSwitch/、Primitives/、ContextMenu/、
-│  │                CustomMessageBox/、DateTimeConverters/
+│  ├─ Effects/      TiltEffect、TurnstileFeatherEffect、SlideInEffect
+│  ├─ AutoCompleteBox/  AutoCompleteBox、AutoCompleteFilter(Mode/Predicate)、PopupHelper、SelectorSelectionAdapter
+│  ├─ 控件目录/      ListPicker/、HubTile/、PhoneTextBox/、ToggleSwitch/、Primitives/、ContextMenu/、CustomMessageBox/、
+│  │                ExpanderView/、ProgressBar/、DateTimePickers/、DateTimeConverters/、WrapPanel/、RatingControl/
 │  ├─ Common/       ItemsControlExtensions、LengthConverter、TypeConverters、视觉树辅助
 │  ├─ LocalizedResources/  51 个 ControlResources*.resx（50 个文化 + 中性资源）
 │  └─ Themes/       Generic.xaml、Controls/*.xaml
@@ -36,8 +39,8 @@ Community.Phone.Controls.Toolkit.slnx
 
 职责划分：
 
-- `Community.Phone` 重新实现 WPF 不提供的 `Microsoft.Phone` 平台表面：页面/框架/导航类型、`Microsoft.Phone.Shell`（应用栏、系统栏、应用服务、主题），以及原 toolkit 中属于平台层的 `Pivot`、`LongListSelector`、`HyperlinkButton`。它不引用 toolkit。
-- `Community.Phone.Controls.Toolkit` 引用 `Community.Phone`，提供投影、转场、效果与其余控件。
+- `Community.Phone` 重新实现 WPF 不提供的 `Microsoft.Phone` 平台表面：页面/框架/导航类型、投影类型、`Microsoft.Phone.Shell`（应用栏、系统栏、应用服务、主题），以及原 toolkit 中属于平台层的 `Pivot`、`LongListSelector`、`HyperlinkButton`、`Panorama`。它不引用 toolkit。
+- `Community.Phone.Controls.Toolkit` 引用 `Community.Phone`，提供转场、效果与其余控件。
 - 两者打进**一个** NuGet 包 `Community.Phone.Controls.Toolkit`。
 
 两个工程都在所有配置下定义 `WINDOWS_PHONE;WP8`，移植源码用这些常量选择兼容命名空间与本地化资源。
@@ -46,17 +49,19 @@ Community.Phone.Controls.Toolkit.slnx
 
 | 原始命名空间 | 移植命名空间 | 程序集 | 说明 |
 |---|---|---|---|
-| `Microsoft.Phone.Controls`（平台：页面、框架、导航、`Pivot`、`LongListSelector`、`HyperlinkButton`） | 同名 | `Community.Phone` | `platform:` 前缀 |
-| `Microsoft.Phone.Controls`（toolkit：投影、转场、效果、控件） | 同名 | `Community.Phone.Controls.Toolkit` | `phone:` 前缀 |
-| `Microsoft.Phone.Controls.Primitives` | 同名 | `Community.Phone` | `primitives:` 前缀（`PivotHeadersControl`、`PivotHeaderItem`、`ViewportControl`） |
-| `Microsoft.Phone.Controls.Primitives`（`ToggleSwitchButton`） | 同名 | `Community.Phone.Controls.Toolkit` | `phone:` 或 `primitives:` 前缀 |
+| `Microsoft.Phone.Controls`（平台：页面、框架、导航、`Pivot`、`LongListSelector`、`HyperlinkButton`、`Panorama`） | 同名 | `Community.Phone` | `platform:` 前缀 |
+| `Microsoft.Phone.Controls`（投影：`ProjectionHost`、`ProjectionService`、`PlaneProjection`、`Matrix3DProjection`） | 同名 | `Community.Phone` | `platform:` 前缀 |
+| `Microsoft.Phone.Controls`（toolkit：转场、效果、控件） | 同名 | `Community.Phone.Controls.Toolkit` | `phone:` 前缀 |
+| `Microsoft.Phone.Controls.Primitives`（`PivotHeadersControl`、`PivotHeaderItem`、`ViewportControl`） | 同名 | `Community.Phone` | `primitives:` 前缀 |
+| `Microsoft.Phone.Controls.Primitives`（`ToggleSwitchButton`、`LoopingSelector`、`LoopingSelectorItem`、`ILoopingSelectorDataSource`、`ClipToBounds`） | 同名 | `Community.Phone.Controls.Toolkit` | `primitives:` 或 `phone:` 前缀 |
 | `Microsoft.Phone.Controls.LocalizedResources` | 同名 | `Community.Phone.Controls.Toolkit` | `ControlResources` |
 | `Microsoft.Phone.Shell` | 同名 | `Community.Phone` | `shell:` 前缀 |
 | `Microsoft.Phone.Maps.Toolkit` | 未实现 | — | 没有 WPF 地图提供程序 |
-| toolkit 的 `System.Windows.Controls.WrapPanel`、`LengthConverter`、`TimeTypeConverter` | `Microsoft.Phone.Controls` | toolkit | 避免重新定义 WPF 类型 |
+| toolkit 的 `System.Windows.Controls.WrapPanel`、`LengthConverter` | `Microsoft.Phone.Controls`（`WINDOWS_PHONE` 分支） | toolkit | 避免重新定义 WPF 类型 |
+| toolkit 的 `System.Windows.Controls.TimeTypeConverter` | `System.Windows.Controls` | toolkit | 无 `#if` 分支，保持全局命名空间 |
 | toolkit 的 `System.Windows.HierarchicalDataTemplate` | WPF 原生 | — | 直接使用 `System.Windows.HierarchicalDataTemplate` |
 
-因为 toolkit 类型与平台类型共用 `Microsoft.Phone.Controls` 命名空间却位于不同程序集，同时使用两者的 XAML 需要多个前缀：
+因为 toolkit 类型与平台/投影类型共用 `Microsoft.Phone.Controls` 命名空间却位于不同程序集，同时使用两者的 XAML 需要多个前缀：
 
 ```xml
 xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
@@ -64,9 +69,13 @@ xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
 xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
 ```
 
+注意 storyboard 资源内部使用的 `phone:` 是它自己的本地别名，指向 `assembly=Community.Phone`（投影类型所在程序集），与消费方 XAML 的前缀约定无关。
+
 WPF 有 `System.Windows.Controls.ContextMenu`，移植版的 `Microsoft.Phone.Controls.ContextMenu` 直接使用 `phone:` 前缀选择。这类前缀修改属于**必须迁移**的部分，XAML 不能原样编译。
 
 ## 4. 投影子系统
+
+投影类型编译在 `Community.Phone` 程序集，早期 toolkit 程序集下的 `Projection/` 目录不再包含这些类型。
 
 ### 4.1 公共模型
 
@@ -118,15 +127,15 @@ WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的
 
 ```xml
 <!-- 显式 Host。 -->
-<phone:ProjectionHost>
+<platform:ProjectionHost>
     <Grid>...</Grid>
-    <phone:ProjectionHost.Projection>
-        <phone:PlaneProjection RotationY="-35" />
-    </phone:ProjectionHost.Projection>
-</phone:ProjectionHost>
+    <platform:ProjectionHost.Projection>
+        <platform:PlaneProjection RotationY="-35" />
+    </platform:ProjectionHost.Projection>
+</platform:ProjectionHost>
 
 <!-- 任意元素上的附加属性；元素按需被包装，投影清除时解包。 -->
-<Grid phone:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
+<Grid platform:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
 ```
 
 代码中最短的形式是 `element.Projection = new PlaneProjection { RotationY = -35 };`；storyboard 路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`，由 `ProjectionService.GetProjectionPropertyPath` 生成。
@@ -155,7 +164,7 @@ WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的
 
 | 成员 | 说明 |
 |---|---|
-| `Orientation`、`SupportedOrientations` | 依赖属性；`OrientationChanged` 事件；方向按 Frame 尺寸推断（宽 > 高为横向） |
+| `Orientation`、`SupportedOrientations` | 依赖属性；`OrientationChanged` 事件；默认 `PortraitUp` / `PortraitOrLandscape`，不随 Frame 尺寸自动变化 |
 | `IsPortrait` | 由 `Orientation` 推导 |
 | `Navigate(PhoneApplicationPage, IDictionary<string,string>)` | 以页面实例导航并携带参数；参数与 URI 查询串合并进 `NavigationContext` |
 | `GoBack()` | 先触发当前页面的 `RaiseBackKeyPress()`，未取消才执行 WPF 返回 |
@@ -198,9 +207,11 @@ Windows Phone 由合成器绘制应用栏，移植版由 `ApplicationBarPresente
 
 颜色来自 `BackgroundColor` / `ForegroundColor`，透明度来自 `Opacity`；frame 用呈现器的 `ReservedHeight` 设置 `ApplicationBarHost.Height`，因此隐藏或半透明的应用栏浮在页面之上而不压缩页面。
 
+`SystemTray` 是无视觉 chrome 的静态类，同时提供静态状态属性与 `IsVisibleProperty` 附加属性（`GetIsVisible` / `SetIsVisible`）；附加属性只在宿主是 `PhoneApplicationPage`、`PhoneApplicationFrame`、`Window` 时同步到 `SystemTrayState.Current`。
+
 ### 5.4 `TransitionFrame`
 
-继承 `PhoneApplicationFrame`，模板部件是名为 `FirstContentPresenter`、`SecondContentPresenter` 的两个 `ProjectionHost`（不是 `ContentPresenter`）。
+继承 `PhoneApplicationFrame`，模板部件是名为 `FirstContentPresenter`、`SecondContentPresenter` 的两个 `ProjectionHost`（来自 `Community.Phone`，模板中需使用 `platform:` 前缀，不是 `ContentPresenter`）。
 
 导航转场顺序：
 
@@ -221,40 +232,44 @@ Windows Phone 由合成器绘制应用栏，移植版由 `ApplicationBarPresente
 
 ### 5.5 转场族
 
-原版 27 个 storyboard（`Transitions/Storyboards/*.xaml`）以 WPF 资源形式内嵌，按原版方式加载：`Application.GetResourceStream("/Community.Phone.Controls.Toolkit;component/Transitions/Storyboards/<Name>.xaml")` → 缓存文本 → `XamlReader.Load`。`Transitions.GetEnumStoryboard` 把 `<系列><模式>` 映射到文件，`Storyboard.SetTarget(storyboard, element)` 绑定到页面，工厂在返回 `Transition` 前设置投影（Slide 用 `RenderTransform`）。
+27 个 storyboard XAML（`Transitions/Storyboards/*.xaml`）以 WPF 资源形式内嵌，按原版方式加载：`Application.GetResourceStream("/Community.Phone.Controls.Toolkit;component/Transitions/Storyboards/<Name>.xaml")` → 缓存文本 → `XamlReader.Load`。`Transitions.GetEnumStoryboard` 把 `<系列><模式>` 映射到文件，`Storyboard.SetTarget(storyboard, element)` 绑定到页面，工厂在返回 `Transition` 前设置投影（Slide 用 `RenderTransform`）。这些 XAML 内部的 `xmlns:phone` 指向 `assembly=Community.Phone`，用于解析投影类型。
 
 storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Projection).(PlaneProjection.RotationY)` 改为 `(phone:ProjectionService.Projection).(phone:PlaneProjection.RotationY)`；角度、关键时间与缓动保持原值。
 
-| 系列 | 模式数 |
-|---|---|
-| `RollTransition` | 1 |
-| `RotateTransition` | 8 |
-| `SlideTransition` | 8 |
-| `SwivelTransition` | 6 |
-| `TurnstileTransition` | 4 |
-| `TurnstileFeatherTransition` | 4 |
+| 系列 | 模式数 | storyboard 文件 |
+|---|---|---|
+| `RollTransition` | 1 | 1 |
+| `RotateTransition` | 8 | 8 |
+| `SlideTransition` | 8 | 8 |
+| `SwivelTransition` | 6 | 6 |
+| `TurnstileTransition` | 4 | 4 |
+| `TurnstileFeatherTransition` | 4 | 0（由 `TurnstileFeatherEffect` 在代码中合成） |
 
 `Transitions.cs` 中有两处仅移植版的常量：`TurnstileCenterOfRotationX = -0.05` 与 `TurnstileDurationScale = 1.2`（以 `Storyboard.SpeedRatio` 施加，原始关键时间不变），用于贴近观察到的 WP 8.1 系统动画；分别改回 `0` / `1` 即还原原工具包的几何与时序。
 
-`ProjectionTransition`（仅移植版）在带投影的转场完成或停止时清除附加投影，使空闲页面回到纯 2D 路径。
+转场完成或停止时，内部逻辑会清除为转场临时附加的投影，使空闲页面回到纯 2D 路径。
 
 ## 6. 效果
 
 ### `TiltEffect`
 
-附加属性 `IsTiltEnabled`、`SuppressTilt`、`TiltableItems`，以及 `UseLogarithmicEase`。按下时向上查找最近的 tiltable 祖先，缓存 container→control 变换后通过 `ProjectionService` 赋 `PlaneProjection`，由服务负责包装；旋转支点取控件的**第一个可视子元素**（模板根，即控件实际显示内容）的中心，按压点按该边界归一化，与原版的 `GetChild(control, 0)` 一致。
+附加属性 `IsTiltEnabled`、`SuppressTilt`，静态属性 `TiltableItems`、`UseLogarithmicEase`。按下时向上查找最近的 tiltable 祖先，缓存 container→control 变换后通过 `ProjectionService` 赋 `PlaneProjection`，由服务负责包装；旋转支点取控件的**第一个可视子元素**（模板根，即控件实际显示内容）的中心，按压点按该边界归一化，与原版的 `GetChild(control, 0)` 一致。
 
 鼠标支持走隧道式 `PreviewMouseDown/Move/Up`，容器可以倾斜子按钮而不吞掉按钮点击；同时支持触摸 manipulation。返回动画以投影为目标并跟踪 storyboard 是否已应用；指针离开可见内容时暂停倾斜，交互结束清理全部逐次状态。
 
 ### `TurnstileFeatherEffect`
 
-附加属性 `FeatheringIndex`、`NonPermittedTypes` 与交错时间常数。合成 storyboard 时目标从页面的**可视树**收集（`FeatheringIndex` 稳定排序），因为进场页面在接入可视树之前就被合成。附加属性订阅只负责准备包装，且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（布局过程中包装会引发布局循环）。
+附加属性 `FeatheringIndex`，静态属性 `NonPermittedTypes` 与交错时间常数。合成 storyboard 时目标从页面的**可视树**收集（`FeatheringIndex` 稳定排序），因为进场页面在接入可视树之前就被合成。附加属性订阅只负责准备包装，且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（布局过程中包装会引发布局循环）。
 
 `TurnstileFeatherTransition` 开始时为屏幕内的目标确保 `ProjectionHost`，先打开 `Prefer3D` 再赋 `PlaneProjection`（`CenterOfRotationX = -0.2`），然后按 40–50 ms 交错组合 `RotationY` 与透明度动画。清理时恢复透明度、投影、渲染变换与 2D 路径，并对元素与包装器 `InvalidateVisual()`（走过 3D 路径的包装使用独立表面合成，不重绘会残留最后一帧）。包装保留到元素卸载，避免一次转场中反复重新父级化。无法包装的目标（item 容器）跳过。
 
+### `SlideInEffect`
+
+附加属性 `LineIndex`、`ParentPivot`、`ParentPivotItem`、`AttachedTransform`、`IsSubscribed`、`HasEventsAttached`。订阅宿主 Pivot 的选择变化，按行索引为 `PivotItem` 内的元素施加交错位移与透明度动画。实现位于 `Effects/SlideInEffect.cs`，有独立示例页。
+
 ## 7. 控件
 
-控件使用 WPF 依赖属性、模板与 `VisualStateManager`；`DefaultStyleKeyProperty.OverrideMetadata` 在静态构造函数中调用。
+控件使用 WPF 依赖属性与模板；`DefaultStyleKeyProperty.OverrideMetadata` 只在 `Community.Phone` 的少数类型（`PhoneApplicationFrame`、`ApplicationBarIconButtonView`、`ApplicationBarMenuItemView`、`ApplicationBarPresenter`）静态构造函数中调用，toolkit 控件普遍在实例构造函数中赋值 `DefaultStyleKey`。
 
 | 控件 | 实现要点 |
 |---|---|
@@ -267,11 +282,16 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 | `ListPicker` / `ListPickerPage` | 普通模式对模板 Canvas 做高度/位移动画；完整模式通过宿主 frame 导航到 `ListPickerPage`（`PickerPageUri` 的 pack URI），页面用原版 `ApplicationBar` 确认/取消（图标来自 `Content/ApplicationBar.*.png`），项目逐个 `RotationX` 翻转展开；页面自带主题字典，等待列表就绪后再组合动画 |
 | `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 原版模板与视觉状态；自绘 `Popup`，`ContextMenuService` 只负责绑定所有者；右键与模拟长按打开；无横竖屏分支，遮罩缩放/淡入由代码动画驱动 |
 | `CustomMessageBox` | `ContentControl` API，`Show()`/`Dismiss()` 由 WPF `Window` 承载，内容在 `ProjectionHost` 中播放 Swivel |
-| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 保留 `Value`/`ValueString`/`Header`/`PickerPageUri` API，用 WPF 日期/时间 UI 在模态 `Window` 中实现 |
+| `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 保留 `Value`/`ValueString`/`Header`/`PickerPageUri` API；点击时通过宿主 `PhoneApplicationFrame` 导航到 `DatePickerPage` / `TimePickerPage`（主题中 `PickerPageUri` 的 pack URI），picker 页面使用 `LoopingSelector` 求值；`RecurringDaysPicker` 继承 `ListPicker` |
 | `PerformanceProgressBar` | 内嵌 WPF `ProgressBar` 与 `ActualIsIndeterminate`，透明度淡入淡出 |
 | `Pivot` / `PivotItem` | 容器在 `Grid` items panel 中堆叠，仅当前项可见；切换时进入项从 `±ActualWidth` 动画到 `0`（`QuarticEase`，0.25 s），离开项滑出后折叠；指针拖拽以 600 px/s 移动，超过半个视口切换；`IsLocked` 淡出页眉并拒绝修改项 |
 | `PivotHeadersControl` / `PivotHeaderItem` | 页眉条在 `Canvas` 上循环排布（`VisualFirstIndex` 起，最后一个之后接第一个），0.5 s 滚动画布 |
+| `Panorama` / `PanoramaItem` | 在 `Community.Phone` 中实现；`Title`/`TitleTemplate`/`HeaderTemplate`/`SelectedItem`/`SelectedIndex`/`DefaultItem`，用 WPF 指针事件与 storyboard 复刻WP 的吸附位置、时长与视差；主题字典 `Themes/Controls/Panorama.xaml` |
 | `LongListSelector` | 内部 `ItemsControl` + `ContentPresenter` 容器；列表模式用 `VirtualizingStackPanel` 回收虚拟化，网格模式用固定单元格非虚拟化面板；跳转列表为 `Popup`；模板部件 `ViewportControl`（`ContentControl`）与 `VerticalScrollBar`（真实 `ScrollBar`） |
+| `LongListMultiSelector` / `LongListMultiSelectorItem` | 在 `LongListSelector` 基础上增加 `SelectedItems`、`IsSelectionEnabled`、`EnforceIsSelectionEnabled`、`ItemInfoTemplate` 与 `IsSelectedChanged` 事件；有完整主题模板与示例页 |
+| `MultiselectList` / `MultiselectItem` | 类型与选择逻辑已移植（`IsSelectionEnabled`、`ItemInfoTemplate`、`IsSelected`/`State`/`ContentInfo` 等），但 `Themes/` 下没有默认模板，示例入口只给出 WP8 弃用说明 |
+| `AutoCompleteBox` | `Control` 派生，模板部件 `Text`/`Popup`/`Selector`；`MinimumPrefixLength`、`MinimumPopulateDelay`、`IsTextCompletionEnabled`、`FilterMode`、`ItemFilter`/`TextFilter`、`ValueMemberPath`、`MaxDropDownHeight`、`IsDropDownOpen`、`SelectedItem`、`Text`、`SearchText` 等 API；`Populating`/`Populated`/`DropDownOpening`/`DropDownOpened`/`DropDownClosing`/`DropDownClosed`/`SelectionChanged` 事件；`PopupHelper` 处理 WPF 与 WP 的 popup 布局差异；有主题模板与示例页 |
+| `LoopingSelector` / `LoopingSelectorItem` / `ILoopingSelectorDataSource` | 在 `Primitives` 中实现，`DataSource`/`ItemTemplate`/`IsExpanded`；被日期/时间 picker 页面使用；有主题模板 |
 | `HyperlinkButton` | 相对/pack URI 导航最近的 `NavigationService`/`Frame`，其他绝对 URI 通过可重写的 `OpenExternalUri`（默认 `Process.Start` + `UseShellExecute`）；`IInvokeProvider` 自动化对等体 |
 | `ClipToBounds` | `IsEnabled` 附加属性，使用 WPF `Clip` |
 
@@ -279,8 +299,8 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 两个程序集各自提供 `Themes/Generic.xaml`：
 
-- `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{Button,LongListSelector,PhoneApplicationFrame,Pivot}.xaml`。
-- `Community.Phone.Controls.Toolkit/Themes/Generic.xaml` 合并 `Community.Phone` 的 `Generic.xaml` 与自身的 `Controls/*.xaml`。
+- `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml`。
+- `Community.Phone.Controls.Toolkit/Themes/Generic.xaml` 合并 `Community.Phone` 的 `Generic.xaml` 与自身 `Controls/*.xaml`（`AutoCompleteBox`、`Button`、`ComboBox`、`ContextMenu`、`CustomMessageBox`、`DateTimePicker`、`ExpanderView`、`HubTile`、`ListPicker`、`LongListMultiSelector`、`LoopingSelector`、`PhoneTextBox`、`Rating`、`ToggleSwitch`、`TransitionFrame`）。
 
 主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。
 
@@ -290,7 +310,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 2. 主题字典里的 `StaticResource` 在**所属字典**（或应用程序）中解析，因此跨字典引用会失败；动画关键帧的取值使用字面量或内联画刷。
 3. 运行时可切换主题要求消费方使用 `DynamicResource` 引用主题画刷（库内模板已经如此）。
 
-库自己创建的页面（`ListPickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，因此它在自己的 `Resources` 中合并 `Theme.xaml`，并在"尚未挂树"时求值的属性上使用 `DynamicResource`。
+库自己创建的页面（`ListPickerPage`、`DatePickerPage`、`TimePickerPage`）在挂到 frame 之前就解析样式，看不到 `Application.Resources`，因此它们在自己的 `Resources` 中合并 `Theme.xaml`，并在“尚未挂树”时求值的属性上使用 `DynamicResource`。
 
 调色板、映射表与切换机制见[主题系统](theming.md)。
 
@@ -298,8 +318,8 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 单包工程 `src/Community.Phone.Controls.Toolkit/Community.Phone.Controls.Toolkit.csproj`：
 
-- `PackageId` 为 `Community.Phone.Controls.Toolkit`，`PackageLicenseExpression` 为 `MS-PL`，启用 `GenerateDocumentationFile` 与符号包（`.snupkg`），输出到 `artifacts/packages`。
+- `PackageId` 为 `Community.Phone.Controls.Toolkit`，`PackageLicenseExpression` 为 `MS-PL`，`PackageReadmeFile` 为 `README.md`；启用 `GenerateDocumentationFile` 与符号包（`.snupkg`），输出到 `artifacts/packages`。
 - toolkit 以 `PrivateAssets="all"` 引用 `Community.Phone`，并通过 `IncludeCompatibilityLayerInPackage` 目标把 `Community.Phone.dll`（及 pdb/xml）作为 `BuildOutputInPackage` 放入包中，因此不产生包依赖。
 - `Transitions/Storyboards/*.xaml` 与 `Content/*.png` 作为 `Resource` 打包；本地化资源生成卫星程序集。
 
-当前 `csproj` 的打包项还引用了仓库中不存在的 `README_zh-CN.md`、`THIRD-PARTY-NOTICES_zh-CN.md`、`docs/en/*.md`、`docs/zh-CN/*.md`，`dotnet pack` 会因找不到这些文件失败。`build/verify-package.ps1` 依赖的 `tests/PackageConsumer` 工程同样不存在。
+`dotnet build Community.Phone.Controls.Toolkit.slnx -c Release` 通过。当前 `csproj` 的打包项引用了仓库中不存在的 `THIRD-PARTY-NOTICES_zh-CN.md`，`docs/en/*.md` 与 `docs/zh-CN/*.md` 也不存在，`dotnet pack` 报 `NU5019`。`build/verify-package.ps1` 依赖的 `tests/PackageConsumer` 工程同样不存在。构建与打包事实见[移植状态](porting-status.md#构建与验证)。

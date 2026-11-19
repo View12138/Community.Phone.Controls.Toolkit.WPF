@@ -109,13 +109,6 @@ namespace Microsoft.Phone.Controls
 
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
-
-            ThemeManager.ApplyTheme(this, false);
-            ThemeManager.ThemeChanged += (s, e) =>
-            {
-                ThemePalette palette = (e.Theme == ApplicationTheme.Light ? ThemePalette.Light : ThemePalette.Dark).WithAccent(e.AccentColor);
-                ThemeManager.ApplyTheme(Resources, palette);
-            };
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
