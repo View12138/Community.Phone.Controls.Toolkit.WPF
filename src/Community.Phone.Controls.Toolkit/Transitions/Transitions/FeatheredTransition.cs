@@ -64,15 +64,8 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         public override void Begin()
         {
-            TurnstileFeatherEffect.ComposeStoryboard(Storyboard, _beginTime, _mode, _element);
+            TurnstileFeatherEffect.ComposeStoryboard(Storyboard, _beginTime, _mode);
             base.Begin();
-        }
-
-        /// <inheritdoc />
-        public override void Stop()
-        {
-            //TurnstileFeatherEffect.Cleanup();
-            base.Stop();
         }
     }
 }

@@ -18,8 +18,8 @@ namespace Microsoft.Phone.Controls
     /// <see cref="T:Microsoft.Phone.Controls.PhoneApplicationPage"/>s.
     /// </summary>
     /// <QualityBand>Preview</QualityBand>
-    [TemplatePart(Name = FirstTemplatePartName, Type = typeof(ProjectionHost))]
-    [TemplatePart(Name = SecondTemplatePartName, Type = typeof(ProjectionHost))]
+    [TemplatePart(Name = FirstTemplatePartName, Type = typeof(ContentPresenter))]
+    [TemplatePart(Name = SecondTemplatePartName, Type = typeof(ContentPresenter))]
     public class TransitionFrame : PhoneApplicationFrame
     {
         #region Constants and Statics
@@ -36,28 +36,33 @@ namespace Microsoft.Phone.Controls
         /// template part name.
         /// </summary>
         private const string SecondTemplatePartName = "SecondContentPresenter";
+
+        /// <summary>
+        /// A single shared instance for setting BitmapCache on a visual.
+        /// </summary>
+        internal static readonly CacheMode BitmapCacheMode = new BitmapCache();
         #endregion
 
         #region Template Parts
         /// <summary>
         /// The first <see cref="T:System.Windows.Controls.ContentPresenter"/>.
         /// </summary>
-        private ProjectionHost _firstContentPresenter;
+        private ContentPresenter _firstContentPresenter;
 
         /// <summary>
         /// The second <see cref="T:System.Windows.Controls.ContentPresenter"/>.
         /// </summary>
-        private ProjectionHost _secondContentPresenter;
+        private ContentPresenter _secondContentPresenter;
 
         /// <summary>
         /// The new <see cref="T:System.Windows.Controls.ContentPresenter"/>.
         /// </summary>
-        private ProjectionHost _newContentPresenter;
+        private ContentPresenter _newContentPresenter;
 
         /// <summary>
         /// The old <see cref="T:System.Windows.Controls.ContentPresenter"/>.
         /// </summary>
-        private ProjectionHost _oldContentPresenter;
+        private ContentPresenter _oldContentPresenter;
         #endregion
 
         /// <summary>
@@ -146,11 +151,16 @@ namespace Microsoft.Phone.Controls
         /// <param name="e">The event arguments.</param>
         private void OnNavigating(object sender, NavigatingCancelEventArgs e)
         {
-            // The original toolkit skips the transition when the navigation is
-            // not initiated by the application (e.g. the shell animating the
-            // frame out on deactivation). WPF reports IsNavigationInitiator as
-            // false for every Frame.Navigate call and has no shell-driven
-            // navigation, so there is nothing to filter out here.
+            // If the current application is not the origin
+            // and destination of the navigation, ignore it.
+            // e.g. do not play a transition when the 
+            // application gets deactivated because the shell
+            // will animate the frame out automatically.
+            //if (!e.IsNavigationInitiator)
+            //{
+            //    return;
+            //}
+
             _isForwardNavigation = e.NavigationMode != NavigationMode.Back;
 
             var oldElement = Content as UIElement;
@@ -213,7 +223,6 @@ namespace Microsoft.Phone.Controls
         {
             _readyToTransitionToNewContent = false;
             _contentReady = false;
-            _navigationStopped = false;
 
             if (_performingExitTransition)
             {
@@ -228,7 +237,6 @@ namespace Microsoft.Phone.Controls
 
                 if (_storedOldTransition != null)
                 {
-                    _storedOldTransition.Completed -= OnExitTransitionCompleted;
                     _storedOldTransition.Stop();
                 }
 
@@ -268,10 +276,7 @@ namespace Microsoft.Phone.Controls
             else
             {
                 CompleteTransition(_storedNavigationOutTransition, /*_oldContentPresenter*/ null, _storedOldTransition);
-                _oldContentPresenter?.Prefer3D = false;
             }
-
-            _storedOldTransition?.Completed -= OnExitTransitionCompleted;
 
             _storedNavigationOutTransition = null;
             _storedOldTransition = null;
@@ -299,8 +304,8 @@ namespace Microsoft.Phone.Controls
         {
             base.OnApplyTemplate();
 
-            _firstContentPresenter = GetTemplateChild(FirstTemplatePartName) as ProjectionHost;
-            _secondContentPresenter = GetTemplateChild(SecondTemplatePartName) as ProjectionHost;
+            _firstContentPresenter = GetTemplateChild(FirstTemplatePartName) as ContentPresenter;
+            _secondContentPresenter = GetTemplateChild(SecondTemplatePartName) as ContentPresenter;
             _newContentPresenter = _secondContentPresenter;
             _oldContentPresenter = _firstContentPresenter;
             _useFirstAsNew = true;
@@ -396,11 +401,6 @@ namespace Microsoft.Phone.Controls
                 return;
             }
 
-            if (_newContentPresenter != null && _newContentPresenter.Content != null)
-            {
-                _newContentPresenter.UpdateLayout();
-            }
-
             EnsureStoppedTransition(newTransition);
             newTransition.Completed += delegate
             {
@@ -435,7 +435,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="navigationTransition">The navigation transition.</param>
         /// <param name="presenter">The content presenter.</param>
         /// <param name="transition">The transition instance.</param>
-        private static void PerformTransition(NavigationTransition navigationTransition, ProjectionHost presenter, ITransition transition)
+        private static void PerformTransition(NavigationTransition navigationTransition, ContentPresenter presenter, ITransition transition)
         {
             if (navigationTransition != null)
             {
@@ -458,7 +458,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="navigationTransition">The navigation transition.</param>
         /// <param name="presenter">The content presenter.</param>
         /// <param name="transition">The transition instance.</param>
-        private static void CompleteTransition(NavigationTransition navigationTransition, ProjectionHost presenter, ITransition transition)
+        private static void CompleteTransition(NavigationTransition navigationTransition, ContentPresenter presenter, ITransition transition)
         {
             if (transition != null)
             {
@@ -474,34 +474,35 @@ namespace Microsoft.Phone.Controls
         }
 
         /// <summary>
-        /// Prepares the content presenter for the transition animation: the 3D
-        /// render path is switched on before the first animated frame, and
-        /// interactivity is disabled to prevent accidental touches.
+        /// Updates the content presenter for off-thread compositing for the
+        /// transition animation. Also disables interactivity on it to prevent
+        /// accidental touches.
         /// </summary>
         /// <param name="presenter">The content presenter instance.</param>
-        private static void PrepareContentPresenterForCompositor(ProjectionHost presenter)
+        /// <param name="applyBitmapCache">A value indicating whether to apply
+        /// a bitmap cache.</param>
+        private static void PrepareContentPresenterForCompositor(ContentPresenter presenter, bool applyBitmapCache = true)
         {
             if (presenter != null)
             {
-                // The port does not apply a BitmapCache here: the presenter
-                // already rasterizes its content through Viewport2DVisual3D,
-                // and a second 1x cache only softens the animation.
-                presenter.Prefer3D = true;
+                if (applyBitmapCache)
+                {
+                    presenter.CacheMode = BitmapCacheMode;
+                }
                 presenter.IsHitTestVisible = false;
             }
         }
 
         /// <summary>
-        /// Restores the interactivity for the presenter post-animation and
-        /// returns it to the 2D render path.
+        /// Restores the interactivity for the presenter post-animation, also
+        /// removes the BitmapCache value.
         /// </summary>
         /// <param name="presenter">The content presenter instance.</param>
-        private static void RestoreContentPresenterInteractivity(ProjectionHost presenter)
+        private static void RestoreContentPresenterInteractivity(ContentPresenter presenter)
         {
             if (presenter != null)
             {
                 presenter.CacheMode = null;
-                presenter.Prefer3D = false;
 
                 if (presenter.Opacity != 1)
                 {

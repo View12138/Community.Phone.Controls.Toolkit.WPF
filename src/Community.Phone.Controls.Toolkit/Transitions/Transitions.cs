@@ -11,7 +11,6 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Resources;
-using System.Xml;
 
 namespace Microsoft.Phone.Controls
 {
@@ -24,44 +23,9 @@ namespace Microsoft.Phone.Controls
     internal static class Transitions
     {
         /// <summary>
-        /// The assembly that contains the XAML storyboard resources.
-        /// </summary>
-        private const string StoryboardAssemblyName = "Community.Phone.Controls.Toolkit";
-
-        /// <summary>
-        /// Horizontal center of rotation of the page-level turnstile.
-        /// </summary>
-        /// <remarks>
-        /// The original toolkit rotates exactly around the left edge
-        /// (<c>0</c>). The WP 8.1 system animation pivots slightly outside the
-        /// screen edge, so the port uses a small negative offset to match the
-        /// observed motion. Set this to <c>0</c> to restore the original
-        /// toolkit geometry exactly.
-        /// </remarks>
-        private const double TurnstileCenterOfRotationX = -0.05;
-
-        /// <summary>
-        /// Duration multiplier applied to the turnstile phases.
-        /// </summary>
-        /// <remarks>
-        /// The original storyboards run 0.25 s (exit) and 0.35 s (entry). The
-        /// WP 8.1 system animation is a little slower than that, so both phases
-        /// are slowed down by this factor. The storyboard key times themselves
-        /// stay untouched; the clock speed is scaled instead. Set this to
-        /// <c>1</c> to restore the original timing exactly.
-        /// </remarks>
-        private const double TurnstileDurationScale = 1.2;
-
-        /// <summary>
         /// The cached XAML read from the Storyboard resources.
         /// </summary>
         private static Dictionary<string, string> _storyboardXamlCache;
-
-        /// <summary>
-        /// Guards the storyboard XAML cache, which is shared by every thread
-        /// that creates a transition (the test suite runs on several).
-        /// </summary>
-        private static readonly object StoryboardXamlCacheLock = new object();
 
         /// <summary>
         /// Creates a
@@ -82,19 +46,8 @@ namespace Microsoft.Phone.Controls
             {
                 return null;
             }
-
-            // Port deviation: the turnstile phases are slowed down to match the
-            // WP 8.1 system animation without editing the original key times.
-            if (name == "Turnstile")
-            {
-                storyboard.SpeedRatio = 1.0 / TurnstileDurationScale;
-            }
-
             Storyboard.SetTarget(storyboard, element);
-            Projection projection = ProjectionService.GetProjection(element);
-            return projection == null
-                ? new Transition(element, storyboard)
-                : new ProjectionTransition(element, storyboard);
+            return new Transition(element, storyboard);
         }
 
         /// <summary>
@@ -106,36 +59,27 @@ namespace Microsoft.Phone.Controls
         /// <returns>The <see cref="T:System.Windows.Media.Storyboard"/>.</returns>
         private static Storyboard GetStoryboard(string name)
         {
+            if (_storyboardXamlCache == null)
+            {
+                _storyboardXamlCache = new Dictionary<string, string>();
+            }
             string xaml = null;
-            lock (StoryboardXamlCacheLock)
+            if (_storyboardXamlCache.ContainsKey(name))
             {
-                if (_storyboardXamlCache == null)
+                xaml = _storyboardXamlCache[name];
+            }
+            else
+            {
+                string path = "/Community.Phone.Controls.Toolkit;component/Transitions/Storyboards/" + name + ".xaml";
+                Uri uri = new Uri(path, UriKind.Relative);
+                StreamResourceInfo streamResourceInfo = Application.GetResourceStream(uri);
+                using (StreamReader streamReader = new StreamReader(streamResourceInfo.Stream))
                 {
-                    _storyboardXamlCache = new Dictionary<string, string>();
-                }
-
-                if (_storyboardXamlCache.ContainsKey(name))
-                {
-                    xaml = _storyboardXamlCache[name];
-                }
-                else
-                {
-                    string path = "/" + StoryboardAssemblyName + ";component/Transitions/Storyboards/" + name + ".xaml";
-                    Uri uri = new Uri(path, UriKind.Relative);
-                    StreamResourceInfo streamResourceInfo = Application.GetResourceStream(uri);
-                    using (StreamReader streamReader = new StreamReader(streamResourceInfo.Stream))
-                    {
-                        xaml = streamReader.ReadToEnd();
-                        _storyboardXamlCache[name] = xaml;
-                    }
+                    xaml = streamReader.ReadToEnd();
+                    _storyboardXamlCache[name] = xaml;
                 }
             }
-            // WPF's XamlReader loads from a stream rather than a string.
-            using (StringReader stringReader = new StringReader(xaml))
-            using (XmlReader xmlReader = XmlReader.Create(stringReader))
-            {
-                return XamlReader.Load(xmlReader) as Storyboard;
-            }
+            return XamlReader.Load(xaml) as Storyboard;
         }
 
         /// <summary>
@@ -156,7 +100,7 @@ namespace Microsoft.Phone.Controls
             Storyboard storyboard = GetStoryboard("Roll");
             Storyboard.SetTarget(storyboard, element);
             element.Projection = new PlaneProjection { CenterOfRotationX = 0.5, CenterOfRotationY = 0.5 };
-            return new ProjectionTransition(element, storyboard);
+            return new Transition(element, storyboard);
         }
 
         /// <summary>
@@ -255,7 +199,7 @@ namespace Microsoft.Phone.Controls
             {
                 throw new ArgumentOutOfRangeException("turnstileTransitionMode");
             }
-            element.Projection = new PlaneProjection { CenterOfRotationX = TurnstileCenterOfRotationX };
+            element.Projection = new PlaneProjection { CenterOfRotationX = 0 };
             return GetEnumStoryboard<TurnstileTransitionMode>(element, "Turnstile", turnstileTransitionMode);
         }
 
@@ -280,7 +224,7 @@ namespace Microsoft.Phone.Controls
             {
                 throw new ArgumentOutOfRangeException("turnstileFeatherTransitionMode");
             }
-            element.Projection = new PlaneProjection { CenterOfRotationX = TurnstileCenterOfRotationX };
+            element.Projection = new PlaneProjection { CenterOfRotationX = 0 };
             return new FeatheredTransition(element, new Storyboard(), turnstileFeatherTransitionMode, beginTime);
         }
 
@@ -327,55 +271,6 @@ namespace Microsoft.Phone.Controls
             }
 
             return adjustedRotateTransitionMode;
-        }
-
-        /// <summary>
-        /// A <see cref="T:Microsoft.Phone.Controls.Transition"/> that clears
-        /// the projection it animates once the transition is over.
-        /// </summary>
-        /// <remarks>
-        /// Silverlight left <c>UIElement.Projection</c> assigned with an
-        /// identity projection, which is harmless there. In WPF a projection
-        /// decides whether the element is rasterized through the 3D pipeline,
-        /// so the port releases it when the transition finishes to keep idle
-        /// pages on the plain 2D path.
-        /// </remarks>
-        private sealed class ProjectionTransition : Transition
-        {
-            private readonly Projection _projection;
-            private bool _restored;
-
-            public ProjectionTransition(UIElement element, Storyboard storyboard)
-                : base(element, storyboard)
-            {
-                _projection = ProjectionService.GetProjection(element);
-                Completed += OnProjectionTransitionCompleted;
-            }
-
-            public override void Stop()
-            {
-                base.Stop();
-                RestoreProjection();
-            }
-
-            private void OnProjectionTransitionCompleted(object sender, EventArgs e)
-            {
-                RestoreProjection();
-            }
-
-            private void RestoreProjection()
-            {
-                if (_restored)
-                {
-                    return;
-                }
-
-                _restored = true;
-                if (ReferenceEquals(ProjectionService.GetProjection(_element), _projection))
-                {
-                    ProjectionService.SetProjection(_element, null);
-                }
-            }
         }
     }
 }

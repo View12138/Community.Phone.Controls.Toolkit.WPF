@@ -58,171 +58,22 @@
 	<ItemGroup>
 		<Resource Include="Content\*.png" />
 		<Resource Include="Images\*.png" />
+		<Resource Include="Transitions\Storyboards\*.xaml">
+			<Generator>MSBuild:Compile</Generator>
+			<SubType>Designer</SubType>
+		</Resource>
 	</ItemGroup>
 
 	<ItemGroup>
-		<Page Update="Themes\Controls\*.xaml">
-			<Generator>MSBuild:Compile</Generator>
-			<SubType>Designer</SubType>
-		</Page>
-		<Page Update="Themes\Generic.xaml">
-			<Generator>MSBuild:Compile</Generator>
-			<SubType>Designer</SubType>
-		</Page>
-	</ItemGroup>
-
-	<ItemGroup>
-		<None Remove="Transitions\Storyboards\Roll.xaml" />
-		<None Remove="Transitions\Storyboards\RotateOut180Clockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateOut180CounterClockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateOut90Clockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateOut90CounterClockwise.xaml" />
-		<None Remove="Transitions\Storyboards\SlideDownFadeIn.xaml" />
-		<None Remove="Transitions\Storyboards\SlideUpFadeOut.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelBackwardIn.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelBackwardOut.xaml" />
-		<None Remove="Transitions\Storyboards\RotateIn180Clockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateIn90Clockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateIn180CounterClockwise.xaml" />
-		<None Remove="Transitions\Storyboards\RotateIn90CounterClockwise.xaml" />
-		<None Remove="Transitions\Storyboards\SlideRightFadeOut.xaml" />
-		<None Remove="Transitions\Storyboards\SlideRightFadeIn.xaml" />
-		<None Remove="Transitions\Storyboards\SlideLeftFadeOut.xaml" />
-		<None Remove="Transitions\Storyboards\SlideLeftFadeIn.xaml" />
-		<None Remove="Transitions\Storyboards\SlideDownFadeOut.xaml" />
-		<None Remove="Transitions\Storyboards\SlideUpFadeIn.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelFullScreenOut.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelForwardOut.xaml" />
-		<None Remove="Transitions\Storyboards\TurnstileForwardOut.xaml" />
-		<None Remove="Transitions\Storyboards\TurnstileForwardIn.xaml" />
-		<None Remove="Transitions\Storyboards\TurnstileBackwardIn.xaml" />
-		<None Remove="Transitions\Storyboards\TurnstileBackwardOut.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelForwardIn.xaml" />
-		<None Remove="Transitions\Storyboards\SwivelFullScreenIn.xaml" />
-	</ItemGroup>
-	<ItemGroup>
-		<Resource Include="Transitions\Storyboards\Roll.xaml">
-			<Generator>MSBuild:Compile</Generator>
-			<SubType>Designer</SubType>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateOut180Clockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateOut180CounterClockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateOut90Clockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateOut90CounterClockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideDownFadeIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideUpFadeOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelBackwardIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelBackwardOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateIn180Clockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateIn90Clockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateIn180CounterClockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\RotateIn90CounterClockwise.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideRightFadeOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideRightFadeIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideLeftFadeOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideLeftFadeIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideDownFadeOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SlideUpFadeIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelFullScreenOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelForwardOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\TurnstileForwardOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\TurnstileForwardIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\TurnstileBackwardIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\TurnstileBackwardOut.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelForwardIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-		<Resource Include="Transitions\Storyboards\SwivelFullScreenIn.xaml">
-			<SubType>Designer</SubType>
-			<Generator>MSBuild:Compile</Generator>
-		</Resource>
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Compile Update="Properties\Resources.Designer.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>Resources.resx</DependentUpon>
-	  </Compile>
-	</ItemGroup>
-	<ItemGroup>
-	  <EmbeddedResource Update="Properties\Resources.resx">
-	    <Generator>ResXFileCodeGenerator</Generator>
-	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-	  </EmbeddedResource>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
 	</ItemGroup>
 
 </Project>

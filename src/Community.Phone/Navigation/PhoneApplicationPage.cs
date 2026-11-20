@@ -175,22 +175,6 @@ namespace Microsoft.Phone.Controls
             }
         }
 
-        /// <summary>
-        /// Raises the <see cref="BackKeyPress"/> event.
-        /// </summary>
-        /// <returns><c>true</c> if the navigation should proceed.</returns>
-        public bool RaiseBackKeyPress()
-        {
-            CancelEventArgs args = new CancelEventArgs();
-            EventHandler<CancelEventArgs> handler = BackKeyPress;
-            if (handler != null)
-            {
-                handler(this, args);
-            }
-
-            return !args.Cancel;
-        }
-
         /// <inheritdoc />
         protected virtual void OnNavigatedTo(NavigationEventArgs e)
         {
@@ -239,6 +223,12 @@ namespace Microsoft.Phone.Controls
             }
         }
 
+        internal bool RaiseBackKeyPress()
+        {
+            CancelEventArgs args = new CancelEventArgs();
+            OnBackKeyPress(args);
+            return !args.Cancel;
+        }
         internal void RaiseNavigatedTo(NavigationEventArgs e)
         {
             OnNavigatedTo(e);

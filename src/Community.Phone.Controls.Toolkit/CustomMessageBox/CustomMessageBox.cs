@@ -86,7 +86,7 @@ namespace Microsoft.Phone.Controls
         /// The child container of the popup.
         /// </summary>
         private Grid _container;
-        private ProjectionHost _host;
+        private Grid _contentHost;
 
         #region Title DependencyProperty
 
@@ -460,13 +460,13 @@ namespace Microsoft.Phone.Controls
             _container = new Grid();
             _container.Children.Add(overlay);
 
-            _host = new ProjectionHost
+            _contentHost = new Grid
             {
-                Content = this,
                 VerticalAlignment = IsFullScreen ? VerticalAlignment.Stretch : IsCenterScreen ? VerticalAlignment.Center : VerticalAlignment.Top
             };
+            _contentHost.Children.Add(this);
             // Insert the message box.
-            _container.Children.Add(_host);
+            _container.Children.Add(_contentHost);
 
             // The host window is optional: a host without an Application (a test
             // host, a design surface) still gets a usable dialog.
@@ -578,10 +578,10 @@ namespace Microsoft.Phone.Controls
         private void OnWindowClosed(object sender, EventArgs e)
         {
             _closeRequested = false;
-            if (_host != null)
+            if (_contentHost != null)
             {
-                _host.Content = null;
-                _host = null;
+                _contentHost.Children.Clear();
+                _contentHost = null;
             }
             if (_container != null)
             {

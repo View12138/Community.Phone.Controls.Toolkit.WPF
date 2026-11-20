@@ -132,21 +132,23 @@
                             </VisualStateManager.VisualStateGroups>
                             <!--
                                 The sliding surface is twice as tall as the tile and slides
-                                through a one-tile-high viewport. This wrapper exists because
-                                ProjectionService only wraps an element whose direct parent is
-                                a panel; the clip that hides the band which has slid out of
-                                view comes from the projection host, which clips the content
-                                (not the projected result) exactly like the platform's
-                                projection does - so the flip itself can draw outside the
-                                tile, as it does on the phone.
+                                through a one-tile-high viewport. The projection lives on the
+                                outer grid (the tile's layout slot) and the inner viewport
+                                clips its own content, so the band that has slid out of view
+                                stays hidden while the flip itself can still draw outside the
+                                tile, exactly like the platform's projection does.
                             -->
                             <Grid>
-                            <StackPanel x:Name="Viewport"
+                            <Grid
                                     Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource WidthConverter}}"
                                     Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource HeightConverter}}">
                                 <platform:ProjectionService.Projection>
                                     <platform:PlaneProjection CenterOfRotationY="0.5" x:Name="ViewportProjection"/>
                                 </platform:ProjectionService.Projection>
+                            <StackPanel x:Name="Viewport"
+                                    ClipToBounds="True"
+                                    Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource WidthConverter}}"
+                                    Height="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource HeightConverter}}">
                                 <Grid x:Name="TitlePanel"
                                     RenderTransformOrigin="0.5,0.5"
                                     Width="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Size, Converter={StaticResource WidthConverter}}"
@@ -223,6 +225,7 @@
                                     </Border>
                                 </Grid>
                             </StackPanel>
+                            </Grid>
                             </Grid>
                         </Border>
                     </ControlTemplate>

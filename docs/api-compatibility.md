@@ -1,6 +1,6 @@
 # API 兼容矩阵
 
-本矩阵逐类型列出移植版提供的公共 API 与原始 Windows Phone Toolkit / `Microsoft.Phone` 的对应关系。“完全兼容”指公共 API 与观察到的行为已实现；它**不**表示任意 Windows Phone XAML 可以原样编译 —— WPF 仍需要调整命名空间，投影通常需要包装元素（`ListBoxItem` 使用默认模板内的 `ProjectionHost` 部件）。
+本矩阵逐类型列出移植版提供的公共 API 与原始 Windows Phone Toolkit / `Microsoft.Phone` 的对应关系。“完全兼容”指公共 API 与观察到的行为已实现；它**不**表示任意 Windows Phone XAML 可以原样编译 —— WPF 仍需要调整命名空间；投影类型可直接作用于任意 `UIElement`。
 
 ## 兼容级别
 
@@ -43,12 +43,15 @@
 
 | 原始类型 / 用法 | 移植类型 | 级别 | XAML 修改 | 行为差异 |
 |---|---|---|---|---|
-| `UIElement.Projection` | `ProjectionHost.Projection` / `ProjectionService.Projection` | C/D | 显式 `ProjectionHost`，或在元素上写 `platform:ProjectionService.Projection`（按需包装） | WPF 元素没有原地投影属性；默认 `ListBoxItem` 模板已含 `ProjectionHost` 部件，可直接给列表项赋投影；storyboard 路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。 |
-| `System.Windows.Media.PlaneProjection` | `Microsoft.Phone.Controls.PlaneProjection` | C/D | `platform:` 前缀 | 通过 `Viewport2DVisual3D` 做真实 3D；固定 999 DIP 透视深度；旋转、中心、偏移的正负与 XAML 一致。 |
+| `UIElement.Projection` | `ProjectionService.Projection`（附加属性） | C/D | 任意元素写 `platform:ProjectionService.Projection` | WPF 元素没有原地投影属性；附加属性直接作用于元素本身（不包装、不重 Parent、不改变布局），storyboard 路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`。 |
+| `System.Windows.Media.PlaneProjection` | `Microsoft.Phone.Controls.PlaneProjection` | C/D | `platform:` 前缀 | 平面投影按精确单应变换由 `ShaderEffect` 渲染；固定 999 DIP 透视深度；旋转、中心、偏移的正负与 XAML 一致。 |
 | `System.Windows.Media.Matrix3DProjection` | `Microsoft.Phone.Controls.Matrix3DProjection` | C/D | 同上 | 矩阵使用 0..1 归一化坐标。 |
-| — | `Projection`、`ProjectionService`、`ProjectionHost` | D | — | 移植新增：投影基类、附加属性服务与 3D 宿主。 |
-| `TiltEffect` | `TiltEffect`（toolkit） | C/D | `phone:TiltEffect.IsTiltEnabled`、`SuppressTilt`、`TiltableItems` | 普通控件按需包装；`ListBoxItem` 复用模板部件；使用隧道式 `PreviewMouse*`，容器可倾斜子按钮而不吞点击；其余无法包装的 item 容器跳过。 |
-| `TurnstileFeatherEffect` | `TurnstileFeatherEffect`（toolkit） | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标从页面可视树收集；`ListBoxItem` 复用模板部件，其余无法包装的 item 容器跳过。 |
+| — | `Projection`、`ProjectionService` | D | — | 移植新增：投影基类与附加属性服务（`Projection`、`PreferShader`、`PerspectiveDepth`、`HitTestPolicy`）。 |
+| — | `HomographyMatrix`、`ProjectionMath.CreateHomography`/`GetPlaneDistance` | D | — | 移植新增：3×3 齐次变换与“`Matrix3D` → 单应”推导，可用于自建渲染器或验证。 |
+| — | `PerspectiveShaderEffect` | D | — | 移植新增：驱动投影的 `ShaderEffect`，常量布局见架构文档 §4.4；正常使用由服务/宿主管理。 |
+| — | `ProjectionService.EffectConflictBehavior`、`EffectConflict`、`PreferShader`、`HitTestPolicy` | D | `platform:ProjectionService.PreferShader`、`platform:ProjectionService.HitTestPolicy` | 移植新增：原有效果的冲突策略与事件、identity 期间保持着色器路径、投影期间的命中测试策略。 |
+| `TiltEffect` | `TiltEffect`（toolkit） | C/D | `phone:TiltEffect.IsTiltEnabled`、`SuppressTilt`、`TiltableItems` | 直接给控件赋投影（不包装）；使用隧道式 `PreviewMouse*`，容器可倾斜子按钮而不吞点击。 |
+| `TurnstileFeatherEffect` | `TurnstileFeatherEffect`（toolkit） | C/D | `phone:TurnstileFeatherEffect.FeatheringIndex` | 目标从页面可视树收集；直接投影 + `RenderTransform` 组合。 |
 | `SlideInEffect` | `SlideInEffect`（toolkit） | C/D | `phone:SlideInEffect.LineIndex` | 订阅宿主 Pivot 的选择变化，按行索引交错位移/透明度动画；Pivot 自身无需该效果。 |
 
 ## 导航与转场
@@ -57,7 +60,7 @@
 |---|---|---|---|
 | `PhoneApplicationFrame` | 同名 | B/C | WPF journal / `NavigationService`；方向保留默认枚举值，不按尺寸推断。 |
 | `PhoneApplicationPage` | 同名 | B/C | 生命周期由 Frame 触发；返回导航保留现有实例。 |
-| `TransitionFrame` | 同名 | B | 自定义模板，部件是两个 `ProjectionHost`。 |
+| `TransitionFrame` | 同名 | B | 自定义模板，部件是两个 `ContentPresenter`。 |
 | `TransitionService.NavigationInTransition` / `NavigationOutTransition` | 同名 | A | 保留附加属性名与 `Forward`/`Backward` 依赖属性。 |
 | `NavigationInTransition` / `NavigationOutTransition` / `NavigationTransition` | 同名 | A | 保留类型层次。 |
 | `ITransition` / `Transition` | 同名 | A/B | 保留 API 面；用 WPF `Storyboard` 与自维护状态。 |
@@ -137,7 +140,7 @@
 |---|---|---|
 | `PlaneProjection` | `CenterOfRotationX` / `CenterOfRotationY` | `0.5` |
 | `PlaneProjection` | `CenterOfRotationZ`、旋转、偏移 | `0` |
-| `ProjectionHost` | `PerspectiveDepth` / `Prefer3D` | `999` / `false` |
+| `ProjectionService` | `PerspectiveDepth` / `PreferShader` / `HitTestPolicy` | `999` / `false` / `Layout` |
 | `Rating` | `RatingItemCount` / `Value` / 布尔开关 | `5` / `0` / `false` |
 | `ToggleSwitch` | `IsChecked` | `false` |
 | `ListPicker` | `SelectedIndex` / `ItemCountThreshold` / `ListPickerMode` | `-1` / `5` / `Normal` |
@@ -159,9 +162,9 @@
 | `<phone:ToggleSwitch ... />`、`<phone:Rating ... />`、`<phone:WrapPanel ... />`、`<phone:AutoCompleteBox ... />` | 只需改命名空间。 |
 | `<phone:HyperlinkButton NavigateUri="..." />` | 可用；`TargetName` 不受支持。 |
 | `<phone:TransitionService.NavigationInTransition>...` | 可用。 |
-| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `platform:ProjectionService.Projection` 或 `platform:ProjectionHost`。 |
-| `<Grid platform:ProjectionService.Projection="...">` | 可用：元素按需被包进 `ProjectionHost`；父容器可为 `Panel`、`ItemsControl`、`ContentControl` 或 `Page`，`ListBoxItem` 则复用模板中名为 `ProjectionHost` 的部件。 |
-| `<platform:ProjectionHost.Projection><platform:PlaneProjection .../></platform:ProjectionHost.Projection>` | 可用。 |
+| `<Grid.Projection><PlaneProjection .../></Grid.Projection>` | WPF 不编译；改用 `platform:ProjectionService.Projection`。 |
+| `<Grid platform:ProjectionService.Projection="...">` | 可用：投影直接作用于该元素，任何 `UIElement` 都可以，不需要包装容器。 |
+| `<platform:ProjectionService.Projection><platform:PlaneProjection .../></platform:ProjectionService.Projection>` | 可用：投影作用于该元素，不需要包装容器。 |
 | `shell:SystemTray.IsVisible="..."` | 可用：`SystemTray` 提供 `IsVisibleProperty` 附加属性；挂在页面、Frame 或 `Window` 上时同步到状态载体。 |
 | `shell:ApplicationBar` 声明在 `PhoneApplicationPage.ApplicationBar` 上 | 可用；由 frame 的呈现器渲染。 |
 | `platform:PhoneApplicationPage` 的 `SupportedOrientations` / `Orientation` | 可解析并保留；不随窗口尺寸变化，不强制旋转桌面窗口。 |
@@ -170,10 +173,10 @@
 
 ## 按功能的兼容注意事项
 
-1. **投影与 3D**：真实 3D 渲染与动画；`<Grid.Projection>` 不编译，但给元素赋 `platform:ProjectionService.Projection`（或 `element.Projection`）会按需包装（`ListBoxItem` 复用默认模板内的 `ProjectionHost` 部件）。相机复现 XAML 固定的 999 DIP 透视深度；依赖“透视原点移出元素边界”的效果存在差异（见[已知限制](known-limitations.md#4-投影与-3d)）。投影类型在 `Community.Phone`，storyboard 内的 `phone:` 别名也指向该程序集。
+1. **投影与 3D**：平面投影使用单应变换着色器渲染，支持动画；`<Grid.Projection>` 不编译，但给元素赋 `platform:ProjectionService.Projection`（或 `element.Projection`）即可，元素不被包装。相机复现 XAML 固定的 999 DIP 透视深度；差异见[已知限制](known-limitations.md#4-投影)。投影类型在 `Community.Phone`，storyboard 内的 `phone:` 别名也指向该程序集。
 2. **转场**：时序、角度与模式取自原始 storyboard 资源；WPF 的 storyboard 状态查询与 Silverlight 不同，移植版自行跟踪。
 3. **导航**：保留 WPF `Frame`/`Page` 与 journal 行为；页面生命周期由移植 Frame 触发；`PhoneApplicationService` 的 idle 策略没有 WPF 系统等价物。
-4. **效果**：`TiltEffect`、`TurnstileFeatherEffect` 与 `SlideInEffect` 使用真实投影/变换管线。`ListBoxItem` 通过模板部件参与；没有该部件的由 `ItemsControl` 生成的 item 容器，以及无法按需包装的元素，会被跳过。
+4. **效果**：`TiltEffect`、`TurnstileFeatherEffect` 与 `SlideInEffect` 使用真实投影/变换管线，并把投影直接赋给目标元素（不再包装）。
 5. **控件**：依赖属性面与核心行为保留；WPF 缺少 picker/popup 基础设施时，视觉细节与模态宿主不同。
 6. **本地化**：包含原始 resx 资源，`ControlResources` 使用 `CurrentUICulture`。
 7. **主题**：`ThemeManager` 在运行时改色；库内模板使用 `DynamicResource`，应用 XAML 也应使用 `DynamicResource`。`Themes/Theme.xaml` 在应用级字典中会被 WPF 冻结，`ThemeManager` 首次应用时把它替换为可变副本。

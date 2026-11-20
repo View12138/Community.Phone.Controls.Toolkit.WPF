@@ -1,9 +1,13 @@
-﻿using System;
+﻿using Microsoft.Phone.Controls;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Markup;
 using System.Windows.Media;
+using System.Xml;
 
 namespace Microsoft.Phone;
 
@@ -39,5 +43,15 @@ internal static class Extensions
     extension(DesignerProperties)
     {
         public static bool IsInDesignTool { get => false; }
+    }
+
+    extension(XamlReader)
+    {
+        public static object Load(string xaml)
+        {
+            using StringReader stringReader = new StringReader(xaml);
+            using XmlReader xmlReader = XmlReader.Create(stringReader);
+            return XamlReader.Load(xmlReader);
+        }
     }
 }

@@ -11,7 +11,7 @@
 | `Community.Phone.Controls.Toolkit` | `Microsoft.Phone.Controls` | 转场、效果、toolkit 控件与主题 |
 | `Community.Phone` | `Microsoft.Phone` | `Microsoft.Phone.Controls` 的页面/框架/导航类型、`Pivot`、`LongListSelector`、`HyperlinkButton`、`Panorama`、投影类型，以及全部 `Microsoft.Phone.Shell` 类型 |
 
-投影类型（`ProjectionHost`、`ProjectionService`、`PlaneProjection`、`Matrix3DProjection`）在 `Community.Phone` 程序集，与页面/框架共用 `platform:` 前缀；转场、效果和其余控件在 toolkit 程序集，使用 `phone:` 前缀。两个程序集共用 `Microsoft.Phone.Controls` 命名空间，XAML 必须分别声明前缀（见[架构设计 §3](docs/architecture.md#3-命名空间与-xaml-前缀)）。使用方不需要额外安装兼容层包。
+投影类型（`ProjectionService`、`PlaneProjection`、`Matrix3DProjection`）在 `Community.Phone` 程序集，与页面/框架共用 `platform:` 前缀；转场、效果和其余控件在 toolkit 程序集，使用 `phone:` 前缀。两个程序集共用 `Microsoft.Phone.Controls` 命名空间，XAML 必须分别声明前缀（见[架构设计 §3](docs/architecture.md#3-命名空间与-xaml-前缀)）。使用方不需要额外安装兼容层包。
 
 ## 环境要求
 
@@ -103,28 +103,33 @@ xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
 
 ## 投影
 
-WPF 的 `UIElement` 没有 `Projection` 属性。投影类型位于 `Community.Phone` 程序集，使用 `platform:` 前缀。`ProjectionHost` 的内容仍是可交互的实时视觉树；也可以在任意元素上赋 `ProjectionService.Projection`，由服务按需包装：
+WPF 的 `UIElement` 没有 `Projection` 属性。投影类型位于 `Community.Phone` 程序集，使用 `platform:` 前缀。任何 `UIElement` 都可以直接赋投影：元素不会被包装、不会被重新 Parent，布局、命中测试与输入路由保持不变。
 
 ```xml
-<platform:ProjectionHost Width="320" Height="200"
-        xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone">
-    <Border Background="#FF1F1F1F">
-        <TextBlock Text="Hello, Metro" Foreground="White" />
-    </Border>
-    <platform:ProjectionHost.Projection>
-        <platform:PlaneProjection RotationY="-35" RotationX="8" />
-    </platform:ProjectionHost.Projection>
-</platform:ProjectionHost>
+<Grid platform:ProjectionService.Projection="{StaticResource MyProjection}"
+      xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone">
+    ...
+</Grid>
 ```
 
 ```csharp
-// 元素会按需被包进 ProjectionHost，清除投影时自动解包。
-element.Projection = new PlaneProjection { RotationY = -35 };
+// 直接作用于元素本身；清除投影即恢复原状（包括元素原有的 Effect）。
+ProjectionService.SetProjection(element, new PlaneProjection { RotationY = -35 });
 ```
 
-`ListBoxItem` 无需手动包装：默认主题模板 `Community.Phone/Themes/Controls/ListBox.xaml` 已提供名为 `ProjectionHost` 的部件，`ProjectionService` 直接把投影应用到该部件，不改动 items panel 的子元素。自定义 `ListBoxItem` 模板必须保留同名部件；由 `ItemsControl` 生成且没有该部件的 item 容器（如 `ComboBoxItem`）不能这样投影。
+需要“裁剪内容、但允许投影画到布局槽之外”时，用两层普通元素即可：外层负责投影，内层用 `ClipToBounds` 裁内容。`HubTile` 的翻转就是这个结构。
 
-`PlaneProjection` 继承 `Animatable`，可直接创建动画：
+```xml
+<Grid platform:ProjectionService.Projection="{StaticResource Flip}">
+    <Grid ClipToBounds="True">
+        <StackPanel>...</StackPanel>
+    </Grid>
+</Grid>
+```
+
+`ListBoxItem` 直接投影即可，不需要模板部件，也不影响虚拟化：只有实际生成的容器会被栅格化，滚动离开的容器随虚拟化回收。
+
+`PlaneProjection` 继承 `Animatable`，可直接创建动画，storyboard 路径保持原样：
 
 ```csharp
 projection.BeginAnimation(
@@ -135,7 +140,9 @@ projection.BeginAnimation(
     });
 ```
 
-透视模型、几何与裁剪规则见[架构设计 §4](docs/architecture.md#4-投影子系统)。
+注意：放在 `Style`/`ItemContainerStyle` 里的 `Freezable` 会被 WPF 冻结、不能动画；需要动画时把 `PlaneProjection` 放进 `DataTemplate`（每个容器一个实例）或按容器在代码里创建。
+
+透视模型、单应推导、着色器坐标空间与裁剪规则见[架构设计 §4](docs/architecture.md#4-投影子系统)；限制见[已知限制 §4](docs/known-limitations.md#4-投影)。
 
 ## 导航与页面状态
 
@@ -217,7 +224,7 @@ dotnet run --project samples\Community.Phone.Controls.Toolkit.Sample
 | `Samples/SlideInEffectSample.xaml` | `SlideInEffect` 逐项动画 |
 | `Samples/ToggleSwitchSample.xaml`、`Samples/CustomMessageBoxSample.xaml` | 对应控件与消息框 |
 | `Samples/DateTimePickerSample.xaml` | 日期/时间选择器及其 picker 页面 |
-| `Pages/ProjectionPage.xaml` | `ProjectionHost` 与投影动画 |
+| `Pages/ProjectionPage.xaml` | 任意元素投影、ListBox 逐项投影 |
 | `Samples/TransitionsSample.xaml` → `Samples/NavigationTransitionSample1.xaml` | 选择转场族并用它导航往返（`SampleNavigator` 同时设置两侧） |
 | `Samples/FeatheredTransitionsSample1.xaml` → `Samples/TurnstileFeatherEffectSample1.xaml` | 逐元素羽化进场与退场 |
 | `Samples/TiltEffectSample.xaml`、`Samples/ContextMenuSample.xaml`、`Samples/ContextMenuPositionTest.xaml` | 倾斜效果、上下文菜单 |

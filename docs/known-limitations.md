@@ -33,21 +33,25 @@
 4. **主题颜色**：库内模板使用 `DynamicResource`，运行时切换会就地更新。应用 XAML 中用 `StaticResource` 解析的主题画刷会保留解析时的值，动画关键帧里捕获的颜色只在模板重新应用时刷新；应用 XAML 请使用 `DynamicResource`。
 5. **屏幕尺寸**：不强制 WP 布局常量（480×800、768×1280 等），示例使用桌面窗口尺寸。
 
-## 4. 投影与 3D
+## 4. 投影
 
-1. **XAML 面**：WPF `UIElement` 没有 `Projection` 属性，也不能给密封框架类型增加属性元素。原始 `<Grid.Projection>` 需改为同一元素上的 `platform:ProjectionService.Projection`（按需包装）或显式 `platform:ProjectionHost`。投影类型编译在 `Community.Phone` 程序集，使用 `platform:` 前缀。
-2. **透视**：相机复现 XAML 固定的 999 DIP 透视深度与旋转/偏移符号，因此投影缩放与透视收缩与 WP 一致。差异在 `TurnstileFeatherEffect`：原版把每个羽化元素的透视原点平移到页面垂直中心，而 `ProjectionHost` 与元素同尺寸且裁剪 3D 内容，因此移植版让元素绕自身中心旋转；角度、错峰延迟与透明度时序一致。
-3. **`Matrix3DProjection`**：矩阵按 0..1 归一化坐标解释再转换为像素空间；复杂矩阵没有验证。
-4. **包装限制**：元素级投影只作用于直接宿主，复用祖先宿主会把整页一起投影。`ListBoxItem` 依赖主题模板中名为 `ProjectionHost` 的部件（`Community.Phone/Themes/Controls/ListBox.xaml`）：模板应用后服务通过 `Template.FindName` 直接复用它，不重父级化；自定义模板必须保留同名部件。其他元素按需创建宿主，按父容器类型插入 `Panel.Children`、`ItemsControl.Items`、`ContentControl.Content` 或 `Page.Content` 并恢复布局属性，`ContentPresenter` 同样可以包装。由 `ItemsControl` 生成且模板没有该部件的 item 容器（如 `ComboBoxItem`）无法可靠包装。
-5. **布局**：Host 同时 measure/arrange 2D 子元素与隐藏的 3D viewport；投影固定尺寸内容时建议给 Host 显式 `Width`/`Height`。
-6. **命中测试**：Host 与内容可用；嵌套 Host 和变换后的内容可能改变命中坐标。
-7. **文本清晰度**：`Viewport2DVisual3D` 把内容作为纹理渲染，投影状态下 ClearType 变为灰度抗锯齿；几何保持 1:1。
-8. **软件渲染**：无硬件加速时 3D 回退到软件渲染，性能与视觉质量下降。
+1. **XAML 面**：WPF `UIElement` 没有 `Projection` 属性，也不能给密封框架类型增加属性元素。原始 `<Grid.Projection>` 改为同一元素上的 `platform:ProjectionService.Projection`。投影类型编译在 `Community.Phone` 程序集，使用 `platform:` 前缀。
+2. **透视**：相机复现 XAML 固定的 999 DIP 透视深度（`platform:ProjectionService.PerspectiveDepth` 可按元素改），因此旋转/偏移的符号、透视收缩与 WP 一致。差异在 `TurnstileFeatherEffect`：原版把每个羽化元素的透视原点平移到页面垂直中心，移植版让元素绕自身中心旋转；角度、错峰延迟与透明度时序一致。
+3. **`Matrix3DProjection`**：矩阵按 0..1 归一化坐标解释再转换为像素空间，与旧后端逐点一致（`tests/Community.Phone.Tests` 覆盖，离屏对照误差 ≤ 1 px）。
+4. **`UIElement.Effect` 是单一属性**：投影需要占用该属性。元素已有 `DropShadowEffect`/`BlurEffect` 时，默认策略 `EffectConflictBehavior.Replace` 会保存原效果、投影移除后恢复，并触发 `ProjectionService.EffectConflict`；设为 `Preserve` 则保留原效果、跳过投影。WPF 没有效果链，无法同时渲染两个效果。
+5. **裁剪**：effect 的 Padding 只扩大输出区域，父级 `ClipToBounds`、父级 `Clip`、`ScrollViewer` 视口和元素自身 `Clip` 仍会裁掉投影溢出部分。填充后的输出面每轴上限 4096 DIP，接近侧视时超出的部分被裁掉。
+6. **命中测试与输入**：着色器只改变视觉输出，布局槽和原生命中测试区域不变。因此被投影的元素仍按**未投影**的矩形接收输入；旋转后视觉与可点击区域会不一致。默认策略 `ProjectionHitTestPolicy.Layout` 保持这一行为；`platform:ProjectionService.HitTestPolicy="Disabled"` 会在着色器挂载期间把元素移出命中测试并在摘除时恢复 `IsHitTestVisible`。也可以直接设置 `IsHitTestVisible = false`（例如转场动画期间）。基于逆 Homography 的 `ProjectionHitTestService` 尚未实现：WPF 的事件路由、鼠标捕获、拖动与焦点无法只靠着色器与视觉保持一致。
+7. **文本清晰度**：着色器把元素作为纹理处理，投影状态下 ClearType 变为灰度抗锯齿。identity 且未设置 `PreferShader` 时不挂载着色器，元素保持普通 2D 渲染。
+8. **动画与 `Freezable`**：通过 `Style`/`ItemContainerStyle` 共享的 `PlaneProjection` 会被 WPF 冻结，**不能动画**（`BeginAnimation` 抛 `InvalidOperationException`）。需要动画时把投影放进 `DataTemplate`（每个容器一个实例，绑定到页面上的 `double` 属性），或按容器在代码里创建。
+9. **嵌套**：元素在已投影的父级内部时，父子各自栅格化一次；两层 effect 都工作，但每层都会产生一张中间表面。
+10. **软件渲染与着色器可用性**：`ShaderEffect` 需要像素着色器支持（WPF 软件渲染会模拟执行，但很慢）。着色器资源从程序集加载失败时，`PerspectiveShaderEffect` 报告不可用，渲染器不挂载效果——元素保持未投影状态，并在 `Debug` 输出中记录原因，不会在渲染过程中抛异常。
+11. **后端已切换**：`Viewport3D`/`Viewport2DVisual3D` 后端与 `ProjectionHost` 容器都已移除，投影只通过 `ProjectionService` 附加属性生效。
+12. **需要裁剪内容时**：投影结果可以画到布局槽之外，而“把内容裁到槽内”需要用内层容器自己声明 `ClipToBounds="True"`（见 `HubTile` 模板）：外层元素负责投影，内层元素负责裁剪，两者分离。
 
 ## 5. 转场与效果
 
 1. **Storyboard 状态**：WPF 对尚不存在的时钟调用无参 storyboard 控制方法会抛异常，`Pause`/`Resume`/`Seek`/`SkipToFill` 需要宿主对象。因此 `Transition` 以可控方式启动 storyboard、自行跟踪状态，并保证每次运行最多触发一次 `Completed`。`TiltEffect` 同样用 begun 标志代替状态查询。
-2. **模板部件**：`TransitionFrame` 需要两个名为 `FirstContentPresenter`、`SecondContentPresenter` 的 `ProjectionHost` 部件（在 `Community.Phone` 中，模板需用 `platform:` 前缀）；使用普通 `ContentPresenter` 的自定义模板不会运行转场。
+2. **模板部件**：`TransitionFrame` 需要两个名为 `FirstContentPresenter`、`SecondContentPresenter` 的 `ContentPresenter` 部件；缺少它们的自定义模板不会运行转场。
 3. **时序**：直接播放原版 storyboard XAML，因此时长、关键时间、角度与缓动是原值；WPF 与 Silverlight 对同一缓动函数的求值可能有细微差异，视觉接近但不保证逐帧一致。Turnstile 有两处调优常量（轴心 `-0.05`、时长 `×1.2`），设回 `0` / `1` 即还原原工具包。`TurnstileFeather` 的 storyboard 由代码合成。
 4. **导航行为**：原版会忽略非应用发起的导航（如应用停用时由 shell 播放的退场）。WPF 对每次 `Frame.Navigate` 都报告 `IsNavigationInitiator == false`，也没有 shell 发起的导航，因此去掉该判断。转场工厂抛出的异常会向上传播（与原版一致），没有回退事件。
 5. **出站转场属于被离开的页面**：想要特定退场动画的页面必须自己声明，或在导航前用 `TransitionService.SetNavigationOutTransition` 设置。
@@ -98,7 +102,7 @@
 3. 转场只验证了“播放原版 storyboard 资源”这一实现事实，没有逐帧像素对比；只有 Turnstile 的轴心与时长为手动调优值。
 4. 应用栏的栏高、槽位、圆形图标、菜单与预留空间由实现决定，仅 ListPicker 完整模式页面曾与 WP 8.1 截图对比；`SystemTray` 没有任何绘制。
 5. 输入通过路由事件与合成事件覆盖，没有物理触摸设备，因此 `TiltEffect`、manipulation 与拖拽行为缺少真实输入验证。
-6. 日期/时间 picker 的页面交互、全部 50 个文化的资源、高 DPI/多显示器/软件渲染 3D、`AutoCompleteBox` 的 popup 布局与 `Panorama` 手势均未系统验证。`ListBoxItem` 投影通过模板部件接入，尚未与原版列表项动画做视觉对比；自定义模板未提供该部件时也不会投影。
+6. 日期/时间 picker 的页面交互、全部 50 个文化的资源、高 DPI/多显示器/软件渲染 3D、`AutoCompleteBox` 的 popup 布局与 `Panorama` 手势均未系统验证。列表项投影直接作用于容器，但尚未与原版列表项动画做视觉对比。
 
 ## 10. 手动验证步骤
 
@@ -132,7 +136,7 @@ dotnet run --project samples\Community.Phone.Controls.Toolkit.Sample
 
 1. 在 `ListBoxItem.Loaded` 后设置 `element.Projection = new PlaneProjection { RotationY = -35 };`（`using Microsoft.Phone.Controls;`）。
 2. 确认列表项在真实 3D 中倾斜，内容与选择交互仍可用。
-3. 替换为未提供 `ProjectionHost` 部件的自定义 `ListBoxItem.Template` 时，投影不会生效。
+3. 列表项投影不依赖模板部件；若元素自身有 `Clip`，投影输出也会被该 `Clip` 裁掉。
 
 ### 包消费
 

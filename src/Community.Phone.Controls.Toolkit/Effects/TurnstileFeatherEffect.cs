@@ -12,7 +12,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Microsoft.Phone.Controls.Primitives;
 
 namespace Microsoft.Phone.Controls
@@ -106,39 +105,19 @@ namespace Microsoft.Phone.Controls
         /// The easing function that defines the exponential inwards 
         /// interpolation of the storyboards.
         /// </summary>
-        private static readonly ExponentialEase TurnstileFeatheringExponentialEaseIn = CreateFeatheringEase(EasingMode.EaseIn);
+        private static readonly ExponentialEase TurnstileFeatheringExponentialEaseIn = new ExponentialEase() { EasingMode = EasingMode.EaseIn, Exponent = 6 };
 
         /// <summary>
         /// The easing function that defines the exponential outwards
         /// interpolation of the storyboards.
         /// </summary>
-        private static readonly ExponentialEase TurnstileFeatheringExponentialEaseOut = CreateFeatheringEase(EasingMode.EaseOut);
-
-        /// <summary>
-        /// Creates a frozen easing function. Frozen freezables can be used by
-        /// storyboards on any UI thread; an unfrozen one stays affiliated with
-        /// the dispatcher that first used it.
-        /// </summary>
-        /// <param name="mode">The easing mode.</param>
-        private static ExponentialEase CreateFeatheringEase(EasingMode mode)
-        {
-            ExponentialEase ease = new ExponentialEase() { EasingMode = mode, Exponent = 6 };
-            ease.Freeze();
-            return ease;
-        }
+        private static readonly ExponentialEase TurnstileFeatheringExponentialEaseOut = new ExponentialEase() { EasingMode = EasingMode.EaseOut, Exponent = 6 };
 
         /// <summary>
         /// The property path used to map the animation's target property
         /// to the RotationY property of the plane projection of a UI element.
         /// </summary>
-        /// <remarks>
-        /// WPF has no <c>UIElement.Projection</c>; the port applies the
-        /// projection through <see cref="ProjectionService"/>, so the path is
-        /// built from the dependency properties instead of a XAML string that
-        /// names <c>UIElement</c>.
-        /// </remarks>
-        private static readonly PropertyPath RotationYPropertyPath =
-            ProjectionService.GetProjectionPropertyPath(PlaneProjection.RotationYProperty);
+        private static readonly PropertyPath RotationYPropertyPath = new PropertyPath("(0).(1)", ProjectionService.ProjectionProperty, PlaneProjection.RotationYProperty);
 
         /// <summary>
         /// The property path used to map the animation's target property
@@ -168,11 +147,6 @@ namespace Microsoft.Phone.Controls
         /// projections and transforms to be restored.
         /// </summary>
         private static bool _pendingRestore;
-
-        /// <summary>
-        /// The dispatcher that owns <see cref="_featheringTargets"/>.
-        /// </summary>
-        private static Dispatcher _featheringDispatcher;
 
         /// <summary>
         /// Default list of types that cannot be feathered.
@@ -533,22 +507,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="e">The event information.</param>
         private static void Target_Unloaded(object sender, RoutedEventArgs e)
         {
-            FrameworkElement element = sender as FrameworkElement;
-
-            if (element == null)
-            {
-                return;
-            }
-
-            // Wrapping the element (done when it subscribes) raises Unloaded.
-            // Removing the subscription here would undo it, so a transition
-            // would then find no targets for the page.
-            if (element.Parent is ProjectionHost)
-            {
-                return;
-            }
-
-            UnsubscribeFrameworkElement(element);
+            UnsubscribeFrameworkElement((FrameworkElement)sender);
         }
 
         /// <summary>
@@ -623,131 +582,95 @@ namespace Microsoft.Phone.Controls
         /// Returns the set of weak references to the items 
         /// that must be animated.
         /// </summary>
-        /// <param name="pageElement">
-        /// The page (or its root element) that the transition is applied to.
-        /// </param>
         /// <returns>
         /// A set of weak references to items sorted by their feathering index.
         /// </returns>
-        /// <remarks>
-        /// The targets are read from the page's visual tree instead of from
-        /// the attached-property subscriptions: an incoming page is composed
-        /// before it is connected to the frame, so its elements have not
-        /// subscribed (and the Loaded/SizeChanged events that would subscribe
-        /// them have not run) when the transition is composed.
-        /// </remarks>
-        private static IList<WeakReference> GetTargetsToAnimate(FrameworkElement pageElement)
+        private static IList<WeakReference> GetTargetsToAnimate()
         {
-            if (pageElement == null)
+            List<WeakReference> references;
+            List<WeakReference> targets = new List<WeakReference>();
+            PhoneApplicationPage page = null;
+            PhoneApplicationFrame frame = Application.Current.RootVisual as PhoneApplicationFrame;
+
+            if (frame != null)
             {
-                PhoneApplicationFrame frame = GetRootVisual() as PhoneApplicationFrame;
-                pageElement = frame != null ? frame.Content as FrameworkElement : null;
+                page = frame.Content as PhoneApplicationPage;
             }
 
-            if (pageElement == null)
+            if (page == null)
             {
                 return null;
             }
 
-            List<WeakReference> references = new List<WeakReference>();
-            CollectFeatheringTargets(pageElement, pageElement, references);
-
-            if (references.Count == 0)
+            if (!_pagesToReferences.TryGetValue(page, out references))
             {
                 return null;
             }
 
-            // OrderBy is stable, so elements that share a feathering index keep
-            // their visual-tree order.
-            return references
-                .OrderBy(r => r.Target is DependencyObject target ? GetFeatheringIndex(target) : int.MaxValue)
-                .ToList();
-        }
-
-        /// <summary>
-        /// Gets the application's root visual, or null when there is no
-        /// application (for example a WPF window that is shown without one).
-        /// </summary>
-        private static UIElement GetRootVisual()
-        {
-            Application application = Application.Current;
-            return application != null ? application.RootVisual : null;
-        }
-
-        /// <summary>
-        /// Collects the elements that carry a feathering index from a visual
-        /// tree.
-        /// </summary>
-        /// <param name="root">The page that the targets must belong to.</param>
-        /// <param name="node">The node being inspected.</param>
-        /// <param name="targets">The list that receives the targets.</param>
-        private static void CollectFeatheringTargets(FrameworkElement root, DependencyObject node, List<WeakReference> targets)
-        {
-            int count = VisualTreeHelper.GetChildrenCount(node);
-
-            for (int i = 0; i < count; i++)
+            foreach (WeakReference r in references)
             {
-                DependencyObject child = VisualTreeHelper.GetChild(node, i);
-                FrameworkElement element = child as FrameworkElement;
+                FrameworkElement target = r.Target as FrameworkElement;
 
-                if (element != null && GetFeatheringIndex(element) >= 0)
+                // If target is null, skip.
+                if (target == null)
                 {
-                    AddFeatheringTarget(root, element, targets);
+                    continue;
                 }
 
-                CollectFeatheringTargets(root, child, targets);
-            }
-        }
-
-        /// <summary>
-        /// Feathers a composite control's items the way the original effect
-        /// does, and the element itself otherwise.
-        /// </summary>
-        /// <param name="root">The page that the targets must belong to.</param>
-        /// <param name="element">The element carrying the feathering index.</param>
-        /// <param name="targets">The list that receives the targets.</param>
-        private static void AddFeatheringTarget(FrameworkElement root, FrameworkElement element, List<WeakReference> targets)
-        {
-            if (NonPermittedTypes.Contains(element.GetType()) || !IsOnScreen(element, root))
-            {
-                return;
-            }
-
-            ListBox listBox = element as ListBox;
-            LongListSelector longListSelector = element as LongListSelector;
-            Pivot pivot = element as Pivot;
-
-            if (listBox != null)
-            {
-                // If the target is a ListBox, feather its items individually.
-                listBox.GetItemsInViewPort(targets);
-            }
-            else if (longListSelector != null)
-            {
-                longListSelector.GetItemsInViewPort(targets);
-            }
-            else if (pivot != null)
-            {
-                // If the target is a Pivot, feather the title and the headers individually.
-                ContentPresenter title = pivot.GetFirstLogicalChildByType<ContentPresenter>(false);
-
-                if (title != null)
+                // If target is not on the screen, skip.
+                if (!IsOnScreen(target))
                 {
-                    targets.Add(new WeakReference(title));
+                    continue;
                 }
 
-                PivotHeadersControl headers = pivot.GetFirstLogicalChildByType<PivotHeadersControl>(false);
+                ListBox listBox = r.Target as ListBox;
+                LongListSelector longListSelector = r.Target as LongListSelector;
+                Pivot pivot = r.Target as Pivot;
 
-                if (headers != null)
+                if (listBox != null)
                 {
-                    targets.Add(new WeakReference(headers));
+                    // If the target is a ListBox, feather its items individually.
+                    listBox.GetItemsInViewPort(targets);
+                }
+                else if (longListSelector != null)
+                {
+#if WP7
+                    // If the target is a LongListSelector, feather its items individually.
+                    ListBox child = longListSelector.GetFirstLogicalChildByType<ListBox>(false);
+
+                    if (child != null)
+                    {
+                        child.GetItemsInViewPort(targets);
+                    }
+#else
+                    longListSelector.GetItemsInViewPort(targets);
+#endif
+                }
+                else if (pivot != null)
+                {
+                    // If the target is a Pivot, feather the title and the headers individually.
+                    ContentPresenter title = pivot.GetFirstLogicalChildByType<ContentPresenter>(false);
+
+                    if (title != null)
+                    {
+                        targets.Add(new WeakReference(title));
+                    }
+
+                    PivotHeadersControl headers = pivot.GetFirstLogicalChildByType<PivotHeadersControl>(false);
+
+                    if (headers != null)
+                    {
+                        targets.Add(new WeakReference(headers));
+                    }
+                }
+                else
+                {
+                    // Else, feather the target as a whole.
+                    targets.Add(r);
                 }
             }
-            else
-            {
-                // Else, feather the target as a whole.
-                targets.Add(new WeakReference(element));
-            }
+
+            return targets;
         }
 
         /// <summary>
@@ -756,8 +679,6 @@ namespace Microsoft.Phone.Controls
         /// <param name="target">The framework element.</param>
         private static void SubscribeFrameworkElement(FrameworkElement target)
         {
-            DropTargetsFromAnotherDispatcher();
-
             if (!TurnstileFeatherEffect.GetIsSubscribed(target))
             {
                 // Find the parent page.
@@ -769,20 +690,6 @@ namespace Microsoft.Phone.Controls
 
                 TurnstileFeatherEffect.SetParentPage(target, page);
                 TurnstileFeatherEffect.SetIsSubscribed(target, true);
-
-                // Wrap the element up front so a transition never has to
-                // modify the visual tree while it is animating. The wrap is
-                // deferred because this runs from SizeChanged, and
-                // re-parenting inside a layout pass can make the layout cycle.
-                target.Dispatcher.BeginInvoke(
-                    DispatcherPriority.Background,
-                    new Action(delegate
-                    {
-                        if (TurnstileFeatherEffect.GetIsSubscribed(target) && target.IsLoaded && !_pendingRestore)
-                        {
-                            ProjectionService.EnsureProjectionHost(target);
-                        }
-                    }));
             }
         }
 
@@ -792,20 +699,11 @@ namespace Microsoft.Phone.Controls
         /// <param name="target">The framework element.</param>
         private static void UnsubscribeFrameworkElement(FrameworkElement target)
         {
-            DropTargetsFromAnotherDispatcher();
-
             // If element is subscribed, unsubscribe.
             if (TurnstileFeatherEffect.GetIsSubscribed(target))
             {
                 TurnstileFeatherEffect.SetParentPage(target, null);
                 TurnstileFeatherEffect.SetIsSubscribed(target, false);
-            }
-
-            // Give the element back to its parent, unless a feathering
-            // animation is still using the wrapper.
-            if (!_pendingRestore)
-            {
-                ProjectionService.ReleaseProjectionHost(target);
             }
         }
 
@@ -813,15 +711,10 @@ namespace Microsoft.Phone.Controls
         /// Prepares a framework element to be feathered by adding a plane projection
         /// and a composite transform to it.
         /// </summary>
-        /// <param name="root">The page that hosts the element.</param>
+        /// <param name="root">The root visual.</param>
         /// <param name="element">The framework element.</param>
-        private static bool TryAttachProjectionAndTransform(FrameworkElement root, FrameworkElement element)
+        private static bool TryAttachProjectionAndTransform(PhoneApplicationFrame root, FrameworkElement element)
         {
-            if (root == null)
-            {
-                return false;
-            }
-
             GeneralTransform generalTransform;
 
             try
@@ -833,69 +726,30 @@ namespace Microsoft.Phone.Controls
                 return false;
             }
 
-            // Reuse the wrapper that the subscription created, or create one
-            // now. An incoming page's elements have not subscribed yet; they
-            // are wrapped here, before the storyboard is begun, so the visual
-            // tree is not modified while the transition animates. Elements
-            // that cannot be wrapped (items containers, for example) are left
-            // alone.
-            ProjectionHost host = ProjectionService.EnsureProjectionHost(element);
-
-            if (host == null)
-            {
-                return false;
-            }
-
             Point coordinates = generalTransform.Transform(Origin);
             double y = coordinates.Y + element.ActualHeight / 2.0;
             double offset = (root.ActualHeight / 2.0) - y;
 
             // Cache original projection and transform.
             TurnstileFeatherEffect.SetOriginalProjection(element, element.Projection);
-            TurnstileFeatherEffect.SetOriginalRenderTransform(host, host.RenderTransform);
+            TurnstileFeatherEffect.SetOriginalRenderTransform(element, element.RenderTransform);
 
-            // Attach projection. The 3D render path is switched on before the
-            // projection changes so the element is not rasterized twice.
+            // Attach projection.
             PlaneProjection projection = new PlaneProjection();
             projection.GlobalOffsetY = offset * -1.0;
             projection.CenterOfRotationX = FeatheringCenterOfRotationX;
-            host.Prefer3D = true;
             element.Projection = projection;
 
-            // Attach transform. It is applied to the wrapper, not to the
-            // element: the element is rasterized inside the wrapper's surface,
-            // which clips anything translated out of the element's own bounds.
-            Transform originalTransform = host.RenderTransform;
+            // Attach transform.
+            Transform originalTransform = element.RenderTransform;
             TranslateTransform translateTransform = new TranslateTransform();
             translateTransform.Y = offset;
             TransformGroup transformGroup = new TransformGroup();
-            if (originalTransform != null)
-            {
-                transformGroup.Children.Add(originalTransform);
-            }
+            transformGroup.Children.Add(originalTransform);
             transformGroup.Children.Add(translateTransform);
-            host.RenderTransform = transformGroup;
+            element.RenderTransform = transformGroup;
 
             return true;
-        }
-
-        /// <summary>
-        /// Drops the state left behind by a previous UI thread. Static state is
-        /// process-wide, so targets from a window that has closed (or a test
-        /// that ran on its own dispatcher) must never be touched from another
-        /// dispatcher.
-        /// </summary>
-        private static void DropTargetsFromAnotherDispatcher()
-        {
-            if (ReferenceEquals(_featheringDispatcher, Dispatcher.CurrentDispatcher))
-            {
-                return;
-            }
-
-            _featheringTargets = null;
-            _pendingRestore = false;
-            _featheringDispatcher = null;
-            _pagesToReferences.Clear();
         }
 
         /// <summary>
@@ -904,8 +758,6 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         private static void RestoreProjectionsAndTransforms()
         {
-            DropTargetsFromAnotherDispatcher();
-
             if (_featheringTargets == null || !_pendingRestore)
             {
                 return;
@@ -920,25 +772,11 @@ namespace Microsoft.Phone.Controls
                     continue;
                 }
 
-                element.Opacity = TurnstileFeatherEffect.GetOriginalOpacity(element);
+                Projection projection = TurnstileFeatherEffect.GetOriginalProjection(element);
+                Transform transform = TurnstileFeatherEffect.GetOriginalRenderTransform(element);
 
-                ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
-
-                if (host != null)
-                {
-                    host.Prefer3D = false;
-                    host.RenderTransform = TurnstileFeatherEffect.GetOriginalRenderTransform(host);
-                    TurnstileFeatherEffect.SetOriginalRenderTransform(host, null);
-
-                    // A wrapper that rendered in 3D is composited on its own
-                    // surface. Invalidate it so the region is repainted with
-                    // the 2D content instead of keeping the last 3D frame.
-                    host.InvalidateVisual();
-                }
-
-                element.Projection = TurnstileFeatherEffect.GetOriginalProjection(element);
-                TurnstileFeatherEffect.SetOriginalProjection(element, null);
-                element.InvalidateVisual();
+                element.Projection = projection;
+                element.RenderTransform = transform;
             }
 
             _pendingRestore = false;
@@ -946,17 +784,17 @@ namespace Microsoft.Phone.Controls
 
         /// <summary>
         /// Indicates whether the specified framework element
-        /// is within the bounds of the page that hosts it.
+        /// is within the bounds of the application's root visual.
         /// </summary>
         /// <param name="element">The framework element.</param>
-        /// <param name="root">The page that hosts the element.</param>
         /// <returns>
-        /// False if the rectangular bounds of the framework element
-        /// are completely outside the bounds of the page, or if a parent is
-        /// transparent.
+        /// True if the rectangular bounds of the framework element
+        /// are completely outside the bounds of the application's root visual.
         /// </returns>
-        private static bool IsOnScreen(FrameworkElement element, FrameworkElement root)
+        private static bool IsOnScreen(FrameworkElement element)
         {
+            PhoneApplicationFrame root = Application.Current.RootVisual as PhoneApplicationFrame;
+
             if (root == null)
             {
                 return false;
@@ -1007,30 +845,24 @@ namespace Microsoft.Phone.Controls
         /// The storyboard where the animations
         /// will be added.
         /// </param>
-        /// <param name="root">The page that hosts the elements.</param>
-        private static void ComposeForwardInStoryboard(Storyboard storyboard, FrameworkElement root)
+        private static void ComposeForwardInStoryboard(Storyboard storyboard)
         {
             int counter = 0;
+            PhoneApplicationFrame root = Application.Current.RootVisual as PhoneApplicationFrame;
 
             foreach (WeakReference r in _featheringTargets)
             {
-                FrameworkElement element = r.Target as FrameworkElement;
-
-                if (element == null)
-                {
-                    continue;
-                }
-
+                FrameworkElement element = (FrameworkElement)r.Target;
                 double originalOpacity = element.Opacity;
                 TurnstileFeatherEffect.SetOriginalOpacity(element, originalOpacity);
+
+                // Hide the element until the storyboard is begun.
+                element.Opacity = 0.0;
 
                 if (!TryAttachProjectionAndTransform(root, element))
                 {
                     continue;
                 }
-
-                // Hide the element until the storyboard is begun.
-                element.Opacity = 0.0;
 
                 DoubleAnimation doubleAnimation = new DoubleAnimation()
                 {
@@ -1069,20 +901,14 @@ namespace Microsoft.Phone.Controls
         /// The storyboard where the animations
         /// will be added.
         /// </param>
-        /// <param name="root">The page that hosts the elements.</param>
-        private static void ComposeForwardOutStoryboard(Storyboard storyboard, FrameworkElement root)
+        private static void ComposeForwardOutStoryboard(Storyboard storyboard)
         {
             int counter = 0;
+            PhoneApplicationFrame root = Application.Current.RootVisual as PhoneApplicationFrame;
 
             foreach (WeakReference r in _featheringTargets)
             {
-                FrameworkElement element = r.Target as FrameworkElement;
-
-                if (element == null)
-                {
-                    continue;
-                }
-
+                FrameworkElement element = (FrameworkElement)r.Target;
                 double originalOpacity = element.Opacity;
                 TurnstileFeatherEffect.SetOriginalOpacity(element, originalOpacity);
 
@@ -1128,30 +954,24 @@ namespace Microsoft.Phone.Controls
         /// The storyboard where the animations
         /// will be added.
         /// </param>
-        /// <param name="root">The page that hosts the elements.</param>
-        private static void ComposeBackwardInStoryboard(Storyboard storyboard, FrameworkElement root)
+        private static void ComposeBackwardInStoryboard(Storyboard storyboard)
         {
             int counter = 0;
+            PhoneApplicationFrame root = Application.Current.RootVisual as PhoneApplicationFrame;
 
             foreach (WeakReference r in _featheringTargets)
             {
-                FrameworkElement element = r.Target as FrameworkElement;
-
-                if (element == null)
-                {
-                    continue;
-                }
-
+                FrameworkElement element = (FrameworkElement)r.Target;
                 double originalOpacity = element.Opacity;
                 TurnstileFeatherEffect.SetOriginalOpacity(element, originalOpacity);
+
+                // Hide the element until the storyboard is begun.
+                element.Opacity = 0.0;
 
                 if (!TryAttachProjectionAndTransform(root, element))
                 {
                     continue;
                 }
-
-                // Hide the element until the storyboard is begun.
-                element.Opacity = 0.0;
 
                 DoubleAnimation doubleAnimation = new DoubleAnimation()
                 {
@@ -1190,20 +1010,14 @@ namespace Microsoft.Phone.Controls
         /// The storyboard where the animations
         /// will be added.
         /// </param>
-        /// <param name="root">The page that hosts the elements.</param>
-        private static void ComposeBackwardOutStoryboard(Storyboard storyboard, FrameworkElement root)
+        private static void ComposeBackwardOutStoryboard(Storyboard storyboard)
         {
             int counter = 0;
+            PhoneApplicationFrame root = Application.Current.RootVisual as PhoneApplicationFrame;
 
             foreach (WeakReference r in _featheringTargets)
             {
-                FrameworkElement element = r.Target as FrameworkElement;
-
-                if (element == null)
-                {
-                    continue;
-                }
-
+                FrameworkElement element = (FrameworkElement)r.Target;
                 double originalOpacity = element.Opacity;
                 TurnstileFeatherEffect.SetOriginalOpacity(element, originalOpacity);
 
@@ -1253,16 +1067,11 @@ namespace Microsoft.Phone.Controls
         /// <param name="mode">
         /// The mode of the turnstile feather effect.
         /// </param>
-        /// <param name="pageElement">
-        /// The element the transition is applied to, which is the page whose
-        /// feathered elements are animated.
-        /// </param>
-        internal static void ComposeStoryboard(Storyboard storyboard, TimeSpan? beginTime, TurnstileFeatherTransitionMode mode, UIElement pageElement)
+        internal static void ComposeStoryboard(Storyboard storyboard, TimeSpan? beginTime, TurnstileFeatherTransitionMode mode)
         {
             RestoreProjectionsAndTransforms();
 
-            FrameworkElement root = pageElement as FrameworkElement;
-            _featheringTargets = GetTargetsToAnimate(root);
+            _featheringTargets = GetTargetsToAnimate();
 
             if (_featheringTargets == null)
             {
@@ -1270,21 +1079,20 @@ namespace Microsoft.Phone.Controls
             }
 
             _pendingRestore = true;
-            _featheringDispatcher = Dispatcher.CurrentDispatcher;
 
             switch (mode)
             {
                 case TurnstileFeatherTransitionMode.ForwardIn:
-                    ComposeForwardInStoryboard(storyboard, root);
+                    ComposeForwardInStoryboard(storyboard);
                     break;
                 case TurnstileFeatherTransitionMode.ForwardOut:
-                    ComposeForwardOutStoryboard(storyboard, root);
+                    ComposeForwardOutStoryboard(storyboard);
                     break;
                 case TurnstileFeatherTransitionMode.BackwardIn:
-                    ComposeBackwardInStoryboard(storyboard, root);
+                    ComposeBackwardInStoryboard(storyboard);
                     break;
                 case TurnstileFeatherTransitionMode.BackwardOut:
-                    ComposeBackwardOutStoryboard(storyboard, root);
+                    ComposeBackwardOutStoryboard(storyboard);
                     break;
                 default:
                     break;
@@ -1292,7 +1100,17 @@ namespace Microsoft.Phone.Controls
 
             storyboard.BeginTime = beginTime;
 
-            storyboard.Completed += (s, e) => RestoreProjectionsAndTransforms();
+            storyboard.Completed += (s, e) =>
+            {
+                foreach (WeakReference r in _featheringTargets)
+                {
+                    FrameworkElement element = (FrameworkElement)r.Target;
+                    double originalOpacity = TurnstileFeatherEffect.GetOriginalOpacity(element);
+                    element.Opacity = originalOpacity;
+                }
+
+                RestoreProjectionsAndTransforms();
+            };
         }
     }
 }

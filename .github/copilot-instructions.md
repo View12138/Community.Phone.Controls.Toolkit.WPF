@@ -9,7 +9,7 @@
 ## 不可妥协的原则
 
 1. **保留原始公共 API 形态**（类型名、成员、语义、默认值）。新行为写进文档，而不是改名 API。
-2. WPF 没有 `UIElement.Projection`。移植提供 `ProjectionHost` / `ProjectionService` / `PlaneProjection` / `Matrix3DProjection`（编译在 `Community.Phone` 程序集，XAML 用 `platform:` 前缀）；移植独有的 API 必须是**纯新增**，并记录在 `docs/api-compatibility.md`。
+2. WPF 没有 `UIElement.Projection`。移植提供 `ProjectionService`（附加属性）/ `PlaneProjection` / `Matrix3DProjection`（编译在 `Community.Phone` 程序集，XAML 用 `platform:` 前缀）；移植独有的 API 必须是**纯新增**，并记录在 `docs/api-compatibility.md`。
 3. WP 平台基础设施（`PhoneApplicationFrame`、`PhoneApplicationPage`、`PhoneApplicationService`、`SystemTray`、`ApplicationBar`）在兼容命名空间中重新实现；差异必须明示，不得隐瞒。
 4. **绝不把未实现或未验证的行为报告为已完成**；不支持的模块持续列在 `docs/known-limitations.md`。
 5. 转场数值（角度、时长、延迟、缓动）取自 `Transitions/Storyboards/*.xaml`，照抄，不得自创或“调优”；例外是 `Transitions.cs` 中的 `TurnstileCenterOfRotationX` 与 `TurnstileDurationScale`，以及由 `TurnstileFeatherEffect` 在代码中合成的 feather storyboard。
@@ -26,16 +26,23 @@
 
 ### 投影
 
-- 相机 = XAML 固定透视：`ProjectionHost.PerspectiveDepth = 999` DIP，相机位于 `(0, 0, depth)`，**水平** FOV 由视口**宽度**推出 `2 * atan(viewportWidth / (2 * depth))`；用高度推导会按宽高比缩小投影内容。
+- 渲染后端是**单应变换 + `ShaderEffect`**：元素局部平面 → `Matrix3D` → 3×3 齐次矩阵（`ProjectionMath.CreateHomography`）→ `PerspectiveShaderEffect` 逆映射采样。不创建 `Viewport3D`，不重 Parent。
+- 相机 = XAML 固定透视：默认深度 999 DIP，相机位于 `(0, 0, depth)`，**水平** FOV 由视口**宽度**推出 `2 * atan(viewportWidth / (2 * depth))`；用高度推导会按宽高比缩小投影内容。
 - 矩阵为行向量：`p' = (((p - center) + localOffset) * R) + center + globalOffset`，`R = CreateRotationMatrix(RotationX, -RotationY, RotationZ)`。Y 偏移取反，**RotationY 取反**；RotationX/Z 已一致，不要“修正”。
-- `Prefer3D` 让 3D 路径在投影仍为 identity 时保持启用，使转场/效果在首个动画帧前完成路径切换。不要在转场或效果宿主上重新引入 `BitmapCache`：`Viewport2DVisual3D` 已栅格化内容。
-- 元素级效果必须投影**直接包含**该元素的宿主（`ProjectionService.EnsureProjectionHost`）；复用祖先宿主会投影整页。
-- `ListBoxItem` 使用默认主题模板 `Themes/Controls/ListBox.xaml` 中名为 `ProjectionHost` 的部件；服务直接复用该部件，不重父级化。自定义 `ListBoxItem.Template` 必须保留同名部件；其他由 `ItemsControl` 生成且无该部件的 item 容器不可包装。
+- `HomographyMatrix` 的行是输入分量、列是输出分量。取“某个输出分量的三个系数”必须用 `GetOutputCoefficients`，不要直接把 `M31/M32/M33` 当成权重行（曾因此让所有像素被掩码吞掉）。
+- 着色器常量：`c0..c2` 逆矩阵三个输出分量、`c3` 正向右量 + 启用标志、`c4` 输出偏移与填充尺寸、`c5` 元素尺寸。`uv` 覆盖**填充后**的输出面，`OutputBounds.xy` 是负偏移，`position = padded + xy`、`texUv = (source - xy) / zw`。
+- `ShaderEffect.PaddingLeft..` 是 protected，由 `PerspectiveShaderEffect` 内部写入；输出面每轴上限 4096 DIP。Padding 不能突破父级裁剪。
+- 每帧只复用同一个 effect 并写常量；identity 且未设置 `PreferShader` 时摘掉 effect，回到普通 2D 渲染。
+- 元素级效果（转场、`TiltEffect`、`TurnstileFeatherEffect`、`ListPicker`）直接把投影赋给目标元素，没有宿主/包装层。
+- 需要“裁内容、不裁投影”时用“外层投影元素 + 内层 `ClipToBounds` 容器”（`HubTile` 模板就是这种结构），不要把投影和裁剪放在同一个元素上。
+- `UIElement.Effect` 是单一属性：投影会接管它，原效果被保存/恢复并触发 `EffectConflict`；`EffectConflictBehavior.Preserve` 可改为跳过投影。不要静默丢弃原有效果。
+- `Style`/`ItemContainerStyle` 里共享的 `Freezable` 会被 WPF 冻结、无法动画；`ListBoxItem` 的投影放 `DataTemplate` 或按容器创建。
+- 着色器字节码 `Projection/Rendering/Shader/*.ps` 以 `Resource` 嵌入 `Community.Phone.dll`；改 HLSL 后跑 `build/compile-shaders.ps1`（需要 Windows SDK 的 `fxc.exe`）。
 
 ### 框架、导航、转场
 
-- `TransitionFrame` 的模板部件是名为 `FirstContentPresenter` / `SecondContentPresenter` 的 `ProjectionHost`，不是 `ContentPresenter`。
-- 退场在进场开始**之前**完成；旧呈现器在启动前预置（`IsHitTestVisible = false`、`Prefer3D = true`），完成后恢复交互。
+- `TransitionFrame` 的模板部件是名为 `FirstContentPresenter` / `SecondContentPresenter` 的 `ContentPresenter`；转场投影由被承载的页面承担。
+- 退场在进场开始**之前**完成；旧呈现器在启动前预置（`IsHitTestVisible = false`、对页面设 `PreferShader`），完成后恢复交互。
 - 每个转场都必须完成：没有动画的 storyboard 在下一个 dispatcher 周期完成，否则新页面永久不可交互。
 - 页面在接入可视树之前就被合成，`TransitionFrame` 先 `UpdateLayout()` 以便羽化找到目标。
 - 出站转场取自被离开的页面；需要特定退场效果的页面自己声明，或在导航前 `TransitionService.SetNavigationOutTransition`。
@@ -47,7 +54,8 @@
 ## 工程规则
 
 - 构建：`dotnet build Community.Phone.Controls.Toolkit.slnx -c Release`，当前通过（0 错误，若干警告）。
-- 仓库内**没有测试工程**。新增行为需要手动验证（示例应用）并在 `docs/porting-status.md` 记录依据，不得虚构测试结果。
+- 测试：`tests/Community.Phone.Tests`（xunit，`dotnet test tests/Community.Phone.Tests`）覆盖投影数学、服务行为与离屏渲染；其余模块仍需手动验证（示例应用）并在 `docs/porting-status.md` 记录依据，不得虚构测试结果。
+- 性能：`tools/ProjectionBenchmark` 可对同一工作负载测新旧后端（`-p:CommunityPhoneProject=<另一个 Community.Phone.csproj>`）。
 - 打包：`dotnet pack src\Community.Phone.Controls.Toolkit\Community.Phone.Controls.Toolkit.csproj -c Release` 当前因 `csproj` 引用不存在的 `THIRD-PARTY-NOTICES_zh-CN.md`、`docs/en/*.md`、`docs/zh-CN/*.md` 报 `NU5019`；`build\verify-package.ps1` 引用了不存在的 `tests/PackageConsumer`，修复后才能执行。
 - 示例：`samples/Community.Phone.Controls.Toolkit.Sample` 是人工验证面，结构与原 `PhoneToolkitSample8` 对齐（`MainPage` 索引、`SampleNavigator` 显式设置双向转场）。索引 25 条中 4 条没有页面文件的条目用 `Supported=false` 禁用并加删除线；`lockablepivot` 指向 `Samples/LockablePivotSample.xaml`，演示 `Pivot.IsLocked`。行为变更后示例须能演示该行为。
 - 文档为简体中文，位于 `docs/`；同一次改动内更新受影响的文档。

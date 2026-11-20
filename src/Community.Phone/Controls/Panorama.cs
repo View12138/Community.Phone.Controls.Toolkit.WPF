@@ -30,7 +30,6 @@ namespace Microsoft.Phone.Controls
     [TemplatePart(Name = BackgroundLayerElement, Type = typeof(PanningLayer))]
     [TemplatePart(Name = ItemsLayerElement, Type = typeof(PanningLayer))]
     [TemplatePart(Name = TitleLayerElement, Type = typeof(PanningLayer))]
-    [TemplatePart(Name = ProjectionHostElement, Type = typeof(ProjectionHost))]
     public class Panorama : ItemsControl
     {
         private enum DragLock
@@ -53,9 +52,6 @@ namespace Microsoft.Phone.Controls
         private const string BackgroundLayerElement = "BackgroundLayer";
         private const string TitleLayerElement = "TitleLayer";
         private const string ItemsLayerElement = "ItemsLayer";
-        private const string ProjectionHostElement = "ProjectionHost";
-
-        private const double EntranceProjectionCenterOfRotationX = -0.1;
 
         private static readonly Duration DefaultDuration = new Duration(TimeSpan.FromMilliseconds(800.0));
         private static readonly Duration FlickDuration = DefaultDuration;
@@ -296,13 +292,13 @@ namespace Microsoft.Phone.Controls
                 _panningItems.Owner = this;
             }
 
-            ProjectionHost projectionHost = GetTemplateChild(ProjectionHostElement) as ProjectionHost;
-            if (projectionHost != null && !_entranceAnimationPlayed && !_isDesignTime)
+            // The original applies an entrance PlaneProjection
+            // (CenterOfRotationX = -0.1) to the page here. The port does not
+            // play that entrance animation, so the flag only records that the
+            // template has been applied once; the jump-to-selection logic uses
+            // it to tell the first measure apart from later ones.
+            if (!_isDesignTime)
             {
-                projectionHost.Projection = new PlaneProjection
-                {
-                    CenterOfRotationX = EntranceProjectionCenterOfRotationX
-                };
                 _entranceAnimationPlayed = true;
             }
 

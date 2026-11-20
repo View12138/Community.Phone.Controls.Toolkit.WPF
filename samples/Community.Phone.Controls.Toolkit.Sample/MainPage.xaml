@@ -76,7 +76,7 @@
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
-        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
+        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0" toolkit:TiltEffect.SuppressTilt="False">
             <platform:LongListSelector x:Name="lls">
                 <platform:LongListSelector.ListHeaderTemplate>
                     <DataTemplate>
@@ -85,26 +85,12 @@
                 </platform:LongListSelector.ListHeaderTemplate>
                 <platform:LongListSelector.ItemTemplate>
                     <DataTemplate DataType="{x:Type local:SampleItem}">
-                        <Grid>
-                            <!--<Button >
-                                <Grid RowDefinitions="auto,auto">
-                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}"/>
-                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}"/>
-                                </Grid>
-                            </Button>-->
-                            <platform:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}" IsEnabled="{Binding Supported}">
-                                <Grid RowDefinitions="auto,auto" Margin="0,0,0,24">
-                                    <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
-                                    <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
-                                </Grid>
-                            </platform:HyperlinkButton>
-                            <!--<phone:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}">
-                                <localControls:HeaderedContentControl
-                                Style="{StaticResource MultilineHyperlinkStyle}"
-                                Header="{Binding Header}"
-                                Content="{Binding Description}"/>
-                            </phone:HyperlinkButton>-->
-                        </Grid>
+                        <platform:HyperlinkButton NavigateUri="{Binding Url}" Style="{StaticResource HyperlinkEmptyStyle}" IsEnabled="{Binding Supported}">
+                            <Grid RowDefinitions="auto,auto" Margin="0,0,0,24">
+                                <TextBlock Style="{StaticResource PhoneTextLargeStyle}" Text="{Binding Header}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
+                                <TextBlock Grid.Row="1" Opacity=".5" Style="{StaticResource PhoneTextNormalStyle}" Text="{Binding Description}" TextDecorations="{Binding Supported, Converter={StaticResource DisabledToStrikethroughConverter}}" />
+                            </Grid>
+                        </platform:HyperlinkButton>
                     </DataTemplate>
                 </platform:LongListSelector.ItemTemplate>
                 <platform:LongListSelector.ListFooterTemplate>

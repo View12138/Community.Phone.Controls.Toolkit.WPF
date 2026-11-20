@@ -9,7 +9,7 @@
 - `PhoneApplicationFrame`、`PhoneApplicationService`、`SystemTray`、地图、后台传输、语音等平台服务在 WPF 中不存在。
 - 原始 XAML 使用 Silverlight 资源键和动画路径，例如 `(UIElement.Projection).(PlaneProjection.RotationY)`。
 
-因此移植版在**原始 `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` 命名空间**中提供兼容类型，对真实 3D 使用显式的 `ProjectionHost` 包装，并对框架相邻控件使用 WPF 原生基类。
+因此移植版在**原始 `Microsoft.Phone.Controls` / `Microsoft.Phone.Shell` 命名空间**中提供兼容类型：投影由 `ShaderEffect` 直接作用于任意 `UIElement`，框架相邻控件使用 WPF 原生基类。
 
 ## 2. 仓库与工程
 
@@ -18,7 +18,8 @@ Community.Phone.Controls.Toolkit.slnx
 ├─ src/Community.Phone/                       兼容层（程序集 Community.Phone，根命名空间 Microsoft.Phone）
 │  ├─ Controls/     Pivot、PivotItem、Panorama、PanoramaItem、LongListSelector、HyperlinkButton、ViewportControl、Primitives/*
 │  ├─ Navigation/   PhoneApplicationFrame、PhoneApplicationPage、NavigationContext、方向类型
-│  ├─ Projection/   Projection、PlaneProjection、Matrix3DProjection、ProjectionHost、ProjectionService、ProjectionMath
+│  ├─ Projection/   Projection、PlaneProjection、Matrix3DProjection、ProjectionService、ProjectionMath、HomographyMatrix
+│  │                Rendering/Shader/  PerspectiveShaderEffect(.cs/.hlsl/.ps)、ShaderProjectionRenderer、ShaderResourceManager
 │  ├─ Shell/        ApplicationBar 及其呈现器、SystemTray、PhoneApplicationService、ThemeManager、ThemePalette
 │  ├─ Globalization/  SortedLocaleGrouping
 │  └─ Themes/       Theme.xaml（调色板）、Generic.xaml、Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml
@@ -32,10 +33,12 @@ Community.Phone.Controls.Toolkit.slnx
 │  ├─ Common/       ItemsControlExtensions、LengthConverter、TypeConverters、视觉树辅助
 │  ├─ LocalizedResources/  51 个 ControlResources*.resx（50 个文化 + 中性资源）
 │  └─ Themes/       Generic.xaml、Controls/*.xaml
+├─ tests/Community.Phone.Tests/            投影数学、服务与离屏渲染测试（xunit）
+├─ tools/ProjectionBenchmark/              投影性能基准（可切换到旧后端）
 └─ samples/Community.Phone.Controls.Toolkit.Sample/   可运行 WPF 示例
 ```
 
-解决方案只包含这两个库工程与示例工程，**没有测试工程**。
+着色器字节码（`.ps`）以 `Resource` 嵌入 `Community.Phone.dll`，由 `build\compile-shaders.ps1` 重新生成。
 
 职责划分：
 
@@ -50,7 +53,7 @@ Community.Phone.Controls.Toolkit.slnx
 | 原始命名空间 | 移植命名空间 | 程序集 | 说明 |
 |---|---|---|---|
 | `Microsoft.Phone.Controls`（平台：页面、框架、导航、`Pivot`、`LongListSelector`、`HyperlinkButton`、`Panorama`） | 同名 | `Community.Phone` | `platform:` 前缀 |
-| `Microsoft.Phone.Controls`（投影：`ProjectionHost`、`ProjectionService`、`PlaneProjection`、`Matrix3DProjection`） | 同名 | `Community.Phone` | `platform:` 前缀 |
+| `Microsoft.Phone.Controls`（投影：`ProjectionService`、`PlaneProjection`、`Matrix3DProjection`、`HomographyMatrix`、`ProjectionMath`） | 同名 | `Community.Phone` | `platform:` 前缀 |
 | `Microsoft.Phone.Controls`（toolkit：转场、效果、控件） | 同名 | `Community.Phone.Controls.Toolkit` | `phone:` 前缀 |
 | `Microsoft.Phone.Controls.Primitives`（`PivotHeadersControl`、`PivotHeaderItem`、`ViewportControl`） | 同名 | `Community.Phone` | `primitives:` 前缀 |
 | `Microsoft.Phone.Controls.Primitives`（`ToggleSwitchButton`、`LoopingSelector`、`LoopingSelectorItem`、`ILoopingSelectorDataSource`、`ClipToBounds`） | 同名 | `Community.Phone.Controls.Toolkit` | `primitives:` 或 `phone:` 前缀 |
@@ -75,7 +78,7 @@ WPF 有 `System.Windows.Controls.ContextMenu`，移植版的 `Microsoft.Phone.Co
 
 ## 4. 投影子系统
 
-投影类型编译在 `Community.Phone` 程序集。
+投影类型编译在 `Community.Phone` 程序集。渲染后端是**基于 `ShaderEffect` 的平面单应变换**：一个元素只需要赋一个 `Projection`，不需要包装容器、不需要 `Viewport3D`，也不改变布局树。
 
 ### 4.1 公共模型
 
@@ -84,79 +87,178 @@ WPF 有 `System.Windows.Controls.ContextMenu`，移植版的 `Microsoft.Phone.Co
 | `Projection` | `Animatable` | `ProjectionChanged` 事件、`IsIdentity`、`ToMatrix3D(Size)` |
 | `PlaneProjection` | `Projection` | `CenterOfRotationX/Y/Z`、`GlobalOffsetX/Y/Z`、`LocalOffsetX/Y/Z`、`RotationX/Y/Z`（均为依赖属性） |
 | `Matrix3DProjection` | `Projection` | `ProjectionMatrix`，使用 0..1 归一化坐标 |
-| `ProjectionHost` | `FrameworkElement` | `Content`、`Projection`、`PerspectiveDepth`、`Prefer3D`、`IsRenderingIn3D` |
-| `ProjectionService` | 静态类 | 附加属性 `Projection`；`GetProjectionHost`、`GetDirectProjectionHost`、`EnsureProjectionHost`、`ReleaseProjectionHost`、`GetProjectionPropertyPath`；扩展成员 `element.Projection` / `element.ProjectionHost` |
-
-`ProjectionHost` 标注 `[ContentProperty("Content")]`，因此内容元素可以直接写在 Host 内部。投影为非 identity 时 Host 通过 `Viewport3D` / `Viewport2DVisual3D` 渲染，identity 时走普通 2D 视觉树。
+| `HomographyMatrix` | 结构 | 3×3 齐次变换：`Transform`、`TryTransform`、`TryInvert`、`TransformBounds`、`Multiply`、`GetOutputCoefficients` |
+| `ProjectionMath` | 静态类 | `CreateHomography`、`GetPlaneDistance`、矩阵构造辅助、`DefaultPerspectiveDepth` |
+| `PerspectiveShaderEffect` | `ShaderEffect` | 投影着色器（常量寄存器封装），由渲染器驱动 |
+| `ProjectionService` | 静态类 | 附加属性 `Projection`、`PreferShader`、`PerspectiveDepth`、`HitTestPolicy`；`EffectConflictBehavior`、`EffectConflict` 事件；`GetProjectionPropertyPath`；扩展成员 `element.Projection` / `element.PreferShader` |
 
 ### 4.2 渲染方案
 
-采用 **WPF `Viewport3D` + `Viewport2DVisual3D`**：把实时 2D 视觉树映射到 3D 平面，保留命中测试、文本、输入和焦点，由 GPU 合成。截图/`VisualBrush` 平面会丢失交互，只作静态快照；Composition/D3D 互操作需要额外宿主与依赖，不满足单包交付。
-
-### 4.3 几何与透视
-
-Host 创建一个以元素原点为中心的矩形网格：
+一个位于局部平面 `z = 0` 上的元素，经过任意 3D 平面变换与透视相机投影后，其二维映射**精确等于一个 3×3 Homography**。因此不需要构造 3D 场景：
 
 ```text
-positions (Y up):  (-w/2, +h/2, 0), (+w/2, +h/2, 0), (+w/2, -h/2, 0), (-w/2, -h/2, 0)
-texture coords:    (0,0), (1,0), (1,1), (0,1)
-triangles:         0,2,1 与 0,3,2（正面）+ 0,1,2 与 0,2,3（反向绕序）
+元素自身渲染 → 隐式输入纹理
+输出像素 → 逆 Homography → 元素局部坐标 → 纹理 UV → 采样
 ```
 
-`PerspectiveCamera` 位于 `(0, 0, depth)`，`depth = PerspectiveDepth`，默认 `999` DIP。视场角由视口**宽度**推导：`fov = 2 * atan(viewportWidth / (2 * depth))`。WPF 的 `PerspectiveCamera.FieldOfView` 是水平视场角，垂直视场角由宽高比推导，因此按宽度推导能保证 identity 投影与布局槽位 1:1；按高度推导会让每个被投影元素按宽高比缩小。
+- `UIElement.Effect` 被替换为 `PerspectiveShaderEffect`。WPF 把元素自身的内容作为着色器的隐式输入（sampler 0），不需要 `VisualBrush`，也不会递归。
+- 元素保持原有父级、布局槽、命中测试、焦点与输入路由：**没有重新 Parent，没有复制布局属性**。
+- 单一元素只创建一个 effect 实例；动画每帧只写 6 个 `Point4D` 常量与 Padding，不重新编译着色器，也不重新分配 effect。
 
-999 DIP 是 XAML `PlaneProjection` 的固定透视（WinUI 用 `M34 = -1/999`），因此深度 `z` 处一点的实际缩放恒为 `999 / (999 - z)`，与元素尺寸无关。
+不采用 `VisualBrush` + `Rectangle` 的原因：那需要一个额外的绘制层，会重复栅格化并在视觉树里插入兄弟节点；不采用 `RenderTargetBitmap` 快照的原因：它丢失实时内容与交互。`Viewport3D` 后端已移除：它为每个投影元素建立一个 3D 场景（相机、网格、`Viewport2DVisual3D`），是 ListBox 场景的主要成本。
 
-`PlaneProjection.ToMatrix3D` 使用行向量约定：
+### 4.3 数学：Matrix3D → Homography
+
+`PlaneProjection.ToMatrix3D` 的语义不变（行向量约定）：
 
 ```text
 p' = (((p - center) + localOffset) * R) + center + globalOffset
 R  = CreateRotationMatrix(RotationX, -RotationY, RotationZ)   （角度制）
 center = ((CenterOfRotationX - 0.5) * width, (0.5 - CenterOfRotationY) * height, CenterOfRotationZ)
-Y 分量取反，因为 WPF 3D 使用 +Y 向上而屏幕坐标使用 +Y 向下。
-RotationY 取反，因为 XAML 中正的 RotationY 让右边缘靠近观察者，而 WPF 的 +Y 轴正向旋转让它远离。
 ```
 
-矩阵赋给 `Viewport2DVisual3D.Transform`，裁剪与命中测试由 WPF 3D 管线处理。WPF 会剔除背面，而 XAML 投影从两侧可见，因此四边形同时带反向绕序三角形：超过 90° 的旋转（例如 `HubTile` 翻转的后半段）继续渲染镜像内容而不是消失。几何在尺寸或投影变化时重建。
+元素局部坐标（原点左上、Y 向下）先映射到平面坐标（原点中心、Y 向上）：`X = x - W/2`、`Y = H/2 - y`。由于平面固定在 `z = 0`，裁剪坐标的三个分量都是 `(x, y, 1)` 的线性组合。
 
-**裁剪规则**：投影结果**不**裁剪到 Host 的布局槽（XAML 投影会让被放大的近端画到元素边界之外），3D 路径下 `Viewport3D.ClipToBounds = false`；被裁剪的是**内容** —— 表面带一个布局槽大小的 `RectangleGeometry` 裁剪，复现平台“把内容栅格化进元素边界”的规则。Host 只在 2D 渲染时给自身设置 `ClipToBounds`。
+相机与旧后端一致：`PerspectiveCamera` 位于 `(0, 0, depth)`，水平视场角 `fov = 2 * atan(W / (2 * depth))`，`depth = PerspectiveDepth`（默认 999 DIP）。它把平面点映射为
 
-### 4.4 XAML 兼容边界
+```text
+screenX = W/2 + depth * X' / (depth - Z')
+screenY = H/2 - depth * Y' / (depth - Z')
+```
 
-WPF 无法编译 `<Grid.Projection>`，因为 `Grid` 没有该属性。支持的形式：
+乘以齐次权重 `W'` 后得到 `clipW = depth * W' - Z'`，于是
+
+```text
+H = A(局部→平面) · C(平面→裁剪)
+```
+
+`ProjectionMath.CreateHomography` 就是这个 3×3 乘积，并按 `H33` 归一化。它与旧后端用 `Matrix3D.Transform` + 相机公式逐点计算的结果一致（见 §4.9 的对照测试）。
+
+约定与边界情况：
+
+- 齐次矩阵只在相差一个标量意义下唯一。`CreateHomography` 会把符号规整为“元素中心处权重为正”，这样着色器可以用一个符号判断裁剪相机背后的像素。
+- `depth - Z' <= 0`（平面到达或越过相机）时 `ProjectionMath.GetPlaneDistance` 返回非正值，渲染器直接输出全透明，不渲染镜像残影。
+- 平面正对镜头（例如 `RotationY = 90°`）时行列式为 0，`TryInvert` 返回 false，渲染器输出全透明——与 3D 后端在 90° 时面积为 0 的表现一致。
+- 超过 90° 的旋转继续显示镜像内容：逆映射本身对背面同样成立，着色器不做背面剔除。旧后端为此在网格里加了反向绕序三角形，新后端不需要。
+
+### 4.4 着色器与坐标空间
+
+`Projection/Rendering/Shader/PerspectiveShaderEffect.hlsl`（编译产物 `PerspectiveShaderEffect.ps`，`ps_2_0`，约 28 条指令）只做逆向纹理映射：
+
+| 寄存器 | 内容 |
+|---|---|
+| `s0` | 元素自身的隐式输入纹理 |
+| `c0`–`c2` | 逆 Homography 的三个输出分量系数 `(x, y, 常数)`，即 `GetOutputCoefficients(0..2)` |
+| `c3` | 正向 Homography 的权重分量 + 启用标志（`w`） |
+| `c4` | 输出偏移 `(padLeft, padTop)` 与填充后的尺寸 `(width, height)` |
+| `c5` | 未投影元素尺寸 |
+
+坐标链（每一步都必须显式换算，不能假设各坐标系一致）：
+
+```text
+uv（0..1，覆盖填充后的输出面）
+  → padded = uv * OutputBounds.zw
+  → 元素局部投影坐标 = padded + OutputBounds.xy      （xy 为负的 padding 偏移）
+  → source = inverseH * 该点（含透视除法）
+  → 纹理 uv = (source - OutputBounds.xy) / OutputBounds.zw
+```
+
+`source` 落在 `[0, SourceSize]` 之外、或正向权重 ≤ 0（相机背后）时，输出乘以 0；其余情况返回采样值。乘 0 而不是 `clip`，避免分支与空洞。
+
+寄存器布局是行向量约定的直接结果：`HomographyMatrix` 的行是**输入分量**、列是**输出分量**，所以着色器每个常量取的是“某一输出分量的三个系数”。这一点在实现中曾经写反（取了 `M31/M32/M33`），症状是所有像素被权重为负的掩码吃掉；调用 `GetOutputCoefficients` 后不再有歧义。
+
+### 4.5 ProjectionService：直接附加
+
+```csharp
+ProjectionService.SetProjection(element, new PlaneProjection { RotationY = 60 });
+```
+
+- 状态存放在 `ConditionalWeakTable<UIElement, ProjectionState>`：`ProjectionState` 只持有渲染器，渲染器持有元素与当前 effect。`ConditionalWeakTable` 是 ephemeron，值反向引用键不影响回收。
+- 渲染器订阅元素尺寸变化（`FrameworkElement.SizeChanged`，非 `FrameworkElement` 用 `LayoutUpdated`）与 `Projection.ProjectionChanged`；两者都只做增量重算。
+- 投影被清空时移除状态并恢复元素原来的 `Effect`。
+- `PreferShader` 让元素在投影仍为 identity 时保留着色器路径，供从 0 开始的动画使用。
+- `HitTestPolicy` 决定投影期间是否参与命中测试：默认 `Layout` 保持原生命中测试矩形，`Disabled` 在着色器挂载期间设置 `IsHitTestVisible = false` 并在摘除时恢复。
+
+**Effect 冲突**：`UIElement.Effect` 是单一属性。默认策略是 `Replace`——投影接管 `Effect`，原有效果被保存、投影移除后恢复，并触发 `ProjectionService.EffectConflict` 事件（同时写 `Debug` 输出），不静默丢弃。`EffectConflictBehavior = Preserve` 时改为保留原有效果、跳过投影。WPF 没有效果链，因此无法同时渲染两个 `Effect`。
+
+### 4.6 容器与内容裁剪
+
+投影没有宿主类型：附加属性直接作用在元素上，元素既可以是叶子控件，也可以是承载内容的容器。需要“**裁剪内容、但保留投影溢出**”时，把它拆成两层普通元素：
 
 ```xml
-<!-- 显式 Host。 -->
-<platform:ProjectionHost>
-    <Grid>...</Grid>
-    <platform:ProjectionHost.Projection>
-        <platform:PlaneProjection RotationY="-35" />
-    </platform:ProjectionHost.Projection>
-</platform:ProjectionHost>
-
-<!-- 任意元素上的附加属性；元素按需被包装，投影清除时解包。 -->
-<Grid platform:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
+<Grid platform:ProjectionService.Projection="{StaticResource Flip}">   <!-- 布局槽：投影在这里 -->
+    <Grid ClipToBounds="True">                                          <!-- 内容裁剪 -->
+        <StackPanel RenderTransform="...">...</StackPanel>
+    </Grid>
+</Grid>
 ```
 
-代码中最短的形式是 `element.Projection = new PlaneProjection { RotationY = -35 };`；storyboard 路径为 `(ProjectionService.Projection).(PlaneProjection.RotationY)`，由 `ProjectionService.GetProjectionPropertyPath` 生成。
+`ClipToBounds` 只影响内层元素自己的渲染，不会裁掉外层元素的 effect 输出，因此翻转可以画到槽外，而滑出视口的内容仍然被隐藏。`HubTile` 的模板就是这个结构。
 
-### 4.5 宿主包装规则
+转场、`TiltEffect`、`TurnstileFeatherEffect`、`ListPicker` 都直接投影目标元素，指针按下与动画期间不再改动视觉树。
 
-`ProjectionService` 只投影**直接宿主**，不复用祖先宿主：页面由转场 Frame 的 presenter 承载，复用祖先宿主会把整页一起投影。
+### 4.7 输出边界与裁剪
 
-- `ListBoxItem`：默认主题模板 `Themes/Controls/ListBox.xaml` 内含 `x:Name="ProjectionHost"` 的 `ProjectionHost`（包住 `Border` 与内容容器）。模板应用后，`EnsureProjectionHost` / `FindDirectHost` 通过 `Template.FindName` 复用该部件，不重父级化、不复制布局属性；清除投影后部件保留并回到 2D 路径。自定义 `ListBoxItem.Template` 必须保留同名部件。
-- 其他元素：按需创建 `ProjectionHost`，复制尺寸、`Margin`、对齐、`Grid` 行列、`ZIndex`、`Dock`、`Canvas` 位置，并按父容器类型插回原位：`Panel.Children`、`ItemsControl.Items`、`ContentControl.Content` 或 `Page.Content`；投影清除时释放宿主并恢复布局属性。`ContentPresenter` 可以包装：重新挂载后 WPF 保留其 `TemplatedParent`、TemplateBinding 和具名模板部件。
-- 由 `ItemsControl` 生成且模板没有该部件的 item 容器（如 `ComboBoxItem`）无法可靠地重父级化到新宿主；应把需要投影的内容放进模板内的 `ProjectionHost`。
+投影结果可以画到布局槽之外，所以每帧计算：
 
-`TiltEffect` 在控件加载时完成包装（倾斜关闭时解包），`TurnstileFeatherEffect` 在订阅时准备包装并延迟到 dispatcher 执行，因此指针按下与转场动画期间都不会改动视觉树。
+1. 四个角的投影坐标（`HomographyMatrix.TransformBounds`）；
+2. 相对于元素边界的左/上/右/下扩张量；
+3. `ShaderEffect.PaddingLeft/Top/Right/Bottom`（WPF 的原生机制，`ShaderEffect` 的属性是 protected，由 `PerspectiveShaderEffect` 内部写入）。
 
-### 4.6 渲染路径切换
+填充后的输出面每轴上限 `MaxOutputExtent = 4096` DIP，避免接近侧视时（bbox 无界）申请巨大的中间表面；超出部分被裁掉，但映射本身仍是逐像素精确的。
 
-投影为 identity 时 Host 走 2D 路径，否则走 3D 路径。`Prefer3D` 让 Host 在投影仍为 identity 时保持 3D 路径，使转场与效果在**准备阶段**完成路径切换，而不是等到动画首帧（此时文本栅格化方式会从 ClearType 变成 3D 纹理的灰度抗锯齿）。
+**父级裁剪不受影响**：`ClipToBounds`、父级 `Clip`、`ScrollViewer` 视口、元素自身 `Clip` 都会照常裁掉投影溢出部分。Padding 只扩大 effect 的输出区域，不能突破父级裁剪。
 
-`Viewport2DVisual3D` 把被投影可视对象的**绘制边界**映射到四边形上，而不是布局槽。若直接投影内容，绘制范围小于布局槽的元素（左对齐的 `CheckBox`、较短的 `TextBlock`）会被拉伸到整个平面。因此 Host 投影一个填满**布局槽**、绘制透明矩形并被裁剪的内部表面，平面几何与 `CenterOfRotation`/`LocalOffset`/`GlobalOffset` 都以布局槽为准。
+### 4.8 每帧路径与性能
 
-投影动画每帧都会触发 `ProjectionChanged`，因此逐帧路径只做增量更新：`Viewport2DVisual3D.Transform` 复用同一个 `MatrixTransform3D` 并原地替换矩阵，相机只在 `FieldOfView`/`Position` 真正变化时才写依赖属性（重复赋值会让 3D 场景在变换之外再失效一次），矩阵未变时完全跳过。
+动画每帧走同一条最短路径：`ProjectionChanged` → 重算矩阵（约 40 次浮点运算）→ 与上一帧比较（尺寸、输出矩形、逆矩阵、启用标志）→ 只在变化时写 6 个常量与 Padding。
+
+- 不创建新的 `ShaderEffect`、不重新编译着色器、不注册事件、不强制 Measure/Arrange。
+- identity 且未设置 `PreferShader` 时直接摘掉 effect，元素回到普通 2D 渲染（ClearType 不受影响）。
+- 不使用 `CompositionTarget.Rendering` 轮询：只有真正变化的投影才更新。
+
+基准工具 `tools/ProjectionBenchmark`（同一份代码可编译到任一后端）：
+
+```text
+dotnet run --project tools\ProjectionBenchmark -c Release -- --scenario 2d,single,10,50,100,list,transition --seconds 2
+```
+
+本机（WPF 软件合成环境，纯 2D 基线约 30 ms/帧，绝对值不代表 GPU 机器）实测，同一工作负载下旧 `Viewport3D` 后端与新后端的**每帧 CPU 与托管分配**：
+
+| 场景 | 旧 CPU/帧 | 新 CPU/帧 | 旧分配/帧 | 新分配/帧 |
+|---|---|---|---|---|
+| 2D（100 个无投影元素） | 4.4 ms | 4.9 ms | 2.4 KB | 2.2 KB |
+| 1 个投影元素 | 20.4 ms | 4.5 ms | 6.6 KB | 4.4 KB |
+| 10 个 | 48.2 ms | 6.5 ms | 33 KB | 8.6 KB |
+| 50 个 | 49.0 ms | 23.0 ms | 157 KB | 34 KB |
+| 100 个 | 52.1 ms | 31.3 ms | 315 KB | 88 KB |
+| 页面转场 | 3.1 ms | 6.1 ms | 200 KB | 47 KB |
+
+结论只到这一步：投影元素越多，新后端的 CPU 与分配越低（旧后端每个元素一个 3D 场景）；单页面转场里新后端 CPU 略高（一次全页栅格化 + 着色器），但分配少四倍。帧间隔受软件合成限制，不作为 FPS 结论。
+
+### 4.9 测试与对照
+
+- `tests/Community.Phone.Tests`：Homography 数学（identity、单轴/组合旋转、偏移、旋转中心、不同尺寸、`Matrix3DProjection`、透视深度、正逆互验、奇异矩阵、相机背后、非有限输入），对照实现用 WPF 自己的 `Matrix3D.Transform` + 相机公式，容差 1e-5。
+- 离屏渲染对照（开发期验证，脚本未入库）：同一投影分别用旧 `Viewport3D` 后端与新着色器渲染，四角包围盒误差 ≤ 1 px，像素差异 0.4%–2%（边缘抗锯齿）。
+- UI 测试：任意元素直接投影、清除后恢复、identity 不栅格化、`PreferShader`、原有效果保存/恢复、`Preserve` 策略、尺寸变化重算、Storyboard 属性路径、父级 `ClipToBounds`、`ScrollViewer` 裁剪、ListBox 虚拟化、`Matrix3DProjection`。
+
+### 4.10 XAML 兼容边界
+
+```xml
+<!-- 任意元素：附加属性，不改变布局树。 -->
+<Grid platform:ProjectionService.Projection="{StaticResource MyProjection}">...</Grid>
+
+<!-- 内联声明。 -->
+<Border>
+    <platform:ProjectionService.Projection>
+        <platform:PlaneProjection RotationY="-35" />
+    </platform:ProjectionService.Projection>
+</Border>
+```
+
+storyboard 路径不变：`(ProjectionService.Projection).(PlaneProjection.RotationY)`，可用 `ProjectionService.GetProjectionPropertyPath` 生成。
+
+注意：通过 `Style`/`ItemContainerStyle` 共享的 `Freezable` 会被 WPF 冻结，不能动画。需要动画时把 `PlaneProjection` 放进 `DataTemplate`（每个容器一个实例，例如绑定到页面上的一个 `double` 属性），或按容器在代码里创建。
 
 ## 5. 导航子系统
 
@@ -215,11 +317,11 @@ Windows Phone 由合成器绘制应用栏，移植版由 `ApplicationBarPresente
 
 ### 5.4 `TransitionFrame`
 
-继承 `PhoneApplicationFrame`，模板部件是名为 `FirstContentPresenter`、`SecondContentPresenter` 的两个 `ProjectionHost`（来自 `Community.Phone`，模板中需使用 `platform:` 前缀，不是 `ContentPresenter`）。
+继承 `PhoneApplicationFrame`，模板部件是名为 `FirstContentPresenter`、`SecondContentPresenter` 的两个 `ContentPresenter`；转场投影由被承载的页面承担。
 
 导航转场顺序：
 
-1. `Navigating`：捕获旧页面，选择 `NavigationOutTransition.Forward/Backward`，取得 `ITransition`，准备旧 Host（关闭命中测试、非羽化转场同时打开 `Prefer3D`），启动退场。
+1. `Navigating`：捕获旧页面，选择 `NavigationOutTransition.Forward/Backward`，取得 `ITransition`，准备旧呈现器（关闭命中测试、对被投影的页面打开 `PreferShader`），启动退场。
 2. `OnContentChanged`：把新页面放入非活动 Host，取 `NavigationInTransition`，并先强制执行一次布局，让羽化目标具备真实几何；退场仍在进行则暂存，否则立即启动进场。
 3. 退场完成：停止/恢复旧转场，隐藏旧 Host，启动进场。
 4. 进场完成：停止/恢复、恢复交互、触发 `EndTransition`。
@@ -267,7 +369,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 附加属性 `FeatheringIndex`，静态属性 `NonPermittedTypes` 与交错时间常数。合成 storyboard 时目标从页面的**可视树**收集（`FeatheringIndex` 稳定排序），因为进场页面在接入可视树之前就被合成。附加属性订阅只负责准备包装，且延迟到 `Loaded`/`SizeChanged` 之后的 dispatcher（布局过程中包装会引发布局循环）。
 
-`TurnstileFeatherTransition` 开始时为屏幕内的目标确保 `ProjectionHost`，先打开 `Prefer3D` 再赋 `PlaneProjection`（`CenterOfRotationX = -0.2`），然后按 40–50 ms 交错组合 `RotationY` 与透明度动画。清理时恢复透明度、投影、渲染变换与 2D 路径，并对元素与包装器 `InvalidateVisual()`（走过 3D 路径的包装使用独立表面合成，不重绘会残留最后一帧）。包装保留到元素卸载，避免一次转场中反复重新父级化。没有 `ProjectionHost` 模板部件的 item 容器跳过。
+`TurnstileFeatherTransition` 开始时为目标直接赋 `PlaneProjection`（`CenterOfRotationX = -0.2`）、打开 `PreferShader`，并给元素叠加一个 `TranslateTransform`（与投影组合），然后按 40–50 ms 交错组合 `RotationY` 与透明度动画。清理时恢复透明度、投影与渲染变换，并对元素 `InvalidateVisual()`（走过着色器路径的元素使用独立表面合成，不重绘会残留最后一帧）。
 
 ### `SlideInEffect`
 
@@ -287,7 +389,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 | `HubTile` / `HubTileService` | 定时器驱动 `Expanded → Semiexpanded → Collapsed → Expanded → Flipped`；两倍瓦片高的表面用 `TranslateTransform` 滑到 `-H` / `-0.4566H` / `0`，翻转用 `PlaneProjection.RotationX`（`0→180`、`180→360`）并在表面侧立时换面；`GroupTag` 支持组冻结 |
 | `ListPicker` / `ListPickerPage` | 普通模式对模板 Canvas 做高度/位移动画；完整模式通过宿主 frame 导航到 `ListPickerPage`（`PickerPageUri` 的 pack URI），页面用原版 `ApplicationBar` 确认/取消（图标来自 `Content/ApplicationBar.*.png`），项目逐个 `RotationX` 翻转展开；页面自带主题字典，等待列表就绪后再组合动画 |
 | `ContextMenu` / `MenuItem` / `Separator` / `ContextMenuService` | 原版模板与视觉状态；自绘 `Popup`，`ContextMenuService` 只负责绑定所有者；右键与模拟长按打开；无横竖屏分支，遮罩缩放/淡入由代码动画驱动 |
-| `CustomMessageBox` | `ContentControl` API，`Show()`/`Dismiss()` 由 WPF `Window` 承载，内容在 `ProjectionHost` 中播放 Swivel |
+| `CustomMessageBox` | `ContentControl` API，`Show()`/`Dismiss()` 由 WPF `Window` 承载，内容直接播放 Swivel |
 | `DatePicker` / `TimePicker` / `RecurringDaysPicker` | 保留 `Value`/`ValueString`/`Header`/`PickerPageUri` API；点击时通过宿主 `PhoneApplicationFrame` 导航到 `DatePickerPage` / `TimePickerPage`（主题中 `PickerPageUri` 的 pack URI），picker 页面使用 `LoopingSelector` 求值；`RecurringDaysPicker` 继承 `ListPicker` |
 | `PerformanceProgressBar` | 内嵌 WPF `ProgressBar` 与 `ActualIsIndeterminate`，透明度淡入淡出 |
 | `Pivot` / `PivotItem` | 容器在 `Grid` items panel 中堆叠，仅当前项可见；切换时进入项从 `±ActualWidth` 动画到 `0`（`QuarticEase`，0.25 s），离开项滑出后折叠；指针拖拽以 600 px/s 移动，超过半个视口切换；`IsLocked` 淡出页眉并拒绝修改项 |
@@ -308,7 +410,7 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 - `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml`。
 - `Community.Phone.Controls.Toolkit/Themes/Generic.xaml` 合并 `Community.Phone` 的 `Generic.xaml` 与自身 `Controls/*.xaml`（`AutoCompleteBox`、`Button`、`ComboBox`、`ContextMenu`、`CustomMessageBox`、`DateTimePicker`、`ExpanderView`、`HubTile`、`ListPicker`、`LongListMultiSelector`、`LoopingSelector`、`PhoneTextBox`、`Rating`、`ToggleSwitch`、`TransitionFrame`）。
 
-主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。`ListBoxItem` 模板内含名为 `ProjectionHost` 的部件，供投影服务直接复用（见 §4.5）。
+主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。`ListBoxItem` 模板不再包含投影部件，投影直接作用于容器（见 §4.5）。
 
 三条 WPF 规则决定写法：
 

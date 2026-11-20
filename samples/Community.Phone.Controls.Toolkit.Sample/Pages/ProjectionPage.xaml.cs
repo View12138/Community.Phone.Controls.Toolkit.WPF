@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Phone.Controls;
@@ -21,8 +23,21 @@ namespace PhoneToolkitSample.Pages
             };
             _statusTimer.Tick += OnStatusTick;
 
+            ProjectedList.ItemsSource = CreateItems();
+
             Loaded += OnLoaded;
             Unloaded += OnUnloaded;
+        }
+
+        private static IEnumerable<string> CreateItems()
+        {
+            List<string> items = new List<string>();
+            for (int i = 1; i <= 200; i++)
+            {
+                items.Add("Item " + i.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return items;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -39,8 +54,6 @@ namespace PhoneToolkitSample.Pages
 
             DemoProjection.BeginAnimation(PlaneProjection.RotationYProperty, animation);
 
-            // The Border on this page declares its projection without a
-            // ProjectionHost; ProjectionService wraps it on demand.
             DoubleAnimation hostlessAnimation = new DoubleAnimation
             {
                 From = -22,

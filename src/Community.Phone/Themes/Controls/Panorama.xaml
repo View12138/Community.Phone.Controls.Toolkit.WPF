@@ -18,38 +18,36 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type controls:Panorama}">
-                    <controls:ProjectionHost x:Name="ProjectionHost">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                            <primitives:PanningBackgroundLayer
-                                x:Name="BackgroundLayer"
-                                Grid.RowSpan="2"
-                                HorizontalAlignment="Left">
-                                <Border x:Name="background" Background="{TemplateBinding Background}" />
-                            </primitives:PanningBackgroundLayer>
+                        <primitives:PanningBackgroundLayer
+                            x:Name="BackgroundLayer"
+                            Grid.RowSpan="2"
+                            HorizontalAlignment="Left">
+                            <Border x:Name="background" Background="{TemplateBinding Background}" />
+                        </primitives:PanningBackgroundLayer>
 
-                            <primitives:PanningTitleLayer
-                                x:Name="TitleLayer"
-                                Grid.Row="0"
-                                HorizontalAlignment="Left"
-                                Margin="10,-34,0,0"
-                                Content="{TemplateBinding Title}"
-                                ContentTemplate="{TemplateBinding TitleTemplate}"
-                                FontSize="170"
-                                FontFamily="{DynamicResource PhoneFontFamilyLight}" />
+                        <primitives:PanningTitleLayer
+                            x:Name="TitleLayer"
+                            Grid.Row="0"
+                            HorizontalAlignment="Left"
+                            Margin="10,-34,0,0"
+                            Content="{TemplateBinding Title}"
+                            ContentTemplate="{TemplateBinding TitleTemplate}"
+                            FontSize="170"
+                            FontFamily="{DynamicResource PhoneFontFamilyLight}" />
 
-                            <primitives:PanningLayer
-                                x:Name="ItemsLayer"
-                                Grid.Row="1"
-                                HorizontalAlignment="Left">
-                                <ItemsPresenter x:Name="items" />
-                            </primitives:PanningLayer>
-                        </Grid>
-                    </controls:ProjectionHost>
+                        <primitives:PanningLayer
+                            x:Name="ItemsLayer"
+                            Grid.Row="1"
+                            HorizontalAlignment="Left">
+                            <ItemsPresenter x:Name="items" />
+                        </primitives:PanningLayer>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

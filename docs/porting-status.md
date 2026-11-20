@@ -10,7 +10,7 @@
 | **部分实现** | 主体已实现，但有明确的功能或保真度缺口（见备注与[已知限制](known-limitations.md)）。 |
 | **未实现** | 源码中不存在，不得声称可用。 |
 
-仓库内没有自动化测试工程，因此本文件不按“测试是否通过”分级；状态由源码检查与构建结果得出，行为差异与验证缺口见[已知限制](known-limitations.md)。
+`tests/Community.Phone.Tests` 覆盖投影数学、服务行为与离屏渲染（`dotnet test tests\Community.Phone.Tests`），其余模块仍没有自动化测试；状态由源码检查、构建结果与该测试工程得出，行为差异与验证缺口见[已知限制](known-limitations.md)。
 
 ## 构建与验证
 
@@ -31,11 +31,13 @@
 | 项目 | 状态 | 说明 |
 |---|---|---|
 | `Projection`、`PlaneProjection`、`Matrix3DProjection` | 已实现 | 位于 `Community.Phone`；12 个 `PlaneProjection` 依赖属性；`Animatable`；`ToMatrix3D` 复现 XAML 的 999 DIP 透视与符号约定；`Matrix3DProjection` 使用归一化矩阵 |
-| `ProjectionHost` | 已实现 | 位于 `Community.Phone`；`Viewport3D` + `Viewport2DVisual3D`；`Content`、`Projection`、`PerspectiveDepth`（默认 999）、`Prefer3D`、`IsRenderingIn3D`；双面四边形；内容按布局槽裁剪，投影结果不裁剪 |
-| `ProjectionService` | 已实现 | 位于 `Community.Phone`；附加属性 `Projection`、扩展成员 `element.Projection`、`EnsureProjectionHost`（复制布局属性）、`ReleaseProjectionHost`、`GetDirectProjectionHost`、`GetProjectionPropertyPath`；按需包装支持 `Panel`、`ItemsControl`、`ContentControl`、`Page` 父容器 |
-| `ListBoxItem` 投影 | 已实现 | 默认主题模板 `Themes/Controls/ListBox.xaml` 内建名为 `ProjectionHost` 的部件；服务直接复用，不重父级化；自定义模板必须保留同名部件 |
+| 渲染后端 | 已实现 | 3×3 单应变换 + `ShaderEffect`（`ps_2_0`，字节码嵌入 `Community.Phone.dll`）；不创建 `Viewport3D`，不重 Parent；正/逆向映射、透视除法、相机背后与奇异矩阵都显式处理 |
+| `HomographyMatrix`、`ProjectionMath` | 已实现 | 公共 3×3 齐次类型与 `CreateHomography`/`GetPlaneDistance`；与 WPF `Matrix3D.Transform` + 相机公式逐点对照，容差 1e-5 |
+| `ProjectionService` | 已实现 | 附加属性 `Projection` 直接作用于元素（`ConditionalWeakTable` 状态）；`PreferShader`、`PerspectiveDepth`、`HitTestPolicy`、`EffectConflictBehavior`/`EffectConflict` |
+| 内容裁剪 | 已实现 | 需要“裁内容、不裁投影”时用“外层投影元素 + 内层 `ClipToBounds` 容器”（`HubTile` 模板），不再有宿主类型 |
+| `ListBoxItem` 投影 | 已实现 | 直接作用于容器，不依赖模板部件；虚拟化不受影响（测试覆盖 500 项只生成可见容器） |
 | storyboard 路径 `(ProjectionService.Projection).(PlaneProjection.X)` | 已实现 | 供原版 storyboard 使用；storyboard 的 `xmlns:phone` 指向 `Community.Phone` |
-| `Matrix3DProjection` 的复杂矩阵 | 部分实现 | `ToMatrix3D` 依次做“按尺寸归一化 → 应用矩阵 → 反归一化”；任意矩阵的视觉结果没有验证，示例未演示 |
+| `Matrix3DProjection` 的复杂矩阵 | 已实现 | `ToMatrix3D` 依次做“按尺寸归一化 → 应用矩阵 → 反归一化”；测试与离屏对照覆盖含透视项的任意矩阵 |
 
 ## 2. 导航与 Shell
 
@@ -55,10 +57,10 @@
 
 | 族 | 状态 | 说明 |
 |---|---|---|
-| `TransitionFrame` | 已实现 | 两个 `ProjectionHost` 部件；退场完成后再进场；准备阶段关闭命中测试并打开 `Prefer3D`；无动画的转场在下一个 dispatcher 周期完成 |
+| `TransitionFrame` | 已实现 | 两个 `ContentPresenter` 部件；退场完成后再进场；准备阶段关闭命中测试并对页面打开 `PreferShader`；无动画的转场在下一个 dispatcher 周期完成 |
 | `Transition` | 已实现 | 自跟踪 begun/completed；可控时钟；`Stop()` 移除时钟；每次运行最多一次 `Completed` |
 | `TurnstileTransition`（4 模式） | 已实现 | 原版 storyboard；`TurnstileCenterOfRotationX = -0.05`、`TurnstileDurationScale = 1.2` 为移植版调优常量 |
-| `TurnstileFeatherTransition`（4 模式） | 已实现 | 目标从页面可视树收集；逐元素 `ProjectionHost`；40/50 ms 交错；清理后重绘；storyboard 由代码合成 |
+| `TurnstileFeatherTransition`（4 模式） | 已实现 | 目标从页面可视树收集；逐元素直接投影 + `RenderTransform`；40/50 ms 交错；清理后重绘；storyboard 由代码合成 |
 | `SlideTransition`（8 模式） | 已实现 | 原版 `Slide*Fade*` storyboard；`RenderTransform` 位移与透明度 |
 | `RotateTransition`（8 模式） | 已实现 | 原版 `Rotate*` storyboard |
 | `SwivelTransition`（6 模式） | 已实现 | 原版 `Swivel*` storyboard |
@@ -71,8 +73,8 @@
 
 | 项目 | 状态 | 说明 |
 |---|---|---|
-| `TiltEffect` | 已实现 | 通过 `ProjectionService` 赋投影；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation；`ListBoxItem` 复用模板部件，其余无法包装的容器跳过 |
-| `TurnstileFeatherEffect` | 已实现 | 目标从可视树收集；包装延迟到 dispatcher；`Prefer3D` + `CenterOfRotationX = -0.2`；恢复后 `InvalidateVisual()` |
+| `TiltEffect` | 已实现 | 通过 `ProjectionService` 直接赋投影（不包装、按下期间不改视觉树）；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation |
+| `TurnstileFeatherEffect` | 已实现 | 目标从可视树收集；直接投影 + `CenterOfRotationX = -0.2` + `PreferShader`；恢复后 `InvalidateVisual()` |
 | `SlideInEffect` | 已实现 | `LineIndex` 等附加属性；订阅宿主 Pivot 选择变化；有独立示例页 |
 
 ## 5. 控件

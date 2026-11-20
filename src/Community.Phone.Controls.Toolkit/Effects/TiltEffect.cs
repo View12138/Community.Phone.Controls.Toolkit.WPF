@@ -244,7 +244,6 @@ namespace Microsoft.Phone.Controls
                     fe.ManipulationStarted -= TiltEffect_ManipulationStarted;
                     fe.PreviewMouseDown -= TiltEffect_MouseDown;
                     fe.Loaded -= OnTiltElementLoaded;
-                    ProjectionService.ReleaseProjectionHost(fe);
                 }
             }
         }
@@ -262,12 +261,10 @@ namespace Microsoft.Phone.Controls
         /// </summary>
         private static void EnsureTiltHost(FrameworkElement element)
         {
-            if (element == null || element is ProjectionHost || IsSuppressed(element) || !IsTiltable(element))
+            if (element == null || IsSuppressed(element) || !IsTiltable(element))
             {
                 return;
             }
-
-            ProjectionService.EnsureProjectionHost(element);
         }
 
         private static bool IsTiltable(FrameworkElement element)
@@ -616,21 +613,7 @@ namespace Microsoft.Phone.Controls
                 projection.CenterOfRotationY = (bounds.Top + (bounds.Height / 2)) / slotHeight;
             }
 
-            // Assigning a projection wraps the control in a ProjectionHost on
-            // demand; the host is removed again when the projection is cleared.
             element.Projection = projection;
-            ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
-            if (host == null)
-            {
-                // The control cannot be projected (an item container, for
-                // example); undo the assignment and do nothing.
-                element.Projection = null;
-                return false;
-            }
-
-            // Keep the render path in 3D until the cleanup so the return
-            // animation does not switch rasterization halfway through.
-            host.Prefer3D = true;
 
             element.ManipulationDelta += TiltEffect_ManipulationDelta;
             element.ManipulationCompleted += TiltEffect_ManipulationCompleted;
@@ -662,15 +645,7 @@ namespace Microsoft.Phone.Controls
                 container.LostMouseCapture -= TiltEffect_MouseUp;
             }
 
-            ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
-            if (host != null)
-            {
-                host.Prefer3D = false;
-            }
-
-            // Clearing the projection also removes a host that was created on
-            // demand for this tilt.
-            ProjectionService.SetProjection(element, null);
+            element.Projection = null;
         }
 
         /// <summary>
@@ -754,13 +729,7 @@ namespace Microsoft.Phone.Controls
                 GeneralTransform transform = currentTiltContainerToHost;
                 if (transform == null)
                 {
-                    ProjectionHost host = ProjectionService.GetDirectProjectionHost(element);
-                    if (host == null)
-                    {
-                        return;
-                    }
-
-                    transform = container.TransformToVisual(host);
+                    transform = container.TransformToVisual(element);
                 }
 
                 tiltTouchPoint = transform.Transform(ManipulationOrigin);

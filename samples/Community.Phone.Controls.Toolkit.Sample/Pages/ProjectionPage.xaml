@@ -21,37 +21,89 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12,0,12,24">
-                <platform:ProjectionHost x:Name="ProjectionDemo" Height="180" Margin="0,8,0,16">
-                    <Border Background="{DynamicResource PhoneAccentBrush}">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock Text="PlaneProjection with ProjectionHost" Foreground="White" FontSize="24" HorizontalAlignment="Center" />
-                            <TextBlock Text="real Viewport2DVisual3D" Foreground="White" FontSize="14" HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Border>
-                    <platform:ProjectionHost.Projection>
-                        <platform:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" RotationX="20" RotationY="0"/>
-                    </platform:ProjectionHost.Projection>
-                </platform:ProjectionHost>
+                <TextBlock
+                    Text="A projection shader samples the element's own raster through the homography of the 3D plane. No element is re-parented and no Viewport3D is created."
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,12" />
 
                 <Border
                     Height="120"
                     Margin="0,0,0,16"
                     Background="{DynamicResource PhoneAccentBrush}">
                     <platform:ProjectionService.Projection>
-                        <platform:PlaneProjection x:Name="HostlessProjection" RotationY="-28" RotationX="10" />
+                        <platform:PlaneProjection
+                            x:Name="HostlessProjection"
+                            CenterOfRotationX="0.5"
+                            CenterOfRotationY="0.5"
+                            RotationX="{Binding ElementName=PlaneProjectionRotationX, Path=Value}"
+                            RotationY="{Binding ElementName=PlaneProjectionRotationY, Path=Value}"
+                            RotationZ="{Binding ElementName=PlaneProjectionRotationZ, Path=Value}" />
                     </platform:ProjectionService.Projection>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="No ProjectionHost" Foreground="White" FontSize="20" HorizontalAlignment="Center" />
-                        <TextBlock Text="assigned to a Border, wrapped on demand" Foreground="White" FontSize="13" HorizontalAlignment="Center" />
+                        <TextBlock Text="Any UIElement" Foreground="White" FontSize="20" HorizontalAlignment="Center" />
+                        <TextBlock Text="attached property, untouched visual tree" Foreground="White" FontSize="13" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <Border Height="150" Margin="0,0,0,16" Background="{DynamicResource PhoneAccentBrush}">
+                    <platform:ProjectionService.Projection>
+                        <platform:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" RotationX="20" RotationY="0" />
+                    </platform:ProjectionService.Projection>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="Animated in place" Foreground="White" FontSize="22" HorizontalAlignment="Center" />
+                        <TextBlock Text="one projection instance, one shader" Foreground="White" FontSize="13" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>
 
                 <TextBlock
-                    Text="The projection rotates continuously; the button animates RotationX. XAML uses a fixed 999 DIP perspective depth, so the whole plane stays 1:1 until it is rotated."
+                    Text="ListBox items are projected in place: the virtualizing panel still creates only the visible containers, and each visible one is rasterized by its own shader instance."
+                    Style="{StaticResource PhoneTextSubtleStyle}"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,8" />
+
+                <ListBox
+                    x:Name="ProjectedList"
+                    Height="220"
+                    Margin="0,0,0,16"
+                    Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Height="44"
+                                Margin="0,2"
+                                Background="{DynamicResource PhoneAccentBrush}">
+                                <platform:ProjectionService.Projection>
+                                    <!--
+                                        The projection lives in the item template, so
+                                        every realized container gets its own
+                                        instance. A projection shared through an
+                                        ItemContainerStyle is frozen by WPF.
+                                    -->
+                                    <platform:PlaneProjection RotationY="-28" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
+                                </platform:ProjectionService.Projection>
+                                <TextBlock
+                                    Text="{Binding}"
+                                    Foreground="White"
+                                    FontSize="18"
+                                    VerticalAlignment="Center"
+                                    Margin="12,0" />
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <TextBlock
+                    Text="XAML uses a fixed 999 DIP perspective depth, so the plane stays 1:1 until it is rotated."
                     Style="{StaticResource PhoneTextSubtleStyle}"
                     TextWrapping="Wrap" />
                 <TextBlock x:Name="ProjectionStatus" Text="RotationX 0°, RotationY 0°" Style="{StaticResource PhoneTextSubtleStyle}" Margin="0,0,0,12" />
 
+                <StackPanel>
+                    <Slider x:Name="PlaneProjectionRotationX" Value="0" Minimum="-180" MaxWidth="180" />
+                    <Slider x:Name="PlaneProjectionRotationY" Value="0" Minimum="-180" MaxWidth="180" />
+                    <Slider x:Name="PlaneProjectionRotationZ" Value="0" Minimum="-180" MaxWidth="180" />
+                </StackPanel>
                 <Button Content="Animate projection" Click="OnAnimateProjection" Margin="0,0,0,8" />
                 <Button Content="Go back" Click="OnGoBack" />
             </StackPanel>

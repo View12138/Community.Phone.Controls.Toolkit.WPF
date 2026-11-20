@@ -22,12 +22,12 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <platform:ProjectionHost
+                        <ContentPresenter
                             x:Name="FirstContentPresenter"
                             Grid.Row="0"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch" />
-                        <platform:ProjectionHost
+                        <ContentPresenter
                             x:Name="SecondContentPresenter"
                             Grid.Row="0"
                             HorizontalAlignment="Stretch"

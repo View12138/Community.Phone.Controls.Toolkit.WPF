@@ -19,11 +19,10 @@
 		<NoWarn>$(NoWarn);IDE0017;IDE0028;IDE0130;IDE0290;IDE0090;IDE0300</NoWarn>
 	</PropertyGroup>
 
+	<!-- Compiled pixel shader byte code. Rebuild with build\compile-shaders.ps1. -->
 	<ItemGroup>
-		<Page Update="Themes\Generic.xaml">
-			<Generator>MSBuild:Compile</Generator>
-			<SubType>Designer</SubType>
-		</Page>
+		<Resource Include="Projection\Rendering\Shader\*.ps" />
+		<None Include="Projection\Rendering\Shader\*.hlsl" />
 	</ItemGroup>
 
 </Project>
