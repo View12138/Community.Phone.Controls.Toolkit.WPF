@@ -1235,7 +1235,7 @@ namespace Microsoft.Phone.Controls
                 }
             }
 
-            _overlay = new Canvas { Background = new SolidColorBrush(Colors.Transparent) };
+            _overlay = new Canvas { Background = new SolidColorBrush(Color.FromArgb(01, 255, 255, 255)) };
             _overlay.MouseLeftButtonUp += OnOverlayMouseButtonUp;
 
             if (IsZoomEnabled && (null != _rootVisual))
