@@ -72,7 +72,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                FontSize="{StaticResource PhoneFontSizeNormal}">
@@ -104,7 +104,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                 FontSize="{StaticResource PhoneFontSizeNormal}">
@@ -137,7 +137,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                 FontSize="{StaticResource PhoneFontSizeNormal}">
@@ -168,7 +168,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                 FontSize="{StaticResource PhoneFontSizeNormal}">
@@ -201,7 +201,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                 FontSize="{StaticResource PhoneFontSizeNormal}">
@@ -232,7 +232,7 @@
                             Style="{StaticResource ListBoxStyle}">
                     <ListBox.Template>
                         <ControlTemplate>
-                            <ScrollViewer>
+                            <ScrollViewer phone:SmoothScrolling.MouseWheelDelta="144">
                                 <StackPanel>
                                     <TextBlock Margin="0,0,0,24" TextWrapping="Wrap"
                                                 FontSize="{StaticResource PhoneFontSizeNormal}">
