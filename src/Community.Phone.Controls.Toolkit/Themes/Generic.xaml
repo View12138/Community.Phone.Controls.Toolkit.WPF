@@ -40,13 +40,6 @@
         </Setter>
     </Style>
 
-    <Style TargetType="{x:Type ProgressBar}">
-        <Setter Property="Height" Value="8" />
-        <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneAccentBrush}" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
-
     <Style TargetType="{x:Type ToolTip}">
         <Setter Property="Background" Value="{DynamicResource PhoneChromeBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
