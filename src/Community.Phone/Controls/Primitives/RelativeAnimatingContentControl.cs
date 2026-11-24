@@ -82,12 +82,38 @@ namespace Microsoft.Phone.Controls.Primitives
         {
             if (e != null && e.NewSize.Height > 0 && e.NewSize.Width > 0)
             {
+                bool resized = Math.Abs(e.NewSize.Width - _knownWidth) > 0.01 || Math.Abs(e.NewSize.Height - _knownHeight) > 0.01;
+
                 _knownWidth = e.NewSize.Width;
                 _knownHeight = e.NewSize.Height;
 
                 Clip = new RectangleGeometry { Rect = new Rect(0, 0, _knownWidth, _knownHeight), };
 
                 UpdateAnyAnimationValues();
+
+                if (resized)
+                {
+                    RestartCurrentState();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 关键帧被改写后，已经开始的 storyboard 仍持有旧值的时钟；重播当前状态让它用新值运行。
+        /// GoToElementState 对同一状态会直接返回，所以这里直接 Stop/Begin 状态的 storyboard。
+        /// </summary>
+        private void RestartCurrentState()
+        {
+            foreach (VisualStateGroup group in VisualStateManager.GetVisualStateGroups(this))
+            {
+                Storyboard storyboard = group?.CurrentState?.Storyboard;
+                if (storyboard == null)
+                {
+                    continue;
+                }
+
+                storyboard.Stop(this);
+                storyboard.Begin(this, true);
             }
         }
 

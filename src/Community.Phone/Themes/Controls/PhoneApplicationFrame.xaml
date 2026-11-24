@@ -25,15 +25,17 @@
                             VerticalAlignment="Stretch"
                             Content="{TemplateBinding Content}"
                             ContentTemplate="{TemplateBinding ContentTemplate}" />
-                        <!-- Reserves the bar's resting height for the page. -->
                         <Grid
                             x:Name="ApplicationBarHost"
                             Grid.Row="1"
                             Height="0"
                             ClipToBounds="False" />
-                        <!-- Spans both rows and sits at the bottom, so an expanded
-                             bar can grow upward over the page instead of being
-                             clipped to the reserved row. -->
+                        <shell:ProgressIndicatorPresenter
+                            x:Name="ProgressIndicator"
+                            Grid.Row="0"
+                            Margin="0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Top" />
                         <shell:ApplicationBarPresenter
                             x:Name="ApplicationBar"
                             Grid.Row="0"

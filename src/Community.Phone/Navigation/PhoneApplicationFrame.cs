@@ -28,6 +28,7 @@ namespace Microsoft.Phone.Controls
         /// The name of the template part that draws the application bar.
         /// </summary>
         private const string ApplicationBarPartName = "ApplicationBar";
+        private const string ProgressIndicatorPartName = "ProgressIndicator";
 
         /// <summary>
         /// Identifies the <see cref="Orientation"/> property.
@@ -119,6 +120,7 @@ namespace Microsoft.Phone.Controls
         /// Gets or sets the presenter that draws the application bar.
         /// </summary>
         private ApplicationBarPresenter _applicationBarPresenter;
+        private ProgressIndicatorPresenter _progressIndicatorPresenter;
 
         /// <summary>
         /// Gets a value indicating whether the current orientation is portrait.
@@ -183,6 +185,7 @@ namespace Microsoft.Phone.Controls
 
             _applicationBarHost = GetTemplateChild(ApplicationBarHostPartName) as FrameworkElement;
             _applicationBarPresenter = GetTemplateChild(ApplicationBarPartName) as ApplicationBarPresenter;
+            _progressIndicatorPresenter = GetTemplateChild(ProgressIndicatorPartName) as ProgressIndicatorPresenter;
 
             if (_applicationBarPresenter != null)
             {

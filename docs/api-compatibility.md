@@ -81,7 +81,8 @@
 |---|---|---|
 | `ApplicationBar` | 实现 | `[ContentProperty("Buttons")]`、`IsVisible`、`Opacity`（截断到 0..1）、`IsMenuEnabled`、`BackgroundColor`、`ForegroundColor`、`Mode`、`DefaultSize`（72）、`MiniSize`（30）、`Buttons`、`MenuItems`、`StateChanged`。 |
 | `ApplicationBarPresenter` | 实现（移植新增） | 绘制应用栏、图标槽、菜单按钮与 `Popup` 菜单；`ReservedHeight` 驱动页面预留高度。 |
-| `SystemTray` | 状态实现 | 无视觉 chrome；`IsVisible` 同时提供静态属性与 `IsVisibleProperty` 附加属性，XAML 中 `shell:SystemTray.IsVisible` 可用。 |
+| `SystemTray` | 状态实现 | 不绘制状态栏；`IsVisible` 同时提供静态属性与 `IsVisibleProperty` 附加属性，XAML 中 `shell:SystemTray.IsVisible` 可用。 |
+| `ProgressIndicatorPresenter`（移植新增） | 已实现 | D | — | 把 `SystemTray.ProgressIndicator` 画在 frame 顶部：4 DIP 进度条贴顶、左右 0 边距、无轨道底色，确定态按 `Value` 填充、不确定态复用 WP `ProgressBar` 的点动画，`Text` 非空时显示在条下方右侧。`PhoneApplicationFrame` 与 `TransitionFrame` 的默认模板都含名为 `ProgressIndicator` 的该部件；自定义 frame 模板需自行加入，否则取不到也不会显示。 |
 | `PhoneApplicationService` | 状态实现 | `State`、生命周期事件、idle 检测模式；不复刻 tombstoning。 |
 | `ThemeManager` | 实现（移植新增） | `AvailableApplicationThemes`、`AvailableAccentColors`、`ActualTheme`、`ActualAccentColor`、`ThemeChanged`；`ResolveDictionary`、`GetSystemAccentColor`。`RequestedTheme`、`AccentColor`、`CustomAccentColor`、`InitializeTheme()` 是 `ApplicationExtensions` 提供的 `Application` 扩展成员，不在 `ThemeManager` 上。 |
 | `ThemePalette` | 实现（移植新增） | 24 个 `Phone*Color` 属性、5 个非颜色值、`PivotUnselectedItemOpacity`、`WithAccent`、`Dark`/`Light` 静态调色板、`ResourceKeys`。 |
@@ -108,7 +109,7 @@
 | `Pivot` / `PivotItem` / `PivotHeadersControl` / `PivotHeaderItem` | 已实现 | A/B | 见上表 | 输入是鼠标拖拽 + 方向键；页眉条循环排布但只绘制一圈；`IsLocked` 是依赖属性。 |
 | `Panorama` / `PanoramaItem` | 已实现 | B | `Title`/`TitleTemplate`、`HeaderTemplate`、`SelectedItem`/`SelectedIndex`、`DefaultItem`、`SelectionChanged`；`PanoramaItem.Header`/`HeaderTemplate`/`Orientation` | WP 手势改为 WPF 指针事件与 storyboard；无独立示例页。 |
 | `PerformanceProgressBar` | 已实现 | B | `IsIndeterminate`、`ActualIsIndeterminate` | 内嵌 WPF `ProgressBar`；简单淡入淡出。 |
-| `RelativeAnimatingContentControl` | 已存在 | B | 公共 `ContentControl` 派生类型 | 原版的相对动画重写未移植。 |
+| `RelativeAnimatingContentControl` | 已实现 | B | 公共 `ContentControl` 派生类型 | 相对动画已移植：在尺寸变化时把关键帧里 `xx.1` / `xx.2` 形式的“百分比”数值改写成像素并重播当前状态；类型从 toolkit 移到 `Community.Phone`（命名空间仍是 `Microsoft.Phone.Controls.Primitives`），因为 `ProgressBar` 主题在平台层。 |
 | `WrapPanel` | 已实现 | A | `ItemHeight`、`ItemWidth`、`Orientation`、布局算法 | 与 WPF 自带 `System.Windows.Controls.WrapPanel` 并存。 |
 | `ClipToBounds` | 已实现 | A | `IsEnabled` 附加属性 | 使用 WPF `Clip`。 |
 | `LoopingSelector` / `LoopingSelectorItem` / `ILoopingSelectorDataSource` | 已实现 | A/B | `DataSource`、`ItemTemplate`、`IsExpanded`、`IsExpandedChanged`、`Click`、`GetNext`/`GetPrevious`/`SelectedItem` | 位于 `Microsoft.Phone.Controls.Primitives`；供 picker 页面使用。 |

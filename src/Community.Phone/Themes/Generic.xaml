@@ -1,4 +1,4 @@
-<ResourceDictionary
+﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls"
@@ -16,10 +16,12 @@
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/PhoneApplicationFrame.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Pivot.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ProgressBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ProgressIndicator.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollBar.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollViewer.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/TextBlock.xaml" />
         <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/TextBox.xaml" />
+        
     </ResourceDictionary.MergedDictionaries>
 
 </ResourceDictionary>

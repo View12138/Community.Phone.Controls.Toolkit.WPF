@@ -22,7 +22,7 @@ Community.Phone.Controls.Toolkit.slnx
 │  │                Rendering/Shader/  PerspectiveShaderEffect(.cs/.hlsl/.ps)、ShaderProjectionRenderer、ShaderResourceManager
 │  ├─ Shell/        ApplicationBar 及其呈现器、SystemTray、PhoneApplicationService、ThemeManager、ThemePalette
 │  ├─ Globalization/  SortedLocaleGrouping
-│  └─ Themes/       Theme.xaml（调色板）、Generic.xaml、Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml
+│  └─ Themes/       Theme.xaml（调色板）、Generic.xaml、Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ProgressBar,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml
 ├─ src/Community.Phone.Controls.Toolkit/      toolkit 程序集（根命名空间 Microsoft.Phone.Controls）
 │  ├─ Projection/   资源键与投影互操作辅助（投影类型在 Community.Phone）
 │  ├─ Transitions/  ITransition、Transition、TransitionFrame、TransitionService、Storyboards/*.xaml、各转场族
@@ -313,7 +313,7 @@ Windows Phone 由合成器绘制应用栏，移植版由 `ApplicationBarPresente
 
 颜色来自 `BackgroundColor` / `ForegroundColor`，透明度来自 `Opacity`；frame 用呈现器的 `ReservedHeight` 设置 `ApplicationBarHost.Height`，因此隐藏或半透明的应用栏浮在页面之上而不压缩页面。
 
-`SystemTray` 是无视觉 chrome 的静态类，同时提供静态状态属性与 `IsVisibleProperty` 附加属性（`GetIsVisible` / `SetIsVisible`）；附加属性只在宿主是 `PhoneApplicationPage`、`PhoneApplicationFrame`、`Window` 时同步到 `SystemTrayState.Current`。
+`SystemTray` 是无视觉 chrome 的静态类，同时提供静态状态属性与 `IsVisibleProperty` 附加属性（`GetIsVisible` / `SetIsVisible`）；附加属性只在宿主是 `PhoneApplicationPage`、`PhoneApplicationFrame`、`Window` 时同步到 `SystemTrayState.Current`。状态栏本身不绘制，但 `SystemTray.ProgressIndicator` 有视觉适配：`PhoneApplicationFrame` 与 `TransitionFrame` 的模板顶部都放了 `shell:ProgressIndicatorPresenter`（部件名 `ProgressIndicator`、`Margin=0`、`VerticalAlignment=Top`，覆盖在页面内容之上；自定义 frame 模板必须自带该部件），它的模板用 WP `ProgressBar` 画 4 DIP 细条（`Padding=0` 铺满宽度、`Background=Null` 无轨道底色），并订阅 `SystemTrayState.Current.PropertyChanged` 同步 `IsVisible` / `IsIndeterminate` / `Value` / `Text`。
 
 ### 5.4 `TransitionFrame`
 
@@ -409,8 +409,10 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 两个程序集各自提供 `Themes/Generic.xaml`：
 
-- `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml`。
+- `Community.Phone/Themes/Generic.xaml` 合并 `Theme.xaml`（唯一调色板字典）与 `Controls/{ApplicationBar,Button,ListBox,LongListSelector,Panorama,PhoneApplicationFrame,Pivot,ProgressBar,ScrollBar,ScrollViewer,TextBlock,TextBox}.xaml`。
 - `Community.Phone.Controls.Toolkit/Themes/Generic.xaml` 合并 `Community.Phone` 的 `Generic.xaml` 与自身 `Controls/*.xaml`（`AutoCompleteBox`、`Button`、`ComboBox`、`ContextMenu`、`CustomMessageBox`、`DateTimePicker`、`ExpanderView`、`HubTile`、`ListPicker`、`LongListMultiSelector`、`LoopingSelector`、`PhoneTextBox`、`Rating`、`ToggleSwitch`、`TransitionFrame`）。
+
+`ProgressBar` 的 WP 外观在 `ProgressBar.xaml`：确定态的轨道与指示器命名为 WPF 模板契约 `PART_Track` / `PART_Indicator`，由 `ProgressBar` 自己按 `Value` / `Maximum` 设置指示器宽度（改值、改尺寸都会跟着更新）。不确定态照抄 WP 原版：模板根是 `RelativeAnimatingContentControl`，`Indeterminate` 状态切换两个根节点，5 个点 `Slider0`..`Slider4` 各用**具名**的 `TranslateTransform`（`Slider0TranslateTransform`..`Slider4TranslateTransform`）按 `BeginTime` 0/0.2/0.4/0.6/0.8 错开动画 `X`，关键帧写 `0.1 / 33.1 / 66.1 / 100.1`（小数部分 `.1` 是“按宽度百分比”的标记，`.2` 表示按高度），`RelativeAnimatingContentControl` 在尺寸变化时把它们改写成像素并重播当前状态，扫动距离因此随宽度自适应；每个点在自身时间线 2.5 s 处 `Opacity` 归零，整条 storyboard 4.4 s 循环。两个 WPF 差异必须注意：一是模板里**具名**（`x:Name`）的 Freezable 不会被冻结，可以按名字写 `TargetName="Slider0TranslateTransform" TargetProperty="X"`；未具名的 transform 走 `(UIElement.RenderTransform).(TranslateTransform.X)` 路径时会被冻结，VSM storyboard 静默失效、代码 `BeginAnimation` 直接抛 `InvalidOperationException`（若改走附加属性路径则必须写 `(Canvas.Left)`，漏括号会在 `GoToState` 抛“无法解析属性路径”）。二是改写关键帧不影响已在播放的动画时钟，所以 `RelativeAnimatingContentControl` 改写后要 `Stop`/`Begin` 重播（`GoToElementState` 对同一状态直接返回，不会重播）。
 
 主题覆盖 toolkit 控件，并为常用 WPF 控件提供隐式 WP 样式：`Button`、`ButtonBase`、`TextBox`、`ListBox`/`ListBoxItem`、`ComboBox`/`ComboBoxItem`、`CheckBox`、`RadioButton`、`ScrollBar`、`Thumb`、`ToggleButton`、`ProgressBar`、`ContextMenu`/`MenuItem`/`Separator`、`ToolTip`、`TextBlock` 与 `ContentControl`。`ListBoxItem` 模板不再包含投影部件，投影直接作用于容器（见 §4.5）。
 

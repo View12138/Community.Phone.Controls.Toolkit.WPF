@@ -27,7 +27,7 @@
 
 ## 3. Shell
 
-1. **系统栏**：`SystemTray` 只提供状态 API（`IsVisible`、`Opacity`、`BackgroundColor`、`ForegroundColor`、`ProgressIndicator`），默认 Frame 模板不绘制状态栏（信号、电池、时钟）。状态载体是 `SystemTrayState.Current`。
+1. **系统栏**：`SystemTray` 提供状态 API（`IsVisible`、`Opacity`、`BackgroundColor`、`ForegroundColor`、`ProgressIndicator`），默认 Frame 模板不绘制状态栏本身（信号、电池、时钟），只绘制 `ProgressIndicator`（顶部 4 DIP 细条，见 `ProgressIndicatorPresenter`）。状态载体是 `SystemTrayState.Current`。
 2. **`SystemTray` 的附加属性**：`SystemTray` 是静态类，提供 `IsVisibleProperty` 附加属性与 `GetIsVisible`/`SetIsVisible`，XAML 中 `shell:SystemTray.IsVisible="True"` 可用；附加属性只在宿主是 `PhoneApplicationPage`、`PhoneApplicationFrame`、`Window` 时同步状态。也可用代码 `SystemTray.IsVisible = true;` 设置。
 3. **应用栏**：由 frame 的 `ApplicationBarPresenter` 绘制。差异：应用栏属于 frame 的 chrome，不随页面转场动画进入；菜单是 WPF `Popup`；图标 URI 按应用资源解析，缺失图标时按钮不显示图片而不是报错；默认颜色使用 Metro chrome 色（原生默认值无法从托管代码观察）。
 4. **主题颜色**：库内模板使用 `DynamicResource`，运行时切换会就地更新。应用 XAML 中用 `StaticResource` 解析的主题画刷会保留解析时的值，动画关键帧里捕获的颜色只在模板重新应用时刷新；应用 XAML 请使用 `DynamicResource`。
@@ -70,7 +70,7 @@
 7. **`PhoneTextBox`**：WP 内置文本选择与输入作用域边界在 WPF 中可能不同；水印动画的视觉细节未验证。
 8. **`Rating`**：偏离原版——原工具包在 `AllowHalfItemIncrement` 时把翻倍后的位置数写入 `Value`，导致填充区域是指针位置的两倍；移植版以“星”为单位存储。自定义模板必须提供预期部件。
 9. **`ContextMenu`**：自绘 `Popup`，不使用 WPF `ContextMenu`。WPF 没有 `Hold` 手势：右键（在菜单外单击右键也会关闭菜单）直接打开，左键长按由 800 ms 计时器模拟（按下后移动超过拖动阈值或提前抬起即取消，松手后才弹出，因此不会在长按松手时误触菜单项）。**横屏分支已移除**：WPF 没有手机的方向概念，菜单始终按竖屏布局（左对齐、全页宽、上下展开）。`IsZoomEnabled` 为 `true` 时打开瞬间拍摄页面快照并缩放到 0.94、同时按 `IsFadeEnabled` 叠加 30% 淡入黑层；两者都用 `BeginAnimation` 直接驱动变换，关闭动画结束后才关闭 `Popup`（另有 0.52 s 兜底，避免弹窗窗口残留吞掉页面输入）。
-10. **`PerformanceProgressBar` / `RelativeAnimatingContentControl`**：原版的性能 workaround 与 magic-number 相对动画重写在 WPF 中没有意义，只保留外观与基本行为。
+10. **`PerformanceProgressBar` / `RelativeAnimatingContentControl`**：`PerformanceProgressBar` 只保留外观与基本行为；`RelativeAnimatingContentControl` 的 magic-number 相对动画已移植并用于 `ProgressBar` 的不确定态，尺寸变化时改写关键帧并重播当前状态（正在播放的一次扫动会从头开始）。
 11. **`RecurringDaysPicker`**：基于 `ListPicker`，本地化星期名，不复刻 WP 视觉 chrome。
 12. **`Pivot`**：输入是鼠标拖拽加 Left/Right/PageUp/PageDown/Home/End，而不是 DirectManipulation（在 pivot 上启用 `IsManipulationEnabled` 会让触摸输入不再到达子控件）；没有快速滑动速度判定，拖拽超过半个视口即切换；页眉条循环排布但只绘制一圈，页眉总宽小于视口时末尾留白；`IsLocked` 是依赖属性并用 200 ms 动画淡出页眉；没有自定义自动化对等体；只有当前项可见，离开项滑动结束后折叠。
 13. **`LongListSelector`**：列表模式虚拟化，网格模式实现全部项目；跳转列表是普通 `Popup`，没有原版的 `RotationX` 翻转；分组对象必须实现 `IList`；模板部件 `ViewportControl` 是 `ContentControl` 而不是手机的滚动器，`VerticalScrollBar` 是真实 `ScrollBar`；`SelectedItem` 是依赖属性；选择没有视觉 chrome（与手机一致）。
@@ -100,7 +100,7 @@
 1. 仓库内没有自动化测试工程；所有行为结论来自源码检查与示例运行，没有回归测试保护。
 2. 与原始 WP 控件的视觉对比没有做（当前环境没有 WP 模拟器/设备）。
 3. 转场只验证了“播放原版 storyboard 资源”这一实现事实，没有逐帧像素对比；只有 Turnstile 的轴心与时长为手动调优值。
-4. 应用栏的栏高、槽位、圆形图标、菜单与预留空间由实现决定，仅 ListPicker 完整模式页面曾与 WP 8.1 截图对比；`SystemTray` 没有任何绘制。
+4. 应用栏的栏高、槽位、圆形图标、菜单与预留空间由实现决定，仅 ListPicker 完整模式页面曾与 WP 8.1 截图对比；`SystemTray` 只绘制进度指示条，状态栏其余内容不绘制。
 5. 输入通过路由事件与合成事件覆盖，没有物理触摸设备，因此 `TiltEffect`、manipulation 与拖拽行为缺少真实输入验证。
 6. 日期/时间 picker 的页面交互、全部 50 个文化的资源、高 DPI/多显示器/软件渲染 3D、`AutoCompleteBox` 的 popup 布局与 `Panorama` 手势均未系统验证。列表项投影直接作用于容器，但尚未与原版列表项动画做视觉对比。
 

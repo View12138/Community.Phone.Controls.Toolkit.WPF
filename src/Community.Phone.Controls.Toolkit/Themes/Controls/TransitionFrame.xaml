@@ -37,6 +37,12 @@
                             Grid.Row="1"
                             Height="0"
                             ClipToBounds="False" />
+                        <shell:ProgressIndicatorPresenter
+                            x:Name="ProgressIndicator"
+                            Grid.Row="0"
+                            Margin="0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Top" />
                         <shell:ApplicationBarPresenter
                             x:Name="ApplicationBar"
                             Grid.Row="0"
