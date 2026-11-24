@@ -73,7 +73,7 @@
 
 | 项目 | 状态 | 说明 |
 |---|---|---|
-| `TiltEffect` | 已实现 | 通过 `ProjectionService` 直接赋投影（不包装、按下期间不改视觉树）；支点取第一个可视子元素；隧道式鼠标事件 + 触摸 manipulation |
+| `TiltEffect` | 已实现 | 通过 `ProjectionService` 直接赋投影（不包装、按下期间不改视觉树）；支点取第一个可视子元素；`LongListSelector` 内按 `ItemsControl.ContainerFromElement` 定位被点击的条目容器；隧道式鼠标事件 + 触摸 manipulation |
 | `TurnstileFeatherEffect` | 已实现 | 目标从可视树收集；直接投影 + `CenterOfRotationX = -0.2` + `PreferShader`；恢复后 `InvalidateVisual()` |
 | `SlideInEffect` | 已实现 | `LineIndex` 等附加属性；订阅宿主 Pivot 选择变化；有独立示例页 |
 

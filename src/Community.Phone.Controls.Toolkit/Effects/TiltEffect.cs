@@ -346,7 +346,7 @@ namespace Microsoft.Phone.Controls
         /// <param name="e">Event arguments.</param>
         private static void TiltEffect_ManipulationStarted(object sender, ManipulationStartedEventArgs e)
         {
-            TryStartTiltEffect(sender as FrameworkElement, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
+            TryStartTiltEffect(sender as FrameworkElement, e);
         }
 
         private static void TiltEffect_MouseDown(object sender, MouseButtonEventArgs e)
@@ -357,7 +357,7 @@ namespace Microsoft.Phone.Controls
             }
 
             FrameworkElement container = sender as FrameworkElement;
-            TryStartTiltEffect(container, e.OriginalSource as FrameworkElement, e.GetPosition(container), container);
+            TryStartTiltEffect(container, AdaptManipulationStartedEventArgs.Of(e, sender));
         }
 
         /// <summary>
@@ -414,23 +414,10 @@ namespace Microsoft.Phone.Controls
         /// <param name="source">The source of the manipulation (the tilt 
         /// container, eg entire page).</param>
         /// <param name="e">The args from the ManipulationStarted event.</param>
-        static void TryStartTiltEffect(FrameworkElement source, ManipulationStartedEventArgs e)
+        static void TryStartTiltEffect(FrameworkElement source, AdaptManipulationStartedEventArgs e)
         {
-            TryStartTiltEffect(source, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
-        }
-        /// <summary>
-        /// Checks if the manipulation should cause a tilt, and if so starts the 
-        /// tilt effect.
-        /// </summary>
-        /// <param name="source">The source of the manipulation (the tilt 
-        /// container, eg entire page).</param>
-        /// <param name="OriginalSource">The args from the ManipulationStarted event.</param>
-        /// <param name="ManipulationOrigin">The args from the ManipulationStarted event.</param>
-        /// <param name="ManipulationContainer">The args from the ManipulationStarted event.</param>
-        static void TryStartTiltEffect(FrameworkElement source, FrameworkElement OriginalSource, Point ManipulationOrigin, IInputElement ManipulationContainer)
-        {
-            FrameworkElement container = ManipulationContainer as FrameworkElement ?? source;
-            FrameworkElement ancestor = OriginalSource;
+            FrameworkElement container = e.ManipulationContainer as FrameworkElement ?? source;
+            FrameworkElement ancestor = e.OriginalSource as FrameworkElement;
 
             if (ancestor == null || container == null)
             {
@@ -451,7 +438,7 @@ namespace Microsoft.Phone.Controls
 #if WP8
                     if (ancestor is LongListSelector)
                     {
-                        StartTiltEffectOnLLS((LongListSelector)ancestor, OriginalSource, ManipulationOrigin, ManipulationContainer);
+                        StartTiltEffectOnLLS((LongListSelector)ancestor, e);
                         return;
                     }
 #endif
@@ -465,7 +452,7 @@ namespace Microsoft.Phone.Controls
                         // still rendered in 2D: a 3D hosted element has no 2D
                         // transform to its host.
                         containerToElement = container.TransformToVisual(ancestor);
-                        tiltTouchPoint = containerToElement.Transform(ManipulationOrigin);
+                        tiltTouchPoint = containerToElement.Transform(e.ManipulationOrigin);
                         elementBounds = GetTiltBounds(ancestor);
                     }
                     catch (ArgumentException)
@@ -490,59 +477,71 @@ namespace Microsoft.Phone.Controls
         /// <summary>
         /// Starts the tilt effect on LLS items or sticky header.
         /// </summary>
-        private static void StartTiltEffectOnLLS(LongListSelector lls, ManipulationStartedEventArgs e)
+        private static void StartTiltEffectOnLLS(LongListSelector lls, AdaptManipulationStartedEventArgs e)
         {
-            StartTiltEffectOnLLS(lls, e.OriginalSource as FrameworkElement, e.ManipulationOrigin, e.ManipulationContainer);
-        }
-        private static void StartTiltEffectOnLLS(LongListSelector lls, FrameworkElement OriginalSource, Point ManipulationOrigin, IInputElement ManipulationContainer)
-        {
-            FrameworkElement parent = OriginalSource;
-            ContentPresenter itemContainer = null;
-            int containerCount = 0;
+            // The item container is the ContentPresenter the selector's items
+            // host generated for the clicked element, so asking the generator
+            // resolves the list header, a group header, an item, a group footer
+            // or the list footer. The WPF port hosts the items in an
+            // ItemsControl instead of the phone's Canvas and adds content
+            // presenters of its own (the scroll content presenter and the
+            // viewport host), which must not be mistaken for item containers.
+            ItemsControl itemsHost = lls.ItemsHost;
+            ContentPresenter itemContainer = itemsHost != null
+                ? ItemsControl.ContainerFromElement(itemsHost, e.OriginalSource as FrameworkElement) as ContentPresenter
+                : null;
 
-            // Walk from the source up to the selector, keeping the outermost
-            // ContentPresenter: that is the item container. The WPF port hosts
-            // the items in an ItemsControl instead of the phone's Canvas, so
-            // there is no ViewportControl type in the ancestor chain.
-            while (parent != null && parent != lls)
+            if (itemContainer == null)
             {
-                if (parent is ContentPresenter presenter)
-                {
-                    itemContainer = presenter;
-                    containerCount++;
-                }
-
-                parent = parent.GetVisualParent();
+                return;
             }
 
-            if (parent == lls && itemContainer != null && containerCount >= 1)
+            // The tilted element is the content of the item container.
+            FrameworkElement element = itemContainer.GetVisualChildren().FirstOrDefault() as FrameworkElement;
+            if (element == null)
             {
-                // The tilted element is the content of the item container.
-                FrameworkElement element = itemContainer.GetVisualChildren().FirstOrDefault() as FrameworkElement;
-
-                // Starts tilt only if we found an element on which tilt is not suppressed.
-                if (element != null)
-                {
-                    object suppressTilt = element.ReadLocalValue(SuppressTiltProperty);
-
-                    if ((suppressTilt is bool) == false || (bool)suppressTilt == false)
-                    {
-                        FrameworkElement container = ManipulationContainer as FrameworkElement;
-
-                        // The mapping has to be captured while the element is
-                        // still rendered in 2D.
-                        GeneralTransform containerToElement = container.TransformToVisual(element);
-
-                        // Touch point relative to the element being tilted.
-                        Point tiltTouchPoint = containerToElement.Transform(ManipulationOrigin);
-
-                        // Bounds of the visible content, in element coordinates.
-                        Rect elementBounds = GetTiltBounds(element);
-
-                        BeginTiltEffect(element, tiltTouchPoint, elementBounds, container, containerToElement);
-                    }
-                }
+                return;
             }
+
+            // Starts tilt only if we found an element on which tilt is not suppressed.
+            object suppressTilt = element.ReadLocalValue(SuppressTiltProperty);
+            if ((suppressTilt is bool) && (bool)suppressTilt)
+            {
+                return;
+            }
+
+            FrameworkElement container = e.ManipulationContainer as FrameworkElement;
+            if (container == null)
+            {
+                return;
+            }
+
+            GeneralTransform containerToElement;
+            Point tiltTouchPoint;
+
+            // The mapping has to be captured while the element is still
+            // rendered in 2D.
+            try
+            {
+                containerToElement = container.TransformToVisual(element);
+                tiltTouchPoint = containerToElement.Transform(e.ManipulationOrigin);
+            }
+            catch (ArgumentException)
+            {
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                return;
+            }
+
+            // The element is the container's content, so it already is the
+            // visible content: rotate about its own centre. Its first visual
+            // child may cover only a part of the row (an image, for example)
+            // and would pull the centre away from the content.
+            Rect elementBounds = new Rect(0, 0, element.ActualWidth, element.ActualHeight);
+
+            BeginTiltEffect(element, tiltTouchPoint, elementBounds, container, containerToElement);
         }
 #endif
 

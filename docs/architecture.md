@@ -363,6 +363,8 @@ storyboard 内唯一的改动是属性路径：Silverlight 的 `(UIElement.Proje
 
 附加属性 `IsTiltEnabled`、`SuppressTilt`，静态属性 `TiltableItems`、`UseLogarithmicEase`。按下时向上查找最近的 tiltable 祖先，缓存 container→control 变换后通过 `ProjectionService` 赋 `PlaneProjection`，由服务负责包装；旋转支点取控件的**第一个可视子元素**（模板根，即控件实际显示内容）的中心，按压点按该边界归一化，与原版的 `GetChild(control, 0)` 一致。
 
+`LongListSelector` 在 `TiltableItems` 中，但它不是被倾斜的元素：按下位置所属的**条目容器**决定倾斜目标。容器由选择器内部 items host 的 `ItemsControl.ContainerFromElement` 解析，因此列表头、组头、条目、组尾、列表尾各自命中自己的容器，而 WPF 额外插入的 `ScrollContentPresenter` 与 `ViewportControl` 的 `ContentPresenter` 不会被误判成条目容器（取最外层 content presenter 会退化成倾斜整个 items host）。目标取容器唯一的可视子元素（模板根），支点即该元素自身的中心——它已经是可见内容，不再向内取第一个子元素，否则行首的小图标会把支点拉偏。
+
 鼠标支持走隧道式 `PreviewMouseDown/Move/Up`，容器可以倾斜子按钮而不吞掉按钮点击；同时支持触摸 manipulation。返回动画以投影为目标并跟踪 storyboard 是否已应用；指针离开可见内容时暂停倾斜，交互结束清理全部逐次状态。
 
 ### `TurnstileFeatherEffect`
