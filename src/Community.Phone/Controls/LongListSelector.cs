@@ -1,4 +1,4 @@
-// (c) Copyright Microsoft Corporation.
+﻿// (c) Copyright Microsoft Corporation.
 // This source is subject to the Microsoft Public License (Ms-PL).
 // Please see http://go.microsoft.com/fwlink/?LinkID=131993 for details.
 // All other rights reserved.
@@ -30,7 +30,6 @@ namespace Microsoft.Phone.Controls
     /// </remarks>
     [StyleTypedProperty(Property = "JumpListStyle", StyleTargetType = typeof(LongListSelector))]
     [TemplatePart(Name = "ViewportControl", Type = typeof(ViewportControl))]
-    [TemplatePart(Name = "VerticalScrollBar", Type = typeof(ScrollBar))]
     [TemplateVisualState(Name = "NotScrolling", GroupName = "ScrollStates")]
     [TemplateVisualState(Name = "Scrolling", GroupName = "ScrollStates")]
     public class LongListSelector : Control, INotifyPropertyChanged
@@ -178,7 +177,6 @@ namespace Microsoft.Phone.Controls
         private readonly DispatcherTimer _scrollIdleTimer;
 
         private ContentControl _viewportHost;
-        private ScrollBar _verticalScrollBar;
         private ScrollViewer _scrollViewer;
         private Panel _itemsPanel;
         private List<LongListSelectorItem> _flattenedItems = new List<LongListSelectorItem>();
@@ -186,8 +184,6 @@ namespace Microsoft.Phone.Controls
         private ManipulationState _manipulationState;
         private bool _templateApplied;
         private bool _itemsDirty = true;
-        private bool _syncingScrollBar;
-        private bool _isScrollBarDragging;
         private object _pendingScrollItem;
         private bool _hasPendingScroll;
         private Popup _jumpListPopup;
@@ -442,15 +438,6 @@ namespace Microsoft.Phone.Controls
             base.OnApplyTemplate();
 
             _viewportHost = GetTemplateChild("ViewportControl") as ContentControl;
-            _verticalScrollBar = GetTemplateChild("VerticalScrollBar") as ScrollBar;
-
-            if (_verticalScrollBar != null)
-            {
-                _verticalScrollBar.ValueChanged += OnScrollBarValueChanged;
-                _verticalScrollBar.PreviewMouseLeftButtonDown += OnScrollBarPreviewMouseLeftButtonDown;
-                _verticalScrollBar.PreviewMouseLeftButtonUp += OnScrollBarPreviewMouseLeftButtonUp;
-                _verticalScrollBar.PreviewMouseWheel += OnScrollBarPreviewMouseWheel;
-            }
 
             if (_viewportHost != null)
             {
@@ -594,7 +581,7 @@ namespace Microsoft.Phone.Controls
         {
             FrameworkElementFactory scrollViewer = new FrameworkElementFactory(typeof(ScrollViewer), "ScrollViewer");
             scrollViewer.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Disabled);
-            scrollViewer.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+            scrollViewer.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Auto);
             scrollViewer.SetValue(UIElement.FocusableProperty, false);
             scrollViewer.SetValue(ScrollViewer.PanningModeProperty, PanningMode.VerticalOnly);
             scrollViewer.AppendChild(new FrameworkElementFactory(typeof(ItemsPresenter)));
@@ -609,15 +596,6 @@ namespace Microsoft.Phone.Controls
 
         private void DetachTemplateParts()
         {
-            if (_verticalScrollBar != null)
-            {
-                _verticalScrollBar.ValueChanged -= OnScrollBarValueChanged;
-                _verticalScrollBar.PreviewMouseLeftButtonDown -= OnScrollBarPreviewMouseLeftButtonDown;
-                _verticalScrollBar.PreviewMouseLeftButtonUp -= OnScrollBarPreviewMouseLeftButtonUp;
-                _verticalScrollBar.PreviewMouseWheel -= OnScrollBarPreviewMouseWheel;
-                _verticalScrollBar = null;
-            }
-
             if (_scrollViewer != null)
             {
                 _scrollViewer.ScrollChanged -= OnScrollChanged;
@@ -752,10 +730,8 @@ namespace Microsoft.Phone.Controls
                     _scrollViewer.ScrollToTop();
                 }
 
-                UpdateScrollBar();
             }));
 
-            UpdateScrollBar();
         }
 
         private void EnsureItemsBuilt()
@@ -885,7 +861,6 @@ namespace Microsoft.Phone.Controls
             }
 
             RefreshContainerSizes();
-            UpdateScrollBar();
         }
 
         private void RefreshContainerSizes()
@@ -923,7 +898,6 @@ namespace Microsoft.Phone.Controls
 
             if (ReferenceEquals(viewer, _scrollViewer))
             {
-                UpdateScrollBar();
                 return;
             }
 
@@ -939,20 +913,17 @@ namespace Microsoft.Phone.Controls
                 _scrollViewer.PanningMode = PanningMode.VerticalOnly;
             }
 
-            UpdateScrollBar();
         }
 
         private void OnItemsHostLoaded(object sender, RoutedEventArgs e)
         {
             InitializeScrollViewer();
-            UpdateScrollBar();
         }
 
         private void OnSelectorSizeChanged(object sender, SizeChangedEventArgs e)
         {
             _itemsPanel = null;
             _itemsHost?.InvalidateMeasure();
-            UpdateScrollBar();
         }
 
         private void OnItemContainerStatusChanged(object sender, EventArgs e)
@@ -1318,84 +1289,12 @@ namespace Microsoft.Phone.Controls
 
         private void OnScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            UpdateScrollBar();
-
             if (Math.Abs(e.VerticalChange) > 0)
             {
-                if (_isScrollBarDragging)
-                {
-                    SetManipulationState(ManipulationState.Manipulating);
-                }
-                else
-                {
-                    SetManipulationState(ManipulationState.Animating);
-                }
+                SetManipulationState(ManipulationState.Animating);
 
                 RestartIdleTimer();
             }
-        }
-
-        private void UpdateScrollBar()
-        {
-            if (_verticalScrollBar == null || _scrollViewer == null)
-            {
-                return;
-            }
-
-            double maximum = Math.Max(0, _scrollViewer.ExtentHeight - _scrollViewer.ViewportHeight);
-
-            _syncingScrollBar = true;
-            try
-            {
-                _verticalScrollBar.Minimum = 0;
-                _verticalScrollBar.Maximum = maximum;
-                _verticalScrollBar.ViewportSize = _scrollViewer.ViewportHeight;
-                _verticalScrollBar.Value = Math.Min(Math.Max(0, _scrollViewer.VerticalOffset), maximum);
-                _verticalScrollBar.Visibility = maximum > 0.5 ? Visibility.Visible : Visibility.Collapsed;
-            }
-            finally
-            {
-                _syncingScrollBar = false;
-            }
-        }
-
-        private void OnScrollBarValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (_syncingScrollBar || _scrollViewer == null)
-            {
-                return;
-            }
-
-            _scrollViewer.ScrollToVerticalOffset(e.NewValue);
-        }
-
-        private void OnScrollBarPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _isScrollBarDragging = true;
-            SetManipulationState(ManipulationState.Manipulating);
-        }
-
-        private void OnScrollBarPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!_isScrollBarDragging)
-            {
-                return;
-            }
-
-            _isScrollBarDragging = false;
-            SetManipulationState(ManipulationState.Animating);
-            RestartIdleTimer();
-        }
-
-        private void OnScrollBarPreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (_scrollViewer == null)
-            {
-                return;
-            }
-
-            _scrollViewer.ScrollToVerticalOffset(_scrollViewer.VerticalOffset - e.Delta);
-            e.Handled = true;
         }
 
         private void RestartIdleTimer()
@@ -1407,10 +1306,7 @@ namespace Microsoft.Phone.Controls
         private void OnScrollIdleTimerTick(object sender, EventArgs e)
         {
             _scrollIdleTimer.Stop();
-            if (!_isScrollBarDragging)
-            {
-                SetManipulationState(ManipulationState.Idle);
-            }
+            SetManipulationState(ManipulationState.Idle);
         }
 
         private void SetManipulationState(ManipulationState state)

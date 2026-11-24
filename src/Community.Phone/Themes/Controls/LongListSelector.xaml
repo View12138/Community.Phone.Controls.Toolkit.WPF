@@ -44,15 +44,6 @@
                                 HorizontalContentAlignment="Stretch"
                                 VerticalContentAlignment="Stretch" />
                         </Border>
-
-                        <ScrollBar
-                            x:Name="VerticalScrollBar"
-                            Margin="0,0,1,0"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Stretch"
-                            Focusable="False"
-                            Orientation="Vertical"
-                            Visibility="Collapsed" />
                     </Grid>
                 </ControlTemplate>
             </Setter.Value>

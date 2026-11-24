@@ -4,6 +4,7 @@
     xmlns:controls="clr-namespace:Microsoft.Phone.Controls">
 
     <Style TargetType="{x:Type ScrollViewer}">
+        <Setter Property="controls:SmoothScrolling.IsEnabled" Value="True"/>
         <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
         <Setter Property="Background" Value="Transparent"/>
@@ -13,66 +14,46 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                    <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="ScrollStates">
-                                <VisualStateGroup.Transitions>
-                                    <VisualTransition GeneratedDuration="00:00:00.5"/>
-                                </VisualStateGroup.Transitions>
-                                <VisualState x:Name="Scrolling">
-                                    <Storyboard>
-                                        <DoubleAnimation Duration="00:00:00.5" To="1" Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_VerticalScrollBar"/>
-                                        <DoubleAnimation Duration="00:00:00.5" To="1" Storyboard.TargetProperty="Opacity" Storyboard.TargetName="PART_HorizontalScrollBar"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="NotScrolling"/>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                        <Grid Margin="{TemplateBinding Padding}">
-                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanHorizontallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" CanVerticallyScroll="False" Content="{TemplateBinding Content}" CanContentScroll="{TemplateBinding CanContentScroll}" Margin="{TemplateBinding Padding}" />
-                            <ScrollBar x:Name="PART_VerticalScrollBar" AutomationProperties.AutomationId="VerticalScrollBar" HorizontalAlignment="Right" Height="Auto" IsHitTestVisible="False" IsTabStop="False" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Opacity="0" Orientation="Vertical" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" VerticalAlignment="Stretch" Width="5"/>
-                            <ScrollBar x:Name="PART_HorizontalScrollBar" AutomationProperties.AutomationId="HorizontalScrollBar" HorizontalAlignment="Stretch" Height="5" IsHitTestVisible="False" IsTabStop="False" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Opacity="0" Orientation="Horizontal" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" VerticalAlignment="Bottom" Width="Auto"/>
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="{TemplateBinding Padding}"/>
+                            <Grid x:Name="VerticalBarHost" Background="Transparent" HorizontalAlignment="Right" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Width="10">
+                                <ScrollBar x:Name="PART_VerticalScrollBar" AutomationProperties.AutomationId="VerticalScrollBar" Height="Auto" HorizontalAlignment="Right" IsTabStop="False" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Orientation="Vertical" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" VerticalAlignment="Stretch" ViewportSize="{TemplateBinding ViewportHeight}"/>
+                            </Grid>
+                            <Grid x:Name="HorizontalBarHost" Background="Transparent" Height="10" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}">
+                                <ScrollBar x:Name="PART_HorizontalScrollBar" AutomationProperties.AutomationId="HorizontalScrollBar" HorizontalAlignment="Stretch" IsTabStop="False" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" VerticalAlignment="Bottom" ViewportSize="{TemplateBinding ViewportWidth}"/>
+                            </Grid>
                         </Grid>
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger SourceName="VerticalBarHost" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_VerticalScrollBar" Property="Opacity" Value="1"/>
+                            <Setter TargetName="PART_VerticalScrollBar" Property="Width" Value="10"/>
+                        </Trigger>
+                        <Trigger SourceName="HorizontalBarHost" Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_HorizontalScrollBar" Property="Opacity" Value="1"/>
+                            <Setter TargetName="PART_HorizontalScrollBar" Property="Height" Value="10"/>
+                        </Trigger>
+                        <EventTrigger RoutedEvent="ScrollViewer.ScrollChanged">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimationUsingKeyFrames FillBehavior="Stop" Storyboard.TargetName="PART_VerticalScrollBar" Storyboard.TargetProperty="Opacity">
+                                        <LinearDoubleKeyFrame KeyTime="0:0:0.1" Value="1"/>
+                                        <LinearDoubleKeyFrame KeyTime="0:0:1" Value="1"/>
+                                        <LinearDoubleKeyFrame KeyTime="0:0:1.6" Value="0"/>
+                                    </DoubleAnimationUsingKeyFrames>
+                                    <DoubleAnimationUsingKeyFrames FillBehavior="Stop" Storyboard.TargetName="PART_HorizontalScrollBar" Storyboard.TargetProperty="Opacity">
+                                        <LinearDoubleKeyFrame KeyTime="0:0:0.1" Value="1"/>
+                                        <LinearDoubleKeyFrame KeyTime="0:0:1" Value="1"/>
+                                        <LinearDoubleKeyFrame KeyTime="0:0:1.6" Value="0"/>
+                                    </DoubleAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-    </Style>
-
-    <Style x:Key="ScrollViewer" TargetType="{x:Type ScrollViewer}">
-        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                    <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}">
-                        <Grid x:Name="Grid" Margin="{TemplateBinding Padding}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Rectangle x:Name="Corner" Grid.Column="1" Fill="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Grid.Row="1"/>
-                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" CanHorizontallyScroll="False" ContentTemplate="{TemplateBinding ContentTemplate}" CanVerticallyScroll="False" Grid.Column="0" Content="{TemplateBinding Content}" CanContentScroll="{TemplateBinding CanContentScroll}" Margin="{TemplateBinding Padding}" Grid.Row="0"/>
-                            <ScrollBar x:Name="PART_VerticalScrollBar" AutomationProperties.AutomationId="VerticalScrollBar" Cursor="Arrow" Grid.Column="1" Maximum="{TemplateBinding ScrollableHeight}" Minimum="0" Grid.Row="0" Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                            <ScrollBar x:Name="PART_HorizontalScrollBar" AutomationProperties.AutomationId="HorizontalScrollBar" Cursor="Arrow" Grid.Column="0" Maximum="{TemplateBinding ScrollableWidth}" Minimum="0" Orientation="Horizontal" Grid.Row="1" Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource Mode=TemplatedParent}}" ViewportSize="{TemplateBinding ViewportWidth}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
-                        </Grid>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="false">
-                <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
-            </Trigger>
-        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>
