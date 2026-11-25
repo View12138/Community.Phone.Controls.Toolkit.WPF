@@ -43,6 +43,8 @@ namespace PhoneToolkitSample8
                 new SampleItem("/Samples/LongListMultiSelectorSample.xaml?multiselect","multiselectlist*","support multiple selection in a list" ),
                 new SampleItem("/Samples/PerformanceProgressBarSample.xaml","performanceprogressbar*","show indeterminate progress in style" ),
                 new SampleItem("/Samples/PhoneTextBoxSample.xaml","phonetextbox","add new features to the textbox" ),
+                new SampleItem("/Samples/PivotSample.xaml","pivot","a pivot that allows disabling navigation",isAdpat:true ),
+                new SampleItem("/Samples/ProjectionSample.xaml","projection","a projection shader samples the element's own raster through the homography of the 3D plane",isAdpat:true ),
                 new SampleItem("/Samples/SpeechTextBoxSample.xaml","speechtextbox","a speech-enabled phonetextbox",false ),
                 new SampleItem("/Samples/RatingControlSample.xaml","ratingcontrol","simple control for star-based rating" ),
                 new SampleItem("/Samples/SlideInEffectSample.xaml","slideineffect","make elements responsive to pivotitem sliding" ),
@@ -62,17 +64,19 @@ namespace PhoneToolkitSample8
 
     public class SampleItem
     {
-        public SampleItem(string url, string header, string description, bool supported = true)
+        public SampleItem(string url, string header, string description, bool supported = true, bool isAdpat = false)
         {
             Url = url;
             Header = header;
             Description = description;
             Supported = supported;
+            IsAdpat = isAdpat;
         }
 
         public string Url { get; private set; }
         public string Header { get; private set; }
         public string Description { get; private set; }
         public bool Supported { get; private set; }
+        public bool IsAdpat { get; private set; }
     }
 }

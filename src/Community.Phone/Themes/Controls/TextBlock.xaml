@@ -40,6 +40,10 @@
         <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeSmall}" />
         <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
     </Style>
+    <Style x:Key="PhoneTextTinyStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource PhoneFontSizeTiny}" />
+        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
+    </Style>
     <Style x:Key="PhoneTextContrastStyle" BasedOn="{StaticResource PhoneTextBlockBase}" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource PhoneFontFamilySemiBold}" />
         <Setter Property="Foreground" Value="{DynamicResource PhoneContrastForegroundBrush}" />

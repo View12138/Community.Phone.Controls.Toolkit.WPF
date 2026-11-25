@@ -118,6 +118,8 @@
     <FontFamily x:Key="PhoneFontFamilyBold">Segoe WP Bold</FontFamily>
     <FontFamily x:Key="PhoneFontFamilySymbol">Segoe MDL2 Assets</FontFamily>
     <!-- Font sizes -->
+    <!--12pt-->
+    <System:Double x:Key="PhoneFontSizeTiny">16</System:Double>
     <!--14pt-->
     <System:Double x:Key="PhoneFontSizeSmall">18.667</System:Double>
     <!--15pt-->

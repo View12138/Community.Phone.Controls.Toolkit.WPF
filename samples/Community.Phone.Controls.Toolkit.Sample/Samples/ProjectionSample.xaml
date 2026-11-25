@@ -1,12 +1,39 @@
-<platform:PhoneApplicationPage
-    x:Class="PhoneToolkitSample.Pages.ProjectionPage"
+<phone:PhoneApplicationPage
+    x:Class="PhoneToolkitSample.Pages.ProjectionSample"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
-    xmlns:platform="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Community.Phone"
+    xmlns:controls="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone"
+    xmlns:toolkit="clr-namespace:Microsoft.Phone.Controls;assembly=Community.Phone.Controls.Toolkit"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d" d:DesignHeight="768" d:DesignWidth="480"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{DynamicResource PhoneForegroundBrush}">
+
+    <toolkit:TransitionService.NavigationInTransition>
+        <toolkit:NavigationInTransition>
+            <toolkit:NavigationInTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardIn" />
+            </toolkit:NavigationInTransition.Backward>
+            <toolkit:NavigationInTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardIn" />
+            </toolkit:NavigationInTransition.Forward>
+        </toolkit:NavigationInTransition>
+    </toolkit:TransitionService.NavigationInTransition>
+
+    <toolkit:TransitionService.NavigationOutTransition>
+        <toolkit:NavigationOutTransition>
+            <toolkit:NavigationOutTransition.Backward>
+                <toolkit:TurnstileTransition Mode="BackwardOut" />
+            </toolkit:NavigationOutTransition.Backward>
+            <toolkit:NavigationOutTransition.Forward>
+                <toolkit:TurnstileTransition Mode="ForwardOut" />
+            </toolkit:NavigationOutTransition.Forward>
+        </toolkit:NavigationOutTransition>
+    </toolkit:TransitionService.NavigationOutTransition>
 
     <Grid Background="{DynamicResource PhoneBackgroundBrush}">
         <Grid.RowDefinitions>
@@ -31,15 +58,15 @@
                     Height="120"
                     Margin="0,0,0,16"
                     Background="{DynamicResource PhoneAccentBrush}">
-                    <platform:ProjectionService.Projection>
-                        <platform:PlaneProjection
+                    <phone:ProjectionService.Projection>
+                        <phone:PlaneProjection
                             x:Name="HostlessProjection"
                             CenterOfRotationX="0.5"
                             CenterOfRotationY="0.5"
                             RotationX="{Binding ElementName=PlaneProjectionRotationX, Path=Value}"
                             RotationY="{Binding ElementName=PlaneProjectionRotationY, Path=Value}"
                             RotationZ="{Binding ElementName=PlaneProjectionRotationZ, Path=Value}" />
-                    </platform:ProjectionService.Projection>
+                    </phone:ProjectionService.Projection>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="Any UIElement" Foreground="White" FontSize="20" HorizontalAlignment="Center" />
                         <TextBlock Text="attached property, untouched visual tree" Foreground="White" FontSize="13" HorizontalAlignment="Center" />
@@ -47,9 +74,9 @@
                 </Border>
 
                 <Border Height="150" Margin="0,0,0,16" Background="{DynamicResource PhoneAccentBrush}">
-                    <platform:ProjectionService.Projection>
-                        <platform:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" RotationX="20" RotationY="0" />
-                    </platform:ProjectionService.Projection>
+                    <phone:ProjectionService.Projection>
+                        <phone:PlaneProjection x:Name="DemoProjection" CenterOfRotationX="0.5" CenterOfRotationY="0.5" RotationX="20" RotationY="0" />
+                    </phone:ProjectionService.Projection>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="Animated in place" Foreground="White" FontSize="22" HorizontalAlignment="Center" />
                         <TextBlock Text="one projection instance, one shader" Foreground="White" FontSize="13" HorizontalAlignment="Center" />
@@ -73,15 +100,15 @@
                                 Height="44"
                                 Margin="0,2"
                                 Background="{DynamicResource PhoneAccentBrush}">
-                                <platform:ProjectionService.Projection>
+                                <phone:ProjectionService.Projection>
                                     <!--
                                         The projection lives in the item template, so
                                         every realized container gets its own
                                         instance. A projection shared through an
                                         ItemContainerStyle is frozen by WPF.
                                     -->
-                                    <platform:PlaneProjection RotationY="-28" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
-                                </platform:ProjectionService.Projection>
+                                    <phone:PlaneProjection RotationY="-28" CenterOfRotationX="0.5" CenterOfRotationY="0.5" />
+                                </phone:ProjectionService.Projection>
                                 <TextBlock
                                     Text="{Binding}"
                                     Foreground="White"
@@ -109,4 +136,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</platform:PhoneApplicationPage>
+</phone:PhoneApplicationPage>

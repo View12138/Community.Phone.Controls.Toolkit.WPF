@@ -9,11 +9,11 @@ using Microsoft.Phone.Controls;
 
 namespace PhoneToolkitSample.Pages
 {
-    public partial class ProjectionPage : PhoneApplicationPage
+    public partial class ProjectionSample : PhoneApplicationPage
     {
         private readonly DispatcherTimer _statusTimer;
 
-        public ProjectionPage()
+        public ProjectionSample()
         {
             InitializeComponent();
 
