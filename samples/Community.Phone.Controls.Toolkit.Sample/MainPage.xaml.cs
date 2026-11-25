@@ -43,7 +43,6 @@ namespace PhoneToolkitSample8
                 new SampleItem("/Samples/LongListMultiSelectorSample.xaml?multiselect","multiselectlist*","support multiple selection in a list" ),
                 new SampleItem("/Samples/PerformanceProgressBarSample.xaml","performanceprogressbar*","show indeterminate progress in style" ),
                 new SampleItem("/Samples/PhoneTextBoxSample.xaml","phonetextbox","add new features to the textbox" ),
-                new SampleItem("/Samples/PivotSample.xaml","pivot","a pivot that allows disabling navigation",isAdpat:true ),
                 new SampleItem("/Samples/ProjectionSample.xaml","projection","a projection shader samples the element's own raster through the homography of the 3D plane",isAdpat:true ),
                 new SampleItem("/Samples/SpeechTextBoxSample.xaml","speechtextbox","a speech-enabled phonetextbox",false ),
                 new SampleItem("/Samples/RatingControlSample.xaml","ratingcontrol","simple control for star-based rating" ),

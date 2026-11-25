@@ -23,6 +23,11 @@
 		<Resource Include="Assets\*.png" />
 		<Resource Include="Assets\*.jpg" />
 		<Resource Include="Data\LoremIpsum.txt" />
+		<Compile Update="Properties\Settings.Designer.cs">
+		  <DesignTimeSharedInput>True</DesignTimeSharedInput>
+		  <AutoGen>True</AutoGen>
+		  <DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
 		<Compile Update="Resources\AppResources.Designer.cs">
 		  <DesignTime>True</DesignTime>
 		  <AutoGen>True</AutoGen>
@@ -32,6 +37,10 @@
 		  <Generator>ResXFileCodeGenerator</Generator>
 		  <LastGenOutput>AppResources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
+		<None Update="Properties\Settings.settings">
+		  <Generator>SettingsSingleFileGenerator</Generator>
+		  <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
 		<Page Update="Themes\Generic.xaml">
 			<Generator>MSBuild:Compile</Generator>
 			<SubType>Designer</SubType>
