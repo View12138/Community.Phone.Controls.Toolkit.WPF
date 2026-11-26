@@ -136,58 +136,6 @@
     <System:Double x:Key="PhoneFontSizeExtraExtraLarge">72</System:Double>
     <!--140pt-->
     <System:Double x:Key="PhoneFontSizeHuge">186.667</System:Double>
-    <!-- TextBlock styles -->
-    <Style x:Key="PhoneTextBlockBase" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeNormal}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneForegroundBrush}" />
-        <Setter Property="Margin" Value="{StaticResource PhoneHorizontalMargin}" />
-    </Style>
-    <Style x:Key="PhoneTextNormalStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}" />
-    <Style x:Key="PhoneTextSubtleStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
-    </Style>
-    <Style x:Key="PhoneTextTitle1Style" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeExtraExtraLarge}" />
-    </Style>
-    <Style x:Key="PhoneTextTitle2Style" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeLarge}" />
-    </Style>
-    <Style x:Key="PhoneTextTitle3Style" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMedium}" />
-    </Style>
-    <Style x:Key="PhoneTextExtraLargeStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeExtraLarge}" />
-    </Style>
-    <Style x:Key="PhoneTextGroupHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeLarge}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
-    </Style>
-    <Style x:Key="PhoneTextLargeStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeLarge}" />
-    </Style>
-    <Style x:Key="PhoneTextSmallStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeSmall}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneSubtleBrush}" />
-    </Style>
-    <Style x:Key="PhoneTextContrastStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiBold}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneContrastForegroundBrush}" />
-    </Style>
-    <Style x:Key="PhoneTextAccentStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiBold}" />
-        <Setter Property="Foreground" Value="{DynamicResource PhoneAccentBrush}" />
-    </Style>
-    <Style x:Key="PhoneTextHugeStyle" TargetType="TextBlock" BasedOn="{StaticResource PhoneTextBlockBase}">
-        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyLight}" />
-        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeHuge}" />
-    </Style>
     <!-- Panorama -->
     <System:Double x:Key="PanoramaItemCharacterSpacing">-35</System:Double>
     <!--50pt-->

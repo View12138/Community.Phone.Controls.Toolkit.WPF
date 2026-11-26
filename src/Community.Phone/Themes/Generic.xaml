@@ -7,21 +7,67 @@
     <ResourceDictionary.MergedDictionaries>
         <!--  Single, persistent theme dictionary. Loaded once; Microsoft.Phone.Shell.ThemeManager recolors its brushes in place.  -->
         <ResourceDictionary Source="/Community.Phone;component/Themes/Theme.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Themes/Metro.Dark.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Themes/Metro.xaml" />
 
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ApplicationBar.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Button.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ListBox.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/LongListSelector.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Panorama.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/PhoneApplicationFrame.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/Pivot.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ProgressBar.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ProgressIndicator.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollBar.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/ScrollViewer.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/TextBlock.xaml" />
-        <ResourceDictionary Source="/Community.Phone;component/Themes/Controls/TextBox.xaml" />
-        
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ApplicationBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Button.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Calendar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/CheckBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/CollectionViewGroup.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ComboBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ContentControl.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ContextMenu.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/DataGrid.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/DatePicker.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/DocumentViewer.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Expander.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Frame.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/GridSplitter.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/GridView.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/GroupBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/GroupItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/HeaderedContentControl.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Hyperlink.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ItemsControl.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Label.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ListBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ListBoxItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ListView.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ListViewItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/LongListSelector.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Menu.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/MenuItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/NavigationWindow.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Page.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Panorama.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/PasswordBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/PhoneApplicationFrame.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Pivot.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ProgressBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ProgressIndicator.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/RadioButton.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/RepeatButton.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ResizeGrip.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/RichTextBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ScrollBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ScrollViewer.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Separator.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Slider.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/StatusBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/StatusBarItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/TabControl.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/TextBlock.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/TextBox.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Thumb.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ToggleButton.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ToolBar.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/ToolTip.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/TreeView.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/TreeViewItem.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/UserControl.xaml" />
+        <ResourceDictionary Source="/Community.Phone;component/Themes/Styles/Window.xaml" />
+
     </ResourceDictionary.MergedDictionaries>
 
 </ResourceDictionary>
